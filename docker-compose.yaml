@@ -56,5 +56,23 @@ services:
         - action: rebuild
           path: ./frontend/package.json
 
+  shapes-engine:
+    build:
+      context: ./shapes-engine
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=${PORT_SHAPES_ENGINE}
+    develop:
+      watch:
+        - action: sync
+          path: ./shapes-engine/src
+          target: /app/src
+          initial_sync: true
+        - action: rebuild
+          path: ./shapes-engine/requirements.txt
+
 volumes:
   postgres_data:

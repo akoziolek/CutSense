@@ -87,7 +87,6 @@ export const patterns = pgTable('patterns', {
   starAverage: numeric('star_average', { precision: 3, scale: 2 })
     .notNull()
     .default('0'),
-  isFavourite: boolean('is_favourite').notNull().default(false),
   userId: bigint('user_id', { mode: 'number' })
     .notNull()
     .references(() => users.id),
@@ -176,6 +175,21 @@ export const patternStars = pgTable(
   (table) => [primaryKey({ columns: [table.patternId, table.userId] })],
 );
 
+export const patternFavourites = pgTable(
+  'pattern_favourites',
+  {
+    patternId: bigint('pattern_id', { mode: 'number' })
+      .notNull()
+      .references(() => patterns.id, { onDelete: 'cascade' }),
+    userId: bigint('user_id', { mode: 'number' })
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.patternId, table.userId] })],
+);
+
 export const fabricTags = pgTable(
   'fabric_tags',
   {
@@ -221,6 +235,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   patterns: many(patterns),
   fabrics: many(fabrics),
   patterns_stars: many(patternStars),
+  favourite_patterns: many(patternFavourites),
 }));
 
 export const patternsRelations = relations(patterns, ({ one, many }) => ({
@@ -232,6 +247,7 @@ export const patternsRelations = relations(patterns, ({ one, many }) => ({
   tags: many(patternTags),
   stars: many(patternStars),
   optimizationResults: many(optimizationResults),
+  favoritedBy: many(patternFavourites),
 }));
 
 export const patternPiecesRelations = relations(
@@ -242,6 +258,20 @@ export const patternPiecesRelations = relations(
       references: [patterns.id],
     }),
     placedPieces: many(placedPieces),
+  }),
+);
+
+export const patternFavouritesRelations = relations(
+  patternFavourites,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [patternFavourites.userId],
+      references: [users.id],
+    }),
+    pattern: one(patterns, {
+      fields: [patternFavourites.patternId],
+      references: [patterns.id],
+    }),
   }),
 );
 

@@ -1,5 +1,5 @@
 {
-  "id": "69e63b96-c35f-4e4a-a11a-563271907d29",
+  "id": "df2ddb58-c44b-4aa9-bd76-2c8cc1ce42ce",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -169,7 +169,7 @@
         },
         "boundary": {
           "name": "boundary",
-          "type": "geometry(point)",
+          "type": "geometry(Polygon, 0)",
           "primaryKey": false,
           "notNull": true
         },
@@ -384,7 +384,7 @@
         },
         "boundary": {
           "name": "boundary",
-          "type": "geometry(point)",
+          "type": "geometry(Polygon, 0)",
           "primaryKey": false,
           "notNull": true
         },

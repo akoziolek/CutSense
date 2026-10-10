@@ -5,8 +5,15 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1791629425542,
+      "when": 1791643219157,
       "tag": "0000_init_sql",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791649128227,
+      "tag": "0001_add_pattern_favourites_table",
       "breakpoints": true
     }
   ]

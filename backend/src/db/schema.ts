@@ -12,6 +12,7 @@ import {
   geometry,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
+import { postgisPolygon } from './custom-types.js';
 
 // ==========================================
 // ENUMS
@@ -86,7 +87,6 @@ export const patterns = pgTable('patterns', {
   starAverage: numeric('star_average', { precision: 3, scale: 2 })
     .notNull()
     .default('0'),
-  isFavourite: boolean('is_favourite').notNull().default(false),
   userId: bigint('user_id', { mode: 'number' })
     .notNull()
     .references(() => users.id),
@@ -102,7 +102,7 @@ export const patternPieces = pgTable('pattern_pieces', {
     .notNull()
     .references(() => patterns.id),
   // polygon on Cartesian coordinate system
-  boundary: geometry('boundary', { type: 'polygon', srid: 0 }).notNull(),
+  boundary: postgisPolygon('boundary').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
@@ -114,7 +114,7 @@ export const fabrics = pgTable('fabrics', {
   name: varchar('name', { length: 35 }).notNull(),
   description: varchar('description', { length: 400 }),
   pictureUrl: varchar('picture_url', { length: 2048 }),
-  boundary: geometry('boundary', { type: 'polygon', srid: 0 }).notNull(),
+  boundary: postgisPolygon('boundary').notNull(),
   isFavourite: boolean('is_favourite').notNull().default(false),
   userId: bigint('user_id', { mode: 'number' })
     .notNull()
@@ -123,7 +123,6 @@ export const fabrics = pgTable('fabrics', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
-// 4. Umieszczone elementy (Placed Pieces) - placement jako punkt (point)
 export const placedPieces = pgTable('placed_pieces', {
   id: bigint('id', { mode: 'number' })
     .primaryKey()
@@ -176,6 +175,21 @@ export const patternStars = pgTable(
   (table) => [primaryKey({ columns: [table.patternId, table.userId] })],
 );
 
+export const patternFavourites = pgTable(
+  'pattern_favourites',
+  {
+    patternId: bigint('pattern_id', { mode: 'number' })
+      .notNull()
+      .references(() => patterns.id, { onDelete: 'cascade' }),
+    userId: bigint('user_id', { mode: 'number' })
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.patternId, table.userId] })],
+);
+
 export const fabricTags = pgTable(
   'fabric_tags',
   {
@@ -221,6 +235,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   patterns: many(patterns),
   fabrics: many(fabrics),
   patterns_stars: many(patternStars),
+  favourite_patterns: many(patternFavourites),
 }));
 
 export const patternsRelations = relations(patterns, ({ one, many }) => ({
@@ -232,6 +247,7 @@ export const patternsRelations = relations(patterns, ({ one, many }) => ({
   tags: many(patternTags),
   stars: many(patternStars),
   optimizationResults: many(optimizationResults),
+  favoritedBy: many(patternFavourites),
 }));
 
 export const patternPiecesRelations = relations(
@@ -242,6 +258,20 @@ export const patternPiecesRelations = relations(
       references: [patterns.id],
     }),
     placedPieces: many(placedPieces),
+  }),
+);
+
+export const patternFavouritesRelations = relations(
+  patternFavourites,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [patternFavourites.userId],
+      references: [users.id],
+    }),
+    pattern: one(patterns, {
+      fields: [patternFavourites.patternId],
+      references: [patterns.id],
+    }),
   }),
 );
 

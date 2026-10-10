@@ -133,8 +133,8 @@ export const placedPieces = pgTable('placed_pieces', {
   optimizationResultId: bigint('optimization_result_id', { mode: 'number' })
     .notNull()
     .references(() => optimizationResults.id, { onDelete: 'cascade' }),
-  rotationAngle: integer('rotationAngle').notNull(),
-  isMirrored: boolean('isMirrored').notNull(),
+  rotationAngle: integer('rotation_angle').notNull(),
+  isMirrored: boolean('is_mirrored').notNull(),
   placement: geometry('placement', {
     type: 'point',
     mode: 'xy',

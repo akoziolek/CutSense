@@ -16,9 +16,11 @@ RUN npm prune --production
 FROM node:22-alpine AS production
 WORKDIR /app
 
-COPY --chown=node:node package*.json .
-COPY --from=builder --chown=node:node /app/dist dist/
-COPY --from=builder --chown=node:node /app/node_modules node_modules/
+COPY --chown=node:node package*.json ./
+COPY --from=builder --chown=node:node /app/node_modules ./node_modules/
+COPY --from=builder --chown=node:node /app/dist ./dist/
+COPY --from=builder --chown=node:node /app/drizzle.config.ts ./
+COPY --from=builder --chown=node:node /app/drizzle ./drizzle
 
 USER node
 

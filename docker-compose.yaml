@@ -4,7 +4,11 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_ADMIN_USER}
       POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
-      POSTGRES_DB: postgres
+      POSTGRES_DB: ${POSTGRES_DB_NAME}
+      MIGRATOR_USER: ${MIGRATOR_USER}
+      MIGRATOR_PASSWORD: ${MIGRATOR_PASSWORD}
+      RUNTIME_USER: ${RUNTIME_USER}
+      RUNTIME_PASSWORD: ${RUNTIME_PASSWORD}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ADMIN_USER} -d postgres"]
       interval: 5s
@@ -14,6 +18,21 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-users.sh:/docker-entrypoint-initdb.d/init-users.sh:ro
+
+  migration:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    command: npm run db:migrate
+    environment:
+      MIGRATOR_DATABASE_URL: postgres://${MIGRATOR_USER}:${MIGRATOR_PASSWORD}@db:5432/${POSTGRES_DB_NAME}
+    volumes:
+      - ./backend/drizzle:/app/drizzle
+    depends_on:
+      db:
+        condition: service_healthy
 
   backend:
     build:
@@ -24,9 +43,12 @@ services:
       - "3000:3000"
     environment:
       PORT: ${PORT_BACKEND}
+      RUNTIME_DATABASE_URL: postgres://${RUNTIME_USER}:${RUNTIME_PASSWORD}@db:5432/${POSTGRES_DB_NAME}
     depends_on:
       db:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
     develop:
       watch:
         - action: sync

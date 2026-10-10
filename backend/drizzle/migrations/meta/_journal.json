@@ -29,6 +29,13 @@
       "when": 1791651188565,
       "tag": "0003_unified_placedPieces_col_names",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791655826621,
+      "tag": "0004_add_indexes",
+      "breakpoints": true
     }
   ]
 }

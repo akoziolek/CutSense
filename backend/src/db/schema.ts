@@ -123,7 +123,6 @@ export const fabrics = pgTable('fabrics', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
-// 4. Umieszczone elementy (Placed Pieces) - placement jako punkt (point)
 export const placedPieces = pgTable('placed_pieces', {
   id: bigint('id', { mode: 'number' })
     .primaryKey()

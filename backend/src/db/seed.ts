@@ -251,18 +251,18 @@ async function main(): Promise<void> {
   const pool = new Pool({ connectionString });
   const db = drizzle(pool, { schema });
 
-    try {
+  try {
     const [existingUser] = await db
-    .select({ id: schema.users.id })
-    .from(schema.users)
-    .limit(1);
+      .select({ id: schema.users.id })
+      .from(schema.users)
+      .limit(1);
     if (existingUser) {
-    console.info(
+      console.info(
         'Database already contains data – skipping demo data generation.',
-    );
-    return;
+      );
+      return;
     }
-        
+
     console.log('Seeding dictionaries and tags...');
 
     await db
@@ -418,6 +418,18 @@ async function main(): Promise<void> {
     if (starRows.length > 0)
       await db.insert(schema.patternStars).values(starRows);
 
+    const favouriteRows: { patternId: number; userId: number }[] = [];
+    patterns.forEach((pattern, patternIndex) => {
+      const favouriteCount = Math.min(1 + (patternIndex % 3), users.length);
+      for (let i = 0; i < favouriteCount; i++) {
+        const user = users[(patternIndex + i) % users.length];
+        favouriteRows.push({ patternId: pattern.id, userId: user.id });
+      }
+    });
+
+    if (favouriteRows.length > 0)
+      await db.insert(schema.patternFavourites).values(favouriteRows);
+
     for (const pattern of patterns) {
       const ratings = patternRatings.get(pattern.id) ?? [];
       const starAverage =
@@ -431,7 +443,7 @@ async function main(): Promise<void> {
     }
 
     console.log(
-      `Success! Seeded: ${users.length} users, ${patterns.length} patterns, ${fabrics.length} fabric sheets, and ${pieceRows.length} 2D pieces.`,
+      `Success! Seeded: ${users.length} users, ${patterns.length} patterns, ${fabrics.length} fabric sheets, ${pieceRows.length} 2D pieces, and ${favouriteRows.length} pattern favourites.`,
     );
   } finally {
     await pool.end();

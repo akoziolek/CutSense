@@ -89,7 +89,7 @@ export const patterns = pgTable('patterns', {
     .default('0'),
   userId: bigint('user_id', { mode: 'number' })
     .notNull()
-    .references(() => users.id),
+    .references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
@@ -100,7 +100,7 @@ export const patternPieces = pgTable('pattern_pieces', {
     .generatedByDefaultAsIdentity(),
   patternId: bigint('pattern_id', { mode: 'number' })
     .notNull()
-    .references(() => patterns.id),
+    .references(() => patterns.id, { onDelete: 'cascade' }),
   // polygon on Cartesian coordinate system
   boundary: postgisPolygon('boundary').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
@@ -118,7 +118,7 @@ export const fabrics = pgTable('fabrics', {
   isFavourite: boolean('is_favourite').notNull().default(false),
   userId: bigint('user_id', { mode: 'number' })
     .notNull()
-    .references(() => users.id),
+    .references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
@@ -129,12 +129,12 @@ export const placedPieces = pgTable('placed_pieces', {
     .generatedByDefaultAsIdentity(),
   patternPieceId: bigint('pattern_piece_id', { mode: 'number' })
     .notNull()
-    .references(() => patternPieces.id),
+    .references(() => patternPieces.id, { onDelete: 'cascade' }),
   optimizationResultId: bigint('optimization_result_id', { mode: 'number' })
     .notNull()
-    .references(() => optimizationResults.id),
-  rotationAngle: integer('rotationAngle').notNull(),
-  isMirrored: boolean('isMirrored').notNull(),
+    .references(() => optimizationResults.id, { onDelete: 'cascade' }),
+  rotationAngle: integer('rotation_angle').notNull(),
+  isMirrored: boolean('is_mirrored').notNull(),
   placement: geometry('placement', {
     type: 'point',
     mode: 'xy',
@@ -149,10 +149,10 @@ export const patternTags = pgTable(
   {
     patternId: bigint('pattern_id', { mode: 'number' })
       .notNull()
-      .references(() => patterns.id),
+      .references(() => patterns.id, { onDelete: 'cascade' }),
     tagId: bigint('tag_id', { mode: 'number' })
       .notNull()
-      .references(() => tagsForPatterns.id),
+      .references(() => tagsForPatterns.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
@@ -164,10 +164,10 @@ export const patternStars = pgTable(
   {
     patternId: bigint('pattern_id', { mode: 'number' })
       .notNull()
-      .references(() => patterns.id),
+      .references(() => patterns.id, { onDelete: 'cascade' }),
     userId: bigint('user_id', { mode: 'number' })
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: 'cascade' }),
     rating: smallint('rating').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
@@ -195,10 +195,10 @@ export const fabricTags = pgTable(
   {
     fabricId: bigint('fabric_id', { mode: 'number' })
       .notNull()
-      .references(() => fabrics.id),
+      .references(() => fabrics.id, { onDelete: 'cascade' }),
     tagId: bigint('tag_id', { mode: 'number' })
       .notNull()
-      .references(() => tagsForFabrics.id),
+      .references(() => tagsForFabrics.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
@@ -212,14 +212,15 @@ export const optimizationResults = pgTable('optimization_results', {
   name: varchar('name', { length: 35 }).notNull(),
   patternId: bigint('pattern_id', { mode: 'number' })
     .notNull()
-    .references(() => patterns.id),
+    .references(() => patterns.id, { onDelete: 'cascade' }),
   algorithmId: bigint('algorithm_id', { mode: 'number' })
     .notNull()
-    .references(() => algorithmTypes.id),
+    .references(() => algorithmTypes.id, { onDelete: 'restrict' }),
   fabricWidth: integer('fabric_width'),
   fabricLength: integer('fabric_length'),
   customFabricId: bigint('custom_fabric_id', { mode: 'number' }).references(
     () => fabrics.id,
+    { onDelete: 'cascade' },
   ),
   seamAllowance: integer('seam_allowance').notNull(),
   cuttingAllowance: integer('cutting_allowance').notNull(),

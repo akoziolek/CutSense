@@ -12,6 +12,7 @@ import {
   geometry,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
+import { postgisPolygon } from './custom-types.js';
 
 // ==========================================
 // ENUMS
@@ -102,7 +103,7 @@ export const patternPieces = pgTable('pattern_pieces', {
     .notNull()
     .references(() => patterns.id),
   // polygon on Cartesian coordinate system
-  boundary: geometry('boundary', { type: 'polygon', srid: 0 }).notNull(),
+  boundary: postgisPolygon('boundary').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
@@ -114,7 +115,7 @@ export const fabrics = pgTable('fabrics', {
   name: varchar('name', { length: 35 }).notNull(),
   description: varchar('description', { length: 400 }),
   pictureUrl: varchar('picture_url', { length: 2048 }),
-  boundary: geometry('boundary', { type: 'polygon', srid: 0 }).notNull(),
+  boundary: postgisPolygon('boundary').notNull(),
   isFavourite: boolean('is_favourite').notNull().default(false),
   userId: bigint('user_id', { mode: 'number' })
     .notNull()
@@ -123,7 +124,6 @@ export const fabrics = pgTable('fabrics', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
-// 4. Umieszczone elementy (Placed Pieces) - placement jako punkt (point)
 export const placedPieces = pgTable('placed_pieces', {
   id: bigint('id', { mode: 'number' })
     .primaryKey()

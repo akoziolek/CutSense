@@ -57,6 +57,23 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Seed the database
+
+After building the backend and applying migrations, populate an empty database
+with reproducible demo users, patterns, pattern pieces, fabrics, tags, and
+ratings:
+
+```bash
+npm run build
+npm run db:seed
+```
+
+The seed command uses `MIGRATOR_DATABASE_URL` (or `RUNTIME_DATABASE_URL` as a
+fallback). It always ensures the algorithm and tag lookup values exist, but
+only generates demo records when the users, patterns, and fabrics tables are
+empty. The Docker Compose `seed` service runs after migrations and before the
+backend.
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.

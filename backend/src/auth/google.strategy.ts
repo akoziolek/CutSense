@@ -21,19 +21,19 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         });
     }
 
-      validate(_at: string, _rt: string, profile: Profile): GoogleProfile {
-    const email = profile.emails?.[0]?.value?.toLowerCase();
-    const verified = profile.emails?.[0]?.verified;
-    if (!email || verified === false) {
-      throw new UnauthorizedException('Google account has no verified e-mail');
-    }
+    validate(_at: string, _rt: string, profile: Profile): GoogleProfile {
+        const email = profile.emails?.[0]?.value?.toLowerCase();
+        const verified = profile.emails?.[0]?.verified;
+        if (!email || verified === false) {
+        throw new UnauthorizedException('Google account has no verified e-mail');
+        }
 
-    const name = profile.name?.givenName || profile.displayName || email.split('@')[0];
-    return {
-      email,
-      name: name.slice(0, 60),
-      surname: profile.name?.familyName?.slice(0, 60),
-      avatar: profile.photos?.[0]?.value,
-    };
+        const name = profile.name?.givenName || profile.displayName || email.split('@')[0];
+        return {
+        email,
+        name: name.slice(0, 60),
+        surname: profile.name?.familyName?.slice(0, 60),
+        avatar: profile.photos?.[0]?.value,
+        };
   }
 }

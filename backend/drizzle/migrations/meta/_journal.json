@@ -36,6 +36,13 @@
       "when": 1791655826621,
       "tag": "0004_add_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791720646271,
+      "tag": "0005_make_created_at_col_mandatory",
+      "breakpoints": true
     }
   ]
 }

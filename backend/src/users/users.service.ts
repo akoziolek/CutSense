@@ -50,7 +50,7 @@ export class UsersService {
       };
       if (err.code === '23505') {
         if (err.constraint?.includes('nickname')) {
-          throw new ConflictException('This nickname is already taken');
+          throw new ConflictException('This nickname is already taken. Please choose a different one.');
         }
         throw new ConflictException(
           'Account for this email address already exists',

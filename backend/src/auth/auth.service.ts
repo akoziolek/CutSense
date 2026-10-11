@@ -59,5 +59,32 @@ export class AuthService {
         { expiresIn: '7d' },
         );
     }
+
+    async register(registrationToken: string | undefined, nickname: string) {
+    const profile = this.readRegistrationToken(registrationToken);
+
+    // Account may have appeared meanwhile so just log in
+    const existing = await this.users.findByEmail(profile.email);
+    if (existing) {
+      return {
+        sessionToken: this.signSession(existing.id),
+        nickname: existing.nickname,
+      };
+    }
+
+    if (await this.users.nicknameExists(nickname)) {
+      throw new ConflictException('This nickname is already taken');
+    }
+
+    const user = await this.users.create({
+      email: profile.email,
+      name: profile.name,
+      surname: profile.surname,
+      pictureUrl: profile.avatar,
+      nickname,
+    });
+
+    return { sessionToken: this.signSession(user.id), nickname: user.nickname };
+  }
 }
 

@@ -5,8 +5,9 @@ import { AuthService } from './auth.service.js';
 import { GoogleAuthGuard } from './google-auth.guard.js';
 import { GoogleProfile } from './google.strategy.js';
 import { SessionGuard } from './session.guard.js';
-import { CurrentUser } from './current-user.decorator.js';
-import type { AuthUser } from './current-user.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import type { AuthUser } from '../common/decorators/current-user.decorator.js';
+import { RegisterDto } from './dto/register.dto.js';
 
 const SESSION_MAX_AGE = 7 * 24 * 3600 * 1000;
 const REGISTRATION_MAX_AGE = 15 * 60 * 1000;
@@ -65,5 +66,22 @@ export class AuthController {
     @UseGuards(SessionGuard)
     me(@CurrentUser() user: AuthUser) {
     return this.auth.getCurrentUser(user.id);
+    }
+
+
+    //POST endpoint
+    @Post('register')
+    async register(
+        @Req() req: Request,
+        @Body() dto: RegisterDto,
+        @Res({ passthrough: true }) res: Response,
+    ) {
+        const { sessionToken, nickname } = await this.auth.register(
+        req.cookies?.registration_token as string | undefined,
+        dto.nickname,
+        );
+        res.clearCookie('registration_token');
+        res.cookie('session', sessionToken, cookieOpts(SESSION_MAX_AGE));
+        return { nickname };
     }
 }

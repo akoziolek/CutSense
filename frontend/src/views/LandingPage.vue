@@ -1,9 +1,9 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import GridBackgroundLayout from '@/components/common/GridBackgroundLayout.vue'
+</script>
 
 <template>
-  <main class="container">
-    <Button>ShadcnVue button</Button>
-  </main>
+  <GridBackgroundLayout>
+    <template #header> </template>
+  </GridBackgroundLayout>
 </template>
-
-<style scoped></style>

@@ -3,6 +3,7 @@ import GridBackgroundLayout from '@/components/common/GridBackgroundLayout.vue'
 import BannerTicker from '@/components/common/BannerTicker.vue'
 import StepsCarouselSection from '@/components/landing/StepsCarouselSection.vue'
 import Separator from '@/components/ui/separator/Separator.vue'
+import AboutSection from '@/components/landing/AboutSection.vue'
 </script>
 
 <template>
@@ -13,5 +14,6 @@ import Separator from '@/components/ui/separator/Separator.vue'
     <Separator
       class="w-full h-0.5 bg-transparent bg-[repeating-linear-gradient(to_right,var(--border)_0px,var(--border)_16px,transparent_16px,transparent_32px)] border-none"
     />
+    <AboutSection />
   </GridBackgroundLayout>
 </template>

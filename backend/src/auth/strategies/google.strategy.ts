@@ -1,7 +1,9 @@
-import {Injectable, UnauthorizedException} from '@nestjs/common';
+import {Injectable} from '@nestjs/common';
 import {ConfigService} from '@nestjs/config';
 import {PassportStrategy} from '@nestjs/passport';
 import {Profile, Strategy} from 'passport-google-oauth20';
+import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';
+
 
 export interface GoogleProfile {
     email: string;
@@ -25,7 +27,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         const email = profile.emails?.[0]?.value?.toLowerCase();
         const verified = profile.emails?.[0]?.verified;
         if (!email || verified === false) {
-        throw new UnauthorizedException('Google account has no verified e-mail');
+        throw new AuthenticationRequiredException('Google account has no verified e-mail');
         }
 
         const name = profile.name?.givenName || profile.displayName || email.split('@')[0];

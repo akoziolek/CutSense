@@ -1,7 +1,7 @@
-import { ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import type { DrizzleDB } from '../db/drizzle.provider.js';
 import { UsersService } from './users.service.js';
+import { ResourceConflictException } from '../common/exceptions/resource-conflict.exception.js';
 
 const dbFailingWith = (error: unknown) =>
   ({
@@ -35,7 +35,7 @@ describe('UsersService.create', () => {
 
     await expect(
       new UsersService(dbFailingWith(error)).create(newUser),
-    ).rejects.toBeInstanceOf(ConflictException);
+    ).rejects.toBeInstanceOf(ResourceConflictException);
   });
 
   it('rethrows unrelated database errors', async () => {

@@ -1,5 +1,6 @@
-import { createParamDecorator, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
+import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';
 
 export interface AuthUser {
   id: number;
@@ -10,7 +11,7 @@ export const CurrentUser = createParamDecorator(
     const req = ctx.switchToHttp().getRequest<Request>();
     const user = req.user as AuthUser | undefined;
 
-    if (!user) throw new UnauthorizedException();
+    if (!user) throw new AuthenticationRequiredException();
     return user;
   },
 );

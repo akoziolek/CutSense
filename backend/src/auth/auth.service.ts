@@ -1,7 +1,9 @@
-import {ConflictException, Injectable, UnauthorizedException} from '@nestjs/common';
+import {Injectable} from '@nestjs/common';
 import {JwtService} from '@nestjs/jwt';
 import {UsersService} from '../users/users.service.js';
-import { GoogleProfile } from './google.strategy.js';
+import { GoogleProfile } from './strategies/google.strategy.js';
+import { AuthenticationRequiredException } from '../common/exceptions/authentication-required.exception.js';
+import { ResourceConflictException } from '../common/exceptions/resource-conflict.exception.js';
 
 export type GoogleCallbackResult = 
     | {status: 'existing'; sessionToken: string}
@@ -30,7 +32,7 @@ export class AuthService {
     }
 
     readRegistrationToken(token?: string): GoogleProfile {
-        if (!token) throw new UnauthorizedException('No registration session');
+        if (!token) throw new AuthenticationRequiredException('No registration session');
         try {
         const { purpose, email, name, surname, avatar } = this.jwt.verify<
             GoogleProfile & { purpose: string }
@@ -38,13 +40,13 @@ export class AuthService {
         if (purpose !== 'registration') throw new Error('wrong token type');
         return { email, name, surname, avatar };
         } catch {
-        throw new UnauthorizedException('Registration session expired');
+        throw new AuthenticationRequiredException('Registration session expired');
         }
     }
 
     async getCurrentUser(id: number) {
         const user = await this.users.findById(id);
-        if (!user) throw new UnauthorizedException();
+        if (!user) throw new AuthenticationRequiredException('User not found');
         return {
         id: user.id,
         nickname: user.nickname,
@@ -73,7 +75,7 @@ export class AuthService {
     }
 
     if (await this.users.nicknameExists(nickname)) {
-      throw new ConflictException('This nickname is already taken');
+      throw new ResourceConflictException('This nickname is already taken');
     }
 
     const user = await this.users.create({

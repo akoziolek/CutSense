@@ -1,8 +1,9 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UsersService } from '../users/users.service.js';
 import { AuthService } from './auth.service.js';
+import { AuthenticationRequiredException } from '../common/exceptions/authentication-required.exception.js';
+import { ResourceConflictException } from '../common/exceptions/resource-conflict.exception.js';
 
 const profile = {
   email: 'a@b.pl',
@@ -65,13 +66,13 @@ describe('AuthService', () => {
   describe('readRegistrationToken', () => {
     it('rejects a missing token', () => {
       expect(() => service.readRegistrationToken(undefined)).toThrow(
-        UnauthorizedException,
+        AuthenticationRequiredException,
       );
     });
 
     it('rejects a garbage token', () => {
       expect(() => service.readRegistrationToken('not-a-jwt')).toThrow(
-        UnauthorizedException,
+        AuthenticationRequiredException,
       );
     });
 
@@ -81,14 +82,14 @@ describe('AuthService', () => {
         { expiresIn: '-1s' },
       );
       expect(() => service.readRegistrationToken(expired)).toThrow(
-        UnauthorizedException,
+        AuthenticationRequiredException,
       );
     });
 
     it('rejects a session token used as a registration token', () => {
       expect(() =>
         service.readRegistrationToken(service.signSession(1)),
-      ).toThrow(UnauthorizedException);
+      ).toThrow(AuthenticationRequiredException);
     });
   });
 
@@ -115,14 +116,14 @@ describe('AuthService', () => {
 
       await expect(
         service.register(await registrationToken(), 'Taken'),
-      ).rejects.toBeInstanceOf(ConflictException);
+      ).rejects.toBeInstanceOf(ResourceConflictException);
       expect(users.create).not.toHaveBeenCalled();
     });
 
     it('rejects registration without a token', async () => {
       await expect(
         service.register(undefined, 'Ala_Test'),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
+      ).rejects.toBeInstanceOf(AuthenticationRequiredException);
       expect(users.create).not.toHaveBeenCalled();
     });
 
@@ -160,7 +161,7 @@ describe('AuthService', () => {
       users.findById.mockResolvedValue(null);
 
       await expect(service.getCurrentUser(3)).rejects.toBeInstanceOf(
-        UnauthorizedException,
+        AuthenticationRequiredException,
       );
     });
   });

@@ -1,8 +1,9 @@
-import {ConflictException, Inject, Injectable} from '@nestjs/common'
+import { Inject, Injectable} from '@nestjs/common'
 import {eq, sql} from 'drizzle-orm'
 import {DRIZZLE} from '../db/drizzle.provider.js';
 import type { DrizzleDB } from '../db/drizzle.provider.js';
 import {users} from '../db/schema.js';
+import { ResourceConflictException } from '../common/exceptions/resource-conflict.exception.js';
 
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
@@ -12,30 +13,24 @@ export class UsersService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
   async findByEmail(email: string): Promise<User | null> {
-    const [user] = await this.db
-        .select()
-        .from(users)
-        .where(eq(users.email, email.toLocaleLowerCase()))
-        .limit(1);
+    const user = await this.db.query.users.findFirst({
+       where: eq(users.email, email.toLowerCase()),
+    });
     return user ?? null;
   }
 
   async findById(id: number): Promise<User | null> {
-    const [user] = await this.db
-        .select()
-        .from(users)
-        .where(eq(users.id, id))
-        .limit(1);
+    const user = await this.db.query.users.findFirst({
+       where: eq(users.id, id),
+    });
     return user ?? null;
   }
 
-   async nicknameExists(nickname: string): Promise<boolean> {
-    const [row] = await this.db
-      .select({ id: users.id })
-      .from(users)
-      .where(sql`lower(${users.nickname}) = lower(${nickname})`)
-      .limit(1);
-    return !!row;
+  async nicknameExists(nickname: string): Promise<boolean> {
+    const user = await this.db.query.users.findFirst({
+      where: sql`lower(${users.nickname}) = lower(${nickname})`,
+    });
+    return !!user;
   }
 
   async create(data: NewUser): Promise<User> {
@@ -50,9 +45,9 @@ export class UsersService {
       };
       if (err.code === '23505') {
         if (err.constraint?.includes('nickname')) {
-          throw new ConflictException('This nickname is already taken. Please choose a different one.');
+          throw new ResourceConflictException('This nickname is already taken. Please choose a different one.');
         }
-        throw new ConflictException(
+        throw new ResourceConflictException(
           'Account for this email address already exists',
         );
       }

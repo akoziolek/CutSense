@@ -8,7 +8,7 @@
     </header>
 
     <main class="relative w-full flex-1 shadow-xs">
-      <div class="w-full h-full py-8 sm:py-12">
+      <div class="w-full h-full">
         <slot />
       </div>
     </main>

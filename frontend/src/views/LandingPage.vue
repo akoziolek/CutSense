@@ -5,11 +5,14 @@ import StepsCarouselSection from '@/components/landing/StepsCarouselSection.vue'
 import Separator from '@/components/ui/separator/Separator.vue'
 import AboutSection from '@/components/landing/AboutSection.vue'
 import CreatorsSection from '@/components/landing/CreatorsSection.vue'
+import CtaSection from '@/components/landing/CtaSection.vue'
 </script>
 
 <template>
   <GridBackgroundLayout>
-    <template #header> </template>
+    <template #header>
+      <CtaSection />
+    </template>
     <BannerTicker />
     <StepsCarouselSection />
     <Separator

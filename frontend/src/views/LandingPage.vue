@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import GridBackgroundLayout from '@/components/common/GridBackgroundLayout.vue'
+import GridLayout from '@/components/layouts/GridLayout.vue'
 import BannerTicker from '@/components/common/BannerTicker.vue'
 import StepsCarouselSection from '@/components/landing/StepsCarouselSection.vue'
 import Separator from '@/components/ui/separator/Separator.vue'
@@ -9,7 +9,7 @@ import CtaSection from '@/components/landing/CtaSection.vue'
 </script>
 
 <template>
-  <GridBackgroundLayout>
+  <GridLayout>
     <template #header>
       <CtaSection />
     </template>
@@ -23,5 +23,5 @@ import CtaSection from '@/components/landing/CtaSection.vue'
       <CreatorsSection />
       <div class="w-full bg-brand-violet py-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.18)] mt-8" />
     </template>
-  </GridBackgroundLayout>
+  </GridLayout>
 </template>

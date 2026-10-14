@@ -1,4 +1,4 @@
-import {Body, Controller, Get, Post, Req, Res, UseGuards} from '@nestjs/common';
+import {Body, Controller, Get, Post, Req, Res, HttpCode, HttpStatus, UseGuards} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { CookieOptions, Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
@@ -11,6 +11,12 @@ import { RegisterDto } from './dto/register.dto.js';
 
 const SESSION_MAX_AGE = 7 * 24 * 3600 * 1000;
 const REGISTRATION_MAX_AGE = 15 * 60 * 1000;
+
+const baseCookieOpts: CookieOptions = {
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production',
+};
 
 const cookieOpts = (maxAge: number): CookieOptions => ({
   httpOnly: true,
@@ -83,5 +89,12 @@ export class AuthController {
         res.clearCookie('registration_token');
         res.cookie('session', sessionToken, cookieOpts(SESSION_MAX_AGE));
         return { nickname };
+    }
+
+    @Post('logout')
+        @HttpCode(HttpStatus.NO_CONTENT)
+        logout(@Res({ passthrough: true }) res: Response) {
+        res.clearCookie('session', baseCookieOpts);
+        res.clearCookie('registration_token', baseCookieOpts);
     }
 }

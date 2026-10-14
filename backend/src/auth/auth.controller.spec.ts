@@ -88,4 +88,17 @@ describe('AuthController', () => {
     );
     expect(result).toEqual({ nickname: 'Ala_Test' });
   });
+
+  it('logout: clears the session and registration cookies', () => {
+    controller.logout(res as unknown as Response);
+
+    expect(res.clearCookie).toHaveBeenCalledWith(
+      'session',
+      expect.objectContaining({ httpOnly: true }),
+    );
+    expect(res.clearCookie).toHaveBeenCalledWith(
+      'registration_token',
+      expect.objectContaining({ httpOnly: true }),
+    );
+  });
 });

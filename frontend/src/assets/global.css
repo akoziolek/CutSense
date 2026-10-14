@@ -1,42 +1,167 @@
+@import url('https://fonts.googleapis.com/css2?family=Glegoo:wght@400;700&family=Goudy+Bookletter+1911&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Staatliches&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --Violet-50: #f6f4feff;
+  --Violet-100: #eeeafdff;
+  --Violet-200: #dbd4fbff;
+  --Violet-300: #c7baf8ff;
+  --Violet-400: #ab92f3ff;
+  --Violet-500: #8f66ecff;
+  --Violet-600: #8046e1ff;
+  --Violet-700: #7033ceff;
+  --Violet-800: #5e2bacff;
+  --Violet-900: #4e258dff;
+  --Violet-950: #301560ff;
+
+  --Pink-50: #fbf4f9ff;
+  --Pink-100: #f8ebf5ff;
+  --Pink-200: #f2d8ebff;
+  --Pink-300: #edc4e1ff;
+  --Pink-400: #db8bc2ff;
+  --Pink-500: #cc68aaff;
+  --Pink-600: #b84a8dff;
+  --Pink-700: #9e3873ff;
+  --Pink-800: #833160ff;
+  --Pink-900: #6e2d52ff;
+  --Pink-950: #42152eff;
+
+  --DustPink-50: #faf7f7ff;
+  --DustPink-100: #f4ececff;
+  --DustPink-200: #ebddddff;
+  --DustPink-300: #dcc5c5ff;
+  --DustPink-400: #c7a2a2ff;
+  --DustPink-500: #b18282ff;
+  --DustPink-600: #996969ff;
+  --DustPink-700: #805555ff;
+  --DustPink-800: #6b4949ff;
+  --DustPink-900: #5b4141ff;
+  --DustPink-950: #2f2020ff;
+
+  --Green-50: #f5f9ecff;
+  --Green-100: #e4efcdff;
+  --Green-200: #d3e6b0ff;
+  --Green-300: #b6d482ff;
+  --Green-400: #9ac15aff;
+  --Green-500: #7ca63cff;
+  --Green-600: #60832dff;
+  --Green-700: #4a6526ff;
+  --Green-800: #3d5123ff;
+  --Green-900: #354621ff;
+  --Green-950: #1a250eff;
+
+  --VibrantGreen-50: #f3fcf1ff;
+  --VibrantGreen-100: #e1fadeff;
+  --VibrantGreen-200: #c3f4beff;
+  --VibrantGreen-300: #94e98cff;
+  --VibrantGreen-400: #5dd652ff;
+  --VibrantGreen-500: #37bc2bff;
+  --VibrantGreen-600: #289b1eff;
+  --VibrantGreen-700: #21751aff;
+  --VibrantGreen-800: #1f611aff;
+  --VibrantGreen-900: #1b4f18ff;
+  --VibrantGreen-950: #082c07ff;
+
+  --Red-50: #fff0f0ff;
+  --Red-100: #ffdedeff;
+  --Red-200: #ffc2c2ff;
+  --Red-300: #ff9797ff;
+  --Red-400: #ff5c5cff;
+  --Red-500: #ff2929ff;
+  --Red-600: #f90909ff;
+  --Red-700: #d20303ff;
+  --Red-800: #ae0707ff;
+  --Red-900: #8f0d0dff;
+  --Red-950: #4e0101ff;
+
+  --MutedRed-50: #fcf5f4ff;
+  --MutedRed-100: #f6e4e2ff;
+  --MutedRed-200: #f2dad9ff;
+  --MutedRed-300: #e8bbb9ff;
+  --MutedRed-400: #da9492ff;
+  --MutedRed-500: #c96a6aff;
+  --MutedRed-600: #b34b50ff;
+  --MutedRed-700: #953b41ff;
+  --MutedRed-800: #7e333bff;
+  --MutedRed-900: #6c2f37ff;
+  --MutedRed-950: #3b161aff;
+
+  --Beige-50: #fefcfaff;
+  --Beige-100: #f8eadcff;
+  --Beige-200: #f0d3b8ff;
+  --Beige-300: #e6b48bff;
+  --Beige-400: #db8e5cff;
+  --Beige-500: #d3713cff;
+  --Beige-600: #c55b31ff;
+  --Beige-700: #a4472aff;
+  --Beige-800: #833b29ff;
+  --Beige-900: #6a3224ff;
+  --Beige-950: #391711ff;
+
+  --Grey-50: #fafafaff;
+  --Grey-100: #f5f5f5ff;
+  --Grey-200: #e6e6e6ff;
+  --Grey-300: #d9d9d9ff;
+  --Grey-400: #a3a3a3ff;
+  --Grey-500: #727272ff;
+  --Grey-600: #535353ff;
+  --Grey-700: #404040ff;
+  --Grey-800: #272727ff;
+  --Grey-900: #1a1a1aff;
+  --Grey-950: #0b0b0bff;
+
+  --White-50: #ffffffff;
+  --Black-950: #000000ff;
+
+  --radius: 0.5rem;
+
+  --background: var(--Beige-50);
+  --foreground: var(--Black-950);
+  --card: var(--DustPink-50);
+  --card-foreground: var(--Black-950);
+  --popover: var(--White-50);
+  --popover-foreground: var(--Black-950);
+  --primary: var(--Black-950);
+  --primary-foreground: var(--White-50);
+  --secondary: var(--Pink-300);
+  --secondary-foreground: var(--Black-950);
+  --muted: var(--Grey-300);
+  --muted-foreground: var(--Grey-600);
+  --accent: var(--Green-200);
+  --accent-foreground: var(--Black-950);
+  --destructive: var(--Red-800);
+  --destructive-foreground: var(--Red-50);
+  --border: var(--Grey-700);
+  --input: var(--Grey-500);
+  --ring: var(--Pink-400);
+
+  --warning: var(--Red-100);
+  --warning-foreground: var(--Red-800);
+  --brand-violet: var(--Violet-200);
+  --brand-violet-foreground: var(--Black-950);
+  --brand-green: var(--Green-100);
+  --brand-green-foreground: var(--VibrantGreen-700);
+  --brand-grey: var(--Grey-100);
+  --brand-grey-foreground: var(--Grey-700);
+  --brand-pink: var(--Pink-200);
+  --brand-pink-foreground: var(--Black-950);
+
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: var(--White-50);
+  --sidebar-foreground: var(--Black-950);
+  --sidebar-primary: var(--Black-950);
+  --sidebar-primary-foreground: var(--White-50);
+  --sidebar-accent: var(--Grey-100);
+  --sidebar-accent-foreground: var(--Black-950);
+  --sidebar-border: var(--Grey-200);
+  --sidebar-ring: var(--Pink-400);
 }
 
 .dark {
@@ -59,6 +184,18 @@
   --border: oklch(0.269 0 0);
   --input: oklch(0.269 0 0);
   --ring: oklch(0.439 0 0);
+
+  --warning: oklch(0.3 0.1 25);
+  --warning-foreground: oklch(0.9 0.05 25);
+  --brand-violet: var(--Violet-800);
+  --brand-violet-foreground: var(--Violet-100);
+  --brand-green: var(--Green-900);
+  --brand-green-foreground: var(--Green-100);
+  --brand-grey: var(--Grey-900);
+  --brand-grey-foreground: var(--Grey-200);
+  --brand-pink: var(--Pink-900);
+  --brand-pink-foreground: var(--Pink-100);
+
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -94,11 +231,24 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-brand-violet: var(--brand-violet);
+  --color-brand-violet-foreground: var(--brand-violet-foreground);
+  --color-brand-green: var(--brand-green);
+  --color-brand-green-foreground: var(--brand-green-foreground);
+  --color-brand-grey: var(--brand-grey);
+  --color-brand-grey-foreground: var(--brand-grey-foreground);
+  --color-brand-pink: var(--brand-pink);
+  --color-brand-pink-foreground: var(--brand-pink-foreground);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -106,6 +256,7 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -114,6 +265,24 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-glegoo: 'Glegoo', 'Rockwell', 'Courier New', serif;
+  --font-inter:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+  --font-staatliches: 'Staatliches', 'Impact', 'Arial Black', sans-serif-condensed, sans-serif;
+  --font-bookletter:
+    'Goudy Bookletter 1911', 'Garamond', 'Georgia', 'Baskerville', 'Times New Roman', serif;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-glegoo);
 }
 
 @layer base {

@@ -9,8 +9,8 @@ import NavigationBar from '../common/NavigationBar.vue'
       <slot name="header" />
     </header>
 
-    <main class="relative w-full flex-1 shadow-xs">
-      <div class="w-full h-full">
+    <main class="relative w-full flex flex-1 shadow-xs">
+      <div class="w-full flex-1 flex flex-col">
         <slot />
       </div>
     </main>

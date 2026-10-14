@@ -7,14 +7,11 @@ const routes = [
     path: '/',
     name: 'Landing',
     component: LandingPage,
-  },
-  /**
-  {
+  }, {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: () => import('../views/NotFound.vue'),
+    component: () => import('../views/NotFoundPage.vue'),
   },
-  */
 ]
 
 const router = createRouter({

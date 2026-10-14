@@ -6,6 +6,7 @@ import { AuthenticationRequiredException } from '../../common/exceptions/authent
 
 
 export interface GoogleProfile {
+    googleId: string;
     email: string;
     name: string;
     surname?: string;
@@ -32,6 +33,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 
         const name = profile.name?.givenName || profile.displayName || email.split('@')[0];
         return {
+        googleId: profile.id,
         email,
         name: name.slice(0, 60),
         surname: profile.name?.familyName?.slice(0, 60),

@@ -12,6 +12,13 @@ export type NewUser = typeof users.$inferInsert
 export class UsersService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    const user = await this.db.query.users.findFirst({
+      where: eq(users.googleId, googleId),
+    })
+    return user ?? null;
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     const user = await this.db.query.users.findFirst({
        where: eq(users.email, email.toLowerCase()),
@@ -47,9 +54,12 @@ export class UsersService {
         if (err.constraint?.includes('nickname')) {
           throw new ResourceConflictException('This nickname is already taken. Please choose a different one.');
         }
-        throw new ResourceConflictException(
-          'Account for this email address already exists',
-        );
+        if (err.constraint?.includes('google')) {
+          throw new ResourceConflictException('Account for this Google account already exists');
+        }
+        if (err.constraint?.includes('email')) {
+          throw new ResourceConflictException('Account for this email address already exists', { field: 'email' });
+        }
       }
       throw e;
     }

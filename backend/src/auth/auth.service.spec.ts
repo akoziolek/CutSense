@@ -6,6 +6,7 @@ import { AuthenticationRequiredException } from '../common/exceptions/authentica
 import { ResourceConflictException } from '../common/exceptions/resource-conflict.exception.js';
 
 const profile = {
+  googleId: 'g1',
   email: 'a@b.pl',
   name: 'Ala',
   surname: 'K',
@@ -15,7 +16,7 @@ const profile = {
 describe('AuthService', () => {
   const jwt = new JwtService({ secret: 'test-secret' });
   let users: {
-    findByEmail: ReturnType<typeof vi.fn>;
+    findByGoogleId: ReturnType<typeof vi.fn>;
     findById: ReturnType<typeof vi.fn>;
     nicknameExists: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
@@ -30,7 +31,7 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     users = {
-      findByEmail: vi.fn().mockResolvedValue(null),
+      findByGoogleId: vi.fn().mockResolvedValue(null),
       findById: vi.fn(),
       nicknameExists: vi.fn().mockResolvedValue(false),
       create: vi.fn().mockResolvedValue({ id: 1, nickname: 'Ala_Test' }),
@@ -40,12 +41,12 @@ describe('AuthService', () => {
 
   describe('handleGoogleCallback', () => {
     it('recognizes an existing account and issues a session', async () => {
-      users.findByEmail.mockResolvedValue({ id: 7 });
+      users.findByGoogleId.mockResolvedValue({ id: 7 });
 
       const result = await service.handleGoogleCallback(profile);
 
       expect(result.status).toBe('existing');
-      expect(users.findByEmail).toHaveBeenCalledWith('a@b.pl');
+      expect(users.findByGoogleId).toHaveBeenCalledWith('g1');
       expect(users.create).not.toHaveBeenCalled();
     });
 
@@ -101,6 +102,7 @@ describe('AuthService', () => {
       );
 
       expect(users.create).toHaveBeenCalledWith({
+        googleId: 'g1',
         email: 'a@b.pl',
         name: 'Ala',
         surname: 'K',
@@ -129,7 +131,7 @@ describe('AuthService', () => {
 
     it('logs in instead of creating a duplicate if the account appeared meanwhile', async () => {
       const token = await registrationToken();
-      users.findByEmail.mockResolvedValue({ id: 9, nickname: 'Existing' });
+      users.findByGoogleId.mockResolvedValue({ id: 9, nickname: 'Existing' });
 
       const result = await service.register(token, 'Ala_Test');
 

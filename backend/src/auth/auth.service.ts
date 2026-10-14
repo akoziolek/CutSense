@@ -17,7 +17,7 @@ export class AuthService {
     ) {}
 
     async handleGoogleCallback(profile: GoogleProfile): Promise<GoogleCallbackResult> {
-        const user = await this.users.findByEmail(profile.email);
+        const user = await this.users.findByGoogleId(profile.googleId);
 
         if(user){
             return {status: 'existing', sessionToken: this.signSession(user.id)};
@@ -34,11 +34,11 @@ export class AuthService {
     readRegistrationToken(token?: string): GoogleProfile {
         if (!token) throw new AuthenticationRequiredException('No registration session');
         try {
-        const { purpose, email, name, surname, avatar } = this.jwt.verify<
+        const { purpose, googleId, email, name, surname, avatar } = this.jwt.verify<
             GoogleProfile & { purpose: string }
         >(token);
         if (purpose !== 'registration') throw new Error('wrong token type');
-        return { email, name, surname, avatar };
+        return { googleId, email, name, surname, avatar };
         } catch {
         throw new AuthenticationRequiredException('Registration session expired');
         }
@@ -63,30 +63,31 @@ export class AuthService {
     }
 
     async register(registrationToken: string | undefined, nickname: string) {
-    const profile = this.readRegistrationToken(registrationToken);
+        const profile = this.readRegistrationToken(registrationToken);
 
-    // Account may have appeared meanwhile so just log in
-    const existing = await this.users.findByEmail(profile.email);
-    if (existing) {
-      return {
-        sessionToken: this.signSession(existing.id),
-        nickname: existing.nickname,
-      };
+        // Account may have appeared meanwhile so just log in
+        const existing = await this.users.findByGoogleId(profile.googleId);
+        if (existing) {
+        return {
+            sessionToken: this.signSession(existing.id),
+            nickname: existing.nickname,
+        };
+        }
+
+        if (await this.users.nicknameExists(nickname)) {
+        throw new ResourceConflictException('This nickname is already taken');
+        }
+
+        const user = await this.users.create({
+            googleId: profile.googleId,
+            email: profile.email,
+            name: profile.name,
+            surname: profile.surname,
+            pictureUrl: profile.avatar,
+            nickname,
+        });
+
+        return { sessionToken: this.signSession(user.id), nickname: user.nickname };
     }
-
-    if (await this.users.nicknameExists(nickname)) {
-      throw new ResourceConflictException('This nickname is already taken');
-    }
-
-    const user = await this.users.create({
-      email: profile.email,
-      name: profile.name,
-      surname: profile.surname,
-      pictureUrl: profile.avatar,
-      nickname,
-    });
-
-    return { sessionToken: this.signSession(user.id), nickname: user.nickname };
-  }
 }
 

@@ -10,7 +10,7 @@ const dbFailingWith = (error: unknown) =>
     }),
   }) as unknown as DrizzleDB;
 
-const newUser = { email: 'a@b.pl', name: 'Ala', nickname: 'Ala' };
+const newUser = { googleId: 'g1', email: 'a@b.pl', name: 'Ala', nickname: 'Ala' };
 
 describe('UsersService.create', () => {
   it('returns the inserted row', async () => {
@@ -44,5 +44,12 @@ describe('UsersService.create', () => {
     await expect(
       new UsersService(dbFailingWith(error)).create(newUser),
     ).rejects.toBe(error);
+  });
+
+    it('maps a google id unique violation to ResourceConflictException', async () => {
+    const error = { cause: { code: '23505', constraint: 'users_google_id_unique' } };
+    await expect(
+      new UsersService(dbFailingWith(error)).create({ ...newUser, googleId: 'g1' }),
+    ).rejects.toBeInstanceOf(ResourceConflictException);
   });
 });

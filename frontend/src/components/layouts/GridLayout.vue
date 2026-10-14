@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import NavigationBar from '../common/NavigationBar.vue'
 </script>
 
 <template>
   <div class="relative w-full min-h-screen flex flex-col bg-background text-foreground">
-    <header class="relative w-full min-h-16 bg-grid flex flex-col">
+    <NavigationBar class="fixed top-0 left-0 right-0 z-50 pointer-events-none" />
+    <header class="relative w-full min-h-16 bg-grid flex flex-col pt-20 sm:pt-24">
       <slot name="header" />
     </header>
 

@@ -5,7 +5,7 @@ import TextHighlight from '../common/TextHighlight.vue'
 
 <template>
   <section
-    class="relative w-full py-24 px-4 sm:px-10 flex flex-col items-center justify-center text-center overflow-hidden"
+    class="relative w-full pb-18 pt-12 sm:pt-22 sm:pb-26 px-4 sm:px-10 flex flex-col items-center justify-center text-center overflow-hidden"
   >
     <div class="relative max-w-6xl mx-auto flex flex-col items-center">
       
@@ -15,7 +15,7 @@ import TextHighlight from '../common/TextHighlight.vue'
             <img
               src="@/assets/images/safety-pin.png"
               alt="Safety pin"
-              class="absolute bottom-0 right-0 w-7 h-7 sm:w-11 sm:h-11 lg:w-13 lg:h-13 max-w-none pointer-events-none select-none z-10 -rotate-12 translate-x-1 sm:translate-x-2 translate-y-[5%] sm:translate-y-[-25%]"
+              class="absolute bottom-0 right-0 w-7 h-7 sm:w-11 sm:h-11 lg:w-13 lg:h-13 max-w-none pointer-events-none select-none z-10 -rotate-12 translate-x-1 sm:translate-x-2 translate-y-[5%] sm:translate-y-[-50%]"
             />
           </span>
 

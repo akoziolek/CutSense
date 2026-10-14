@@ -66,7 +66,7 @@ describe('AuthController', () => {
       'R',
       expect.objectContaining({ httpOnly: true }),
     );
-    expect(res.redirect).toHaveBeenCalledWith(`${FRONT}/register/nickname`);
+    expect(res.redirect).toHaveBeenCalledWith(`${FRONT}/?registration=1`);
   });
 
   it('register: swaps the registration cookie for a session cookie', async () => {

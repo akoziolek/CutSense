@@ -49,7 +49,7 @@ export class AuthController {
         result.registrationToken,
         cookieOpts(REGISTRATION_MAX_AGE),
         );
-        return res.redirect(`${front}/register/nickname`);
+        return res.redirect(`${front}/?registration=1`);
     }
 
     // for nickname screen to check if the registration session is valid

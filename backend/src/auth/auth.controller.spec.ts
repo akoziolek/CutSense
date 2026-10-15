@@ -32,7 +32,7 @@ describe('AuthController', () => {
     await callback(null);
 
     expect(res.redirect).toHaveBeenCalledWith(
-      `${FRONT}/login?error=google_auth_failed`,
+      `${FRONT}/?error=google_auth_failed`,
     );
     expect(auth.handleGoogleCallback).not.toHaveBeenCalled();
   });

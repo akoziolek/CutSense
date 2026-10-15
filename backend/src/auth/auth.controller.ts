@@ -40,7 +40,7 @@ export class AuthController {
         const profile = req.user as GoogleProfile | null;
 
         if (!profile) {
-        return res.redirect(`${front}/login?error=google_auth_failed`);
+            return res.redirect(`${front}/?error=google_auth_failed`);
         }
 
         const result = await this.auth.handleGoogleCallback(profile);
@@ -61,10 +61,10 @@ export class AuthController {
     // for nickname screen to check if the registration session is valid
     @Get('registration-session')
     registrationSession(@Req() req: Request) {
-        const { email, avatar } = this.auth.readRegistrationToken(
+        const { email, avatar, name } = this.auth.readRegistrationToken(
         req.cookies?.registration_token as string | undefined,
         );
-        return { email, avatar };
+        return { email, avatar, name };
     }
 
     // Frontend endpoint

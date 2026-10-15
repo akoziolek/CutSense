@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   Dialog,
   DialogContent,
@@ -12,48 +12,51 @@ import { Button } from '@/components/ui/button'
 import { Check, CheckCircle2, AlertCircle, Sparkles, Circle } from 'lucide-vue-next'
 import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator'
 
-// Przykładowy prop do sterowania widocznością i imieniem użytkownika???
 const props = withDefaults(
-  defineProps<{
-    open?: boolean
-    userName?: string
-  }>(),
-  {
-    open: true,
-    userName: 'Aleksandra',
-  },
+  defineProps<{ open?: boolean; userName?: string; error?: string; loading?: boolean }>(),
+  { open: true, userName: '', error: '', loading: false },
 )
 
 const emit = defineEmits<{
-  (e: 'update:open', value: boolean): void
   (e: 'save', nickname: string): void
+  (e: 'cancel'): void
+  (e: 'typing'): void
 }>()
+
+const NICKNAME_REGEX = /^[a-zA-Z0-9_.-]{3,20}$/
 
 const nickname = ref('')
 
-// TODO - replace with backend service for generating VALID nicknames
-const status = computed<'idle' | 'available' | 'taken'>(() => {
-  return 'idle'
+const formatError = computed(() => {
+  const value = nickname.value.trim()
+  return value && !NICKNAME_REGEX.test(value)
+    ? 'Nickname must have 3–20 characters: letters, numbers and _ . -'
+    : ''
+})
+const errorMessage = computed(() => props.error || formatError.value)
+
+const status = computed<'idle' | 'valid' | 'error'>(() => {
+  if (errorMessage.value) return 'error'
+  return nickname.value.trim() ? 'valid' : 'idle'
 })
 
+watch(nickname, () => emit('typing'))
+
 const generateRandomNickname = () => {
-  nickname.value = uniqueNamesGenerator({
-    dictionaries: [adjectives, animals],
-    separator: '_',
-    style: 'capital',
-  })
+  let candidate = ''
+  do {
+    candidate = uniqueNamesGenerator({ dictionaries: [adjectives, animals], separator: '_', style: 'capital' })
+  } while (candidate.length > 20)
+  nickname.value = candidate
 }
 
 const handleSave = () => {
-  if (status.value === 'available') {
-    emit('save', nickname.value)
-    emit('update:open', false)
-  }
+  if (status.value === 'valid' && !props.loading) emit('save', nickname.value.trim())
 }
 </script>
 
 <template>
-  <Dialog :open="open" @update:open="(val) => emit('update:open', val)">
+  <Dialog :open="open">
     <DialogContent
       @pointer-down-outside.prevent
       @escape-key-down.prevent
@@ -78,25 +81,26 @@ const handleSave = () => {
             />
 
             <CheckCircle2
-              v-else-if="status === 'available'"
+              v-else-if="status === 'valid'"
               class="w-4 h-4 sm:w-5 sm:h-5 text-brand-green-foreground fill-brand-green stroke-[2.2]"
             />
 
             <AlertCircle
-              v-else-if="status === 'taken'"
+              v-else-if="status === 'error'"
               class="w-4 h-4 sm:w-5 sm:h-5 text-destructive stroke-[2.2]"
             />
           </div>
 
           <Input
             v-model="nickname"
+            @keyup.enter="handleSave"
             type="text"
             placeholder="e.g. alex_k"
             :class="[
               'h-11 pl-10 pr-10 text-sm font-medium rounded-xl border transition-colors focus-visible:ring-1 focus-visible:ring-offset-0',
-              status === 'taken'
+              status === 'error'
                 ? 'border-destructive/80 text-foreground focus-visible:border-destructive focus-visible:ring-destructive'
-                : status === 'available'
+                : status === 'valid'
                   ? 'border-brand-green-foreground/80 focus-visible:border-brand-green-foreground focus-visible:ring-brand-green-foreground'
                   : 'border-border/80 placeholder:text-input focus-visible:border-border focus-visible:ring-border',
             ]"
@@ -112,15 +116,18 @@ const handleSave = () => {
           </button>
         </div>
 
-        <p v-if="status === 'taken'" class="text-xs font-semibold text-destructive text-left pl-1">
-          This nickname is already taken.
+        <p v-if="status === 'error'" class="text-xs font-semibold text-destructive text-left pl-1" role="alert">
+          {{ errorMessage }}
         </p>
       </div>
 
-      <div class="mt-2 flex justify-end">
+      <div class="mt-2 flex justify-end gap-2">
+        <Button type="button" variant="ghost" class="h-9 rounded-lg text-xs sm:text-sm" @click="emit('cancel')">
+          Cancel
+        </Button>
         <Button
           type="button"
-          :disabled="status !== 'available'"
+          :disabled="status !== 'valid' || loading"
           @click="handleSave"
           class="h-9 w-24 rounded-lg text-xs sm:text-sm font-semibold font-inter inline-flex items-center gap-1.5 transition-all bg-zinc-950 text-white hover:bg-zinc-800 disabled:bg-zinc-300 disabled:text-white disabled:opacity-100 disabled:cursor-not-allowed shadow-sm"
         >

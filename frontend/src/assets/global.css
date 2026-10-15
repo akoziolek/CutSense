@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Glegoo:wght@400;700&family=Goudy+Bookletter+1911&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Staatliches&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -264,6 +265,24 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-glegoo: 'Glegoo', 'Rockwell', 'Courier New', serif;
+  --font-inter:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+  --font-staatliches: 'Staatliches', 'Impact', 'Arial Black', sans-serif-condensed, sans-serif;
+  --font-bookletter:
+    'Goudy Bookletter 1911', 'Garamond', 'Georgia', 'Baskerville', 'Times New Roman', serif;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-glegoo);
 }
 
 @layer base {

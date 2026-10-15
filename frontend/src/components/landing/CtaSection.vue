@@ -1,26 +1,13 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
 import TextHighlight from '../common/TextHighlight.vue'
+import { useRouter } from 'vue-router';
+import { login, useAuth } from '@/composables/useAuth'
 
-import { computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { googleLoginUrl } from '../../api/client';
-
-const route = useRoute();
 const router = useRouter();
+const { state } = useAuth();
 
-const showLogin = computed(() => route.query.login === '1');
-
-function closeLogin() {
-  router.replace({ name: 'Landing' }); // removes ?login and ?redirect
-}
-
-function loginWithGoogle() {
-  const redirect = route.query.redirect;
-  console.log('kliknięto Get started')
-  if (typeof redirect === 'string') sessionStorage.setItem('returnTo', redirect);
-  window.location.href = googleLoginUrl; // full navigation, NOT fetch
-}
+const onStart = () => (state.user ? router.push('/home') : login())
 </script>
 
 <template>
@@ -72,7 +59,7 @@ function loginWithGoogle() {
       <div class="relative group inline-block">
 
         <Button
-          @click="loginWithGoogle"
+          @click="onStart"
           variant="outline"
           class="h-auto bg-background text-foreground border-2 border-border 
                  shadow-[3px_3px_0px_0px_rgba(24,24,27,1)] sm:shadow-[4px_4px_0px_0px_rgba(24,24,27,1)] 

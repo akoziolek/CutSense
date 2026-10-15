@@ -6,10 +6,12 @@ import Separator from '@/components/ui/separator/Separator.vue'
 import AboutSection from '@/components/landing/AboutSection.vue'
 import CreatorsSection from '@/components/landing/CreatorsSection.vue'
 import CtaSection from '@/components/landing/CtaSection.vue'
+import AuthModal from '@/components/auth/AuthModal.vue'
 </script>
 
 <template>
   <GridLayout>
+    <AuthModal />
     <template #header>
       <CtaSection />
     </template>

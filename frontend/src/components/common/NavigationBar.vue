@@ -12,45 +12,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { googleLoginUrl } from '../../api/client';
-
-interface Props {
-  isLoggedIn?: boolean
-  userName?: string
-}
-
-withDefaults(defineProps<Props>(), {
-  isLoggedIn: false,
-  userName: 'Suzanne',
-})
-
+import { useAuth, login } from '@/composables/useAuth'
 
 const route = useRoute();
 const router = useRouter();
+const { state, logout } = useAuth()
 
-const showLogin = computed(() => route.query.login === '1');
-
-function closeLogin() {
-  router.replace({ name: 'Landing' }); // removes ?login and ?redirect
-}
-
-function loginWithGoogle() {
-  const redirect = route.query.redirect;
-  console.log('kliknięto Get started')
-  if (typeof redirect === 'string') sessionStorage.setItem('returnTo', redirect);
-  window.location.href = googleLoginUrl; // full navigation, NOT fetch
-}
-
-//TO DO functio nto see if already logged in
-const cheatIsLoggedIn = ref(false)
+const isLoggedIn = computed(() => !!state.user)
+const userName = computed(() => state.user?.nickname ?? '')
 const isMenuOpen = ref(false)
 
-const isActive = (path: string) => route.path === path
+function isActive(path: string) {
+  return route.path === path
+}
+
+async function onLogout() {
+  isMenuOpen.value = false
+  await logout()
+  if (route.meta.requiresAuth) router.replace({ name: 'Landing' })
+}
 
 const guestLinks = [
   { name: 'Patterns', path: '/patterns' },
-  { name: 'About', path: '/about' },
-  { name: 'Sign in', path: '/sign-in' },
 ]
 
 const authLinks = [
@@ -60,7 +43,7 @@ const authLinks = [
   { name: 'Patterns', path: '/patterns' },
 ]
 
-const navLinks = computed(() => (cheatIsLoggedIn.value ? authLinks : guestLinks))
+const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
 </script>
 
 <template>
@@ -104,9 +87,9 @@ const navLinks = computed(() => (cheatIsLoggedIn.value ? authLinks : guestLinks)
             </Button>
 
             <div class="hidden lg:flex items-center">
-              <template v-if="!cheatIsLoggedIn">
+              <template v-if="!isLoggedIn">
                 <Button
-                  @click=loginWithGoogle
+                  @click="login()"
                   variant="default"
                   class="px-5 ml-4 rounded-lg font-inter transition-shadow hover:shadow-lg"
                 >
@@ -137,7 +120,7 @@ const navLinks = computed(() => (cheatIsLoggedIn.value ? authLinks : guestLinks)
 
                     <DropdownMenuItem
                       class="cursor-pointer rounded-none px-4 py-2.5 text-destructive focus:bg-destructive-foreground focus:text-destructive"
-                      @select="cheatIsLoggedIn = false"
+                      @select="onLogout"
                     >
                       Sign out
                     </DropdownMenuItem>
@@ -180,7 +163,7 @@ const navLinks = computed(() => (cheatIsLoggedIn.value ? authLinks : guestLinks)
           v-if="isMenuOpen"
           class="lg:hidden absolute left-4 right-4 sm:left-6 sm:right-6 top-[calc(100%+8px)] z-50 p-5 pb-4 bg-popover text-foreground border-2 border-border rounded-lg shadow-xl flex flex-col gap-2 font-medium"
         >
-          <div v-if="cheatIsLoggedIn" class="text-xs text-muted-foreground">
+          <div v-if="isLoggedIn" class="text-xs text-muted-foreground">
             Signed as <span class="font-bold text-foreground">{{ userName }}</span>
             <Separator class="mt-4" />
           </div>
@@ -200,15 +183,13 @@ const navLinks = computed(() => (cheatIsLoggedIn.value ? authLinks : guestLinks)
             />
           </RouterLink>
 
-          <template v-if="!cheatIsLoggedIn">
+          <template v-if="!isLoggedIn">
             <Button
-              as-child
               variant="outline"
               class="border-2 border-border mt-2 w-full justify-center transition-shadow hover:shadow-lg"
+              @click="() => { isMenuOpen = false; login() }"
             >
-              <RouterLink to="/" @click="((isMenuOpen = false), (cheatIsLoggedIn = true))">
-                Get started
-              </RouterLink>
+              Get started
             </Button>
           </template>
 
@@ -231,7 +212,7 @@ const navLinks = computed(() => (cheatIsLoggedIn.value ? authLinks : guestLinks)
             <button
               type="button"
               class="w-full text-left rounded-md px-3 py-2 text-destructive font-medium transition-colors hover:bg-destructive/10 focus:bg-destructive/10 focus:outline-none"
-              @click="((cheatIsLoggedIn = false), (isMenuOpen = false))"
+              @click="onLogout"
             >
               Sign out
             </button>

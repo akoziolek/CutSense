@@ -1,5 +1,6 @@
 import { reactive, readonly } from 'vue';
-import { api, ApiError } from '../api/client';
+import { api, ApiError, googleLoginUrl } from '../api/client';
+import { rememberReturnTo } from '../utils/returnTo';
 
 export interface CurrentUser {
   id: number;
@@ -32,4 +33,9 @@ export function useAuth() {
   }
 
   return { state: readonly(state), loadUser, logout };
+}
+
+export function login(returnTo?: string | null) {
+  rememberReturnTo(returnTo ?? new URLSearchParams(window.location.search).get('redirect'));
+  window.location.href = googleLoginUrl;
 }

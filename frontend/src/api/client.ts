@@ -1,11 +1,12 @@
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+const API_BASE = `${API_URL}/v1`;
 
 // Shape returned by the backend's AllExceptionsFilter
 export interface ApiErrorBody {
   statusCode: number;
   errorCode: string;
   message: string;
-  details?: unknown; // { field: 'nickname' } for conflicts, string[] for validation
+  details?: unknown;
 }
 
 export class ApiError extends Error {
@@ -15,7 +16,7 @@ export class ApiError extends Error {
 }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...init.headers },
@@ -32,4 +33,4 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
 }
 
-export const googleLoginUrl = `${API_URL}/auth/google`;
+export const googleLoginUrl = `${API_BASE}/auth/google`;

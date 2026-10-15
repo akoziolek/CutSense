@@ -16,7 +16,6 @@ const routes = [
 
   // public pages (guests can browse public patterns)
   { path: '/patterns', name: 'Patterns', component: ComingSoonPage },
-  { path: '/about', name: 'About', component: ComingSoonPage },
 
   // pages that need a logged-in user
   { path: '/home', name: 'Home', component: ComingSoonPage, meta: { requiresAuth: true } },
@@ -46,6 +45,13 @@ router.beforeEach(async (to) => {
     const target = consumeReturnTo();
     if (target !== '/') return target;
   }
+
+  // // Użytkownik wrócił z Google na stronę Landing
+  // if (state.user && to.name === 'Landing' && !to.query.registration) {
+  //   const target = consumeReturnTo();
+    
+  //   // Jeśli użytkownik próbował wejść na konkretną podstronę, wróć tam
+  //   if (target && tar
 });
 
 export default router

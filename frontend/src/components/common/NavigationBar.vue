@@ -89,7 +89,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
             <div class="hidden lg:flex items-center">
               <template v-if="!isLoggedIn">
                 <Button
-                  @click="login()"
+                  @click="login('/home')"
                   variant="default"
                   class="px-5 ml-4 rounded-lg font-inter transition-shadow hover:shadow-lg"
                 >
@@ -187,7 +187,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
             <Button
               variant="outline"
               class="border-2 border-border mt-2 w-full justify-center transition-shadow hover:shadow-lg"
-              @click="() => { isMenuOpen = false; login() }"
+              @click="() => { isMenuOpen = false; login('/home') }"
             >
               Get started
             </Button>

@@ -1,7 +1,7 @@
 const KEY = 'returnTo';
 
 const isSafePath = (p: string | null | undefined): p is string =>
-  !!p && p.startsWith('/') && !p.startsWith('//');
+  !!p && p.startsWith('/') && !p.startsWith('//') && !p.includes('\\');
 
 export function rememberReturnTo(path?: string | null) {
   if (isSafePath(path)) sessionStorage.setItem(KEY, path);

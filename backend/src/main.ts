@@ -30,7 +30,7 @@ async function bootstrap() {
     .setTitle('CutSense')
     .setDescription('API endpoints documentation')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addCookieAuth('session', { type: 'apiKey', in: 'cookie' }, 'session')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);

@@ -1,19 +1,29 @@
-import { Get, Controller, Param, ParseIntPipe } from '@nestjs/common';
+import {
+  Get,
+  Controller,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiUnauthorizedResponse,
   ApiTags,
+  ApiCookieAuth,
 } from '@nestjs/swagger';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
 import { FabricService } from './fabrics.service.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import { SessionGuard } from '../../auth/guards/session.guard.js';
 
 @Controller('fabrics')
 @ApiTags('Fabrics')
-// add AUTH GUARD
+@UseGuards(SessionGuard)
+@ApiCookieAuth('session')
 export class FabricController {
   constructor(private readonly fabricService: FabricService) {}
 
@@ -36,8 +46,12 @@ export class FabricController {
   @ApiBadRequestResponse({
     description: 'The fabric ID is not a valid integer.',
   })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
   @ApiNotFoundResponse({
-    description: 'The fabric does not exist or is not owned by the current user.',
+    description:
+      'The fabric does not exist or is not owned by the current user.',
   })
   async getFabricById(
     @Param('id', ParseIntPipe) fabricId: number,

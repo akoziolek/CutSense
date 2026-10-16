@@ -15,8 +15,24 @@ const { loadUser, logout } = useAuth()
 const authError = computed(() =>
   route.query.error === 'google_auth_failed' ? 'Google sign-in failed. Please try again.' : '',
 )
-const loginOpen = computed(() => route.query.login === '1' || !!authError.value)
-const closeLogin = () => router.replace({ name: 'Landing' })
+const registrationCancelled = computed(() => route.query.registration_cancelled === '1')
+const dismissError = ref('')
+const loginOpen = computed(
+  () => route.query.login === '1' || registrationCancelled.value || !!authError.value,
+)
+const loginError = computed(() => dismissError.value || authError.value)
+
+async function closeLogin() {
+  if (registrationCancelled.value) {
+    try {
+      await logout()
+    } catch {
+      dismissError.value = 'Could not log out. Please try again.'
+      return
+    }
+  }
+  await router.replace({ name: 'Landing' })
+}
 
 // ---------- nickname (registration) modal ----------
 const registrationOpen = computed(() => route.query.registration === '1')
@@ -63,17 +79,22 @@ async function onSave(nickname: string) {
   }
 }
 
-// abandoning registration: nothing was saved, only the registration cookie is cleared
+// Abandon registration and show a confirmation without blocking the landing page.
 async function onCancel() {
-  await logout().catch(() => {})
-  router.replace({ name: 'Landing' })
+  try {
+    await logout()
+    await router.replace({ name: 'Landing', query: { registration_cancelled: '1' } })
+  } catch {
+    regError.value = 'Could not cancel registration. Please try again.'
+  }
 }
 </script>
 
 <template>
   <LoginModal
     :open="loginOpen && !registrationOpen"
-    :error="authError"
+    :error="loginError"
+    :registration-cancelled="registrationCancelled"
     @update:open="(v) => !v && closeLogin()"
     @login="login()"
   />

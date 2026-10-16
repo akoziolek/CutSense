@@ -82,6 +82,7 @@ async function onSave(nickname: string) {
 // Abandon registration and show a confirmation without blocking the landing page.
 async function onCancel() {
   try {
+    clearReturnTo()
     await logout()
     await router.replace({ name: 'Landing', query: { registration_cancelled: '1' } })
   } catch {

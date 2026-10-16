@@ -67,7 +67,6 @@ export const users = pgTable('users', {
   id: bigint('id', { mode: 'number' })
     .primaryKey()
     .generatedByDefaultAsIdentity(),
-  googleId: varchar('google_id', { length: 64}).notNull().unique(), 
   email: varchar('email', { length: 254 }).notNull().unique(),
   name: varchar('name', { length: 60 }).notNull(),
   surname: varchar('surname', { length: 60 }),

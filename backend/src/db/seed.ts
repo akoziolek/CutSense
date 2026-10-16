@@ -291,7 +291,6 @@ async function main(): Promise<void> {
       users: {
         count: 10,
         columns: {
-          googleId: funcs.string({ isUnique: true }),
           email: funcs.email(),
           name: funcs.firstName(),
           surname: funcs.lastName(),

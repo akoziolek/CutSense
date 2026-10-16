@@ -1,6 +1,5 @@
 import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { seed } from 'drizzle-seed';
 import { Pool } from 'pg';
 import * as schema from './schema.js';
 
@@ -280,39 +279,34 @@ async function main(): Promise<void> {
       .values(fabricTagNames.map((name) => ({ name })))
       .onConflictDoNothing({ target: schema.tagsForFabrics.name });
 
-    await seed(
-      db,
-      {
-        users: schema.users,
-        patterns: schema.patterns,
-      },
-      { seed: 20261010 },
-    ).refine((funcs) => ({
-      users: {
-        count: 10,
-        columns: {
-          googleId: funcs.string({ isUnique: true }),
-          email: funcs.email(),
-          name: funcs.firstName(),
-          surname: funcs.lastName(),
-          nickname: funcs.string({ isUnique: true }),
-        },
-      },
-      patterns: {
-        count: 16,
-        columns: {
-          name: funcs.valuesFromArray({
-            values: patternTemplates.map((p) => p.name),
-          }),
-          description: funcs.valuesFromArray({
-            values: patternTemplates.map((p) => p.description),
-          }),
-          size: funcs.valuesFromArray({ values: ['XS', 'S', 'M', 'L', 'XL'] }),
-          starCount: funcs.default({ defaultValue: 0 }),
-          starAverage: funcs.default({ defaultValue: '0' }),
-        },
-      },
-    }));
+    const insertedUsers = await db
+      .insert(schema.users)
+      .values(
+        Array.from({ length: 10 }, (_, i) => ({
+          googleId: `google-seed-id-${i + 1}`,
+          email: `user${i + 1}@example.com`,
+          name: `User${i + 1}`,
+          surname: `Test`,
+          nickname: `user_${i + 1}`,
+        })),
+      )
+      .returning({ id: schema.users.id });
+
+    const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const;
+
+    const insertedPatterns = await db
+      .insert(schema.patterns)
+      .values(
+        patternTemplates.map((template, index) => ({
+          name: template.name,
+          description: template.description,
+          size: sizes[index % sizes.length], // Typ: "XS" | "S" | "M" | "L" | "XL" | "XXL"
+          starCount: 0,
+          starAverage: '0',
+          userId: insertedUsers[index % insertedUsers.length].id,
+        })),
+      )
+      .returning({ id: schema.patterns.id, userId: schema.patterns.userId });
 
     const [users, patterns, patternTagRows, fabricTagRows] = await Promise.all([
       db.select({ id: schema.users.id }).from(schema.users),

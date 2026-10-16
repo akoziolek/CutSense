@@ -13,3 +13,5 @@ export function consumeReturnTo(): string {
   sessionStorage.removeItem(KEY);
   return isSafePath(target) ? target : '/';
 }
+
+export const clearReturnTo = () => sessionStorage.removeItem(KEY);

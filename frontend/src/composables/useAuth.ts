@@ -1,6 +1,6 @@
 import { reactive, readonly } from 'vue';
 import { api, ApiError, googleLoginUrl } from '../api/client';
-import { rememberReturnTo } from '../utils/returnTo';
+import { clearReturnTo, rememberReturnTo } from '../utils/returnTo';
 
 export interface CurrentUser {
   id: number;
@@ -30,6 +30,7 @@ export function useAuth() {
   async function logout() {
     await api<void>('/auth/logout', { method: 'POST' });
     state.user = null;
+    clearReturnTo();
   }
 
   return { state: readonly(state), loadUser, logout };

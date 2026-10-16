@@ -46,6 +46,44 @@ services:
       migration:
         condition: service_completed_successfully
 
+  s3:
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3
+      LOCALSTACK_AUTH_TOKEN: "${LOCALSTACK_AUTH_TOKEN}"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'python3 -c ''import urllib.request; urllib.request.urlopen("http://localhost:4566/_localstack/health")''',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  terraform:
+    image: hashicorp/terraform:latest
+    container_name: terraform_init
+    volumes:
+      - ./terraform:/infra
+    working_dir: /infra
+    environment:
+      TF_VAR_s3_endpoint: ${S3_ENDPOINT}
+      TF_VAR_s3_access_key: ${S3_ACCESS_KEY}
+      TF_VAR_s3_secret_key: ${S3_SECRET_KEY}
+      TF_VAR_bucket_name: ${S3_BUCKET_NAME}
+    depends_on:
+      s3:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+      terraform init &&
+      terraform apply -auto-approve
+      "
+
   backend:
     build:
       context: ./backend
@@ -60,6 +98,8 @@ services:
       db:
         condition: service_healthy
       seed:
+        condition: service_completed_successfully
+      terraform:
         condition: service_completed_successfully
     develop:
       watch:
@@ -110,3 +150,4 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:

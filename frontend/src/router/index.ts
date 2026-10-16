@@ -56,13 +56,6 @@ router.beforeEach(async (to) => {
     const target = consumeReturnTo()
     if (target !== '/') return target
   }
-
-  // // Użytkownik wrócił z Google na stronę Landing
-  // if (state.user && to.name === 'Landing' && !to.query.registration) {
-  //   const target = consumeReturnTo();
-
-  //   // Jeśli użytkownik próbował wejść na konkretną podstronę, wróć tam
-  //   if (target && tar
 })
 
 export default router

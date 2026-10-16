@@ -94,13 +94,15 @@ services:
     environment:
       PORT: ${PORT_BACKEND}
       RUNTIME_DATABASE_URL: postgres://${RUNTIME_USER}:${RUNTIME_PASSWORD}@db:5432/${POSTGRES_DB_NAME}
+    env_file:
+      - ./backend/.env
     depends_on:
       db:
         condition: service_healthy
       seed:
         condition: service_completed_successfully
-      terraform:
-        condition: service_completed_successfully
+      # terraform:
+      #   condition: service_completed_successfully
     develop:
       watch:
         - action: sync

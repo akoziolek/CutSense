@@ -1,5 +1,5 @@
 {
-  "id": "4ac88871-77bc-44d4-80c4-89b4751888c2",
+  "id": "eeb5eee1-91e5-4705-8f3e-42c8bf5b3d26",
   "prevId": "71d2fccf-96a7-4272-b91e-7aa809250bb0",
   "version": "7",
   "dialect": "postgresql",
@@ -45,9 +45,7 @@
         "algorithm_types_name_unique": {
           "name": "algorithm_types_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -74,7 +72,7 @@
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "default": "now()"
         },
         "updated_at": {
@@ -107,12 +105,8 @@
           "name": "fabric_tags_fabric_id_fabrics_id_fk",
           "tableFrom": "fabric_tags",
           "tableTo": "fabrics",
-          "columnsFrom": [
-            "fabric_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["fabric_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -120,12 +114,8 @@
           "name": "fabric_tags_tag_id_tags_for_fabrics_id_fk",
           "tableFrom": "fabric_tags",
           "tableTo": "tags_for_fabrics",
-          "columnsFrom": [
-            "tag_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tag_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -133,10 +123,7 @@
       "compositePrimaryKeys": {
         "fabric_tags_fabric_id_tag_id_pk": {
           "name": "fabric_tags_fabric_id_tag_id_pk",
-          "columns": [
-            "fabric_id",
-            "tag_id"
-          ]
+          "columns": ["fabric_id", "tag_id"]
         }
       },
       "uniqueConstraints": {},
@@ -206,7 +193,7 @@
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "default": "now()"
         },
         "updated_at": {
@@ -254,12 +241,8 @@
           "name": "fabrics_user_id_users_id_fk",
           "tableFrom": "fabrics",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -343,7 +326,7 @@
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "default": "now()"
         },
         "updated_at": {
@@ -406,12 +389,8 @@
           "name": "optimization_results_pattern_id_patterns_id_fk",
           "tableFrom": "optimization_results",
           "tableTo": "patterns",
-          "columnsFrom": [
-            "pattern_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pattern_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -419,12 +398,8 @@
           "name": "optimization_results_algorithm_id_algorithm_types_id_fk",
           "tableFrom": "optimization_results",
           "tableTo": "algorithm_types",
-          "columnsFrom": [
-            "algorithm_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["algorithm_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -432,12 +407,8 @@
           "name": "optimization_results_custom_fabric_id_fabrics_id_fk",
           "tableFrom": "optimization_results",
           "tableTo": "fabrics",
-          "columnsFrom": [
-            "custom_fabric_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["custom_fabric_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -468,7 +439,7 @@
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "default": "now()"
         },
         "updated_at": {
@@ -501,12 +472,8 @@
           "name": "pattern_favourites_pattern_id_patterns_id_fk",
           "tableFrom": "pattern_favourites",
           "tableTo": "patterns",
-          "columnsFrom": [
-            "pattern_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pattern_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -514,12 +481,8 @@
           "name": "pattern_favourites_user_id_users_id_fk",
           "tableFrom": "pattern_favourites",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -527,10 +490,7 @@
       "compositePrimaryKeys": {
         "pattern_favourites_pattern_id_user_id_pk": {
           "name": "pattern_favourites_pattern_id_user_id_pk",
-          "columns": [
-            "pattern_id",
-            "user_id"
-          ]
+          "columns": ["pattern_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -575,7 +535,7 @@
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "default": "now()"
         },
         "updated_at": {
@@ -623,12 +583,8 @@
           "name": "pattern_pieces_pattern_id_patterns_id_fk",
           "tableFrom": "pattern_pieces",
           "tableTo": "patterns",
-          "columnsFrom": [
-            "pattern_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pattern_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -665,7 +621,7 @@
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "default": "now()"
         },
         "updated_at": {
@@ -698,12 +654,8 @@
           "name": "pattern_stars_pattern_id_patterns_id_fk",
           "tableFrom": "pattern_stars",
           "tableTo": "patterns",
-          "columnsFrom": [
-            "pattern_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pattern_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -711,12 +663,8 @@
           "name": "pattern_stars_user_id_users_id_fk",
           "tableFrom": "pattern_stars",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -724,10 +672,7 @@
       "compositePrimaryKeys": {
         "pattern_stars_pattern_id_user_id_pk": {
           "name": "pattern_stars_pattern_id_user_id_pk",
-          "columns": [
-            "pattern_id",
-            "user_id"
-          ]
+          "columns": ["pattern_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -755,7 +700,7 @@
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "default": "now()"
         },
         "updated_at": {
@@ -788,12 +733,8 @@
           "name": "pattern_tags_pattern_id_patterns_id_fk",
           "tableFrom": "pattern_tags",
           "tableTo": "patterns",
-          "columnsFrom": [
-            "pattern_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pattern_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -801,12 +742,8 @@
           "name": "pattern_tags_tag_id_tags_for_patterns_id_fk",
           "tableFrom": "pattern_tags",
           "tableTo": "tags_for_patterns",
-          "columnsFrom": [
-            "tag_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tag_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -814,10 +751,7 @@
       "compositePrimaryKeys": {
         "pattern_tags_pattern_id_tag_id_pk": {
           "name": "pattern_tags_pattern_id_tag_id_pk",
-          "columns": [
-            "pattern_id",
-            "tag_id"
-          ]
+          "columns": ["pattern_id", "tag_id"]
         }
       },
       "uniqueConstraints": {},
@@ -897,7 +831,7 @@
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "default": "now()"
         },
         "updated_at": {
@@ -930,12 +864,8 @@
           "name": "patterns_user_id_users_id_fk",
           "tableFrom": "patterns",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1001,7 +931,7 @@
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "default": "now()"
         },
         "updated_at": {
@@ -1064,12 +994,8 @@
           "name": "placed_pieces_pattern_piece_id_pattern_pieces_id_fk",
           "tableFrom": "placed_pieces",
           "tableTo": "pattern_pieces",
-          "columnsFrom": [
-            "pattern_piece_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pattern_piece_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1077,12 +1003,8 @@
           "name": "placed_pieces_optimization_result_id_optimization_results_id_fk",
           "tableFrom": "placed_pieces",
           "tableTo": "optimization_results",
-          "columnsFrom": [
-            "optimization_result_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["optimization_result_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1124,7 +1046,7 @@
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "default": "now()"
         },
         "updated_at": {
@@ -1142,9 +1064,7 @@
         "tags_for_fabrics_name_unique": {
           "name": "tags_for_fabrics_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -1182,7 +1102,7 @@
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "default": "now()"
         },
         "updated_at": {
@@ -1200,9 +1120,7 @@
         "tags_for_patterns_name_unique": {
           "name": "tags_for_patterns_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -1229,6 +1147,12 @@
             "cache": "1",
             "cycle": false
           }
+        },
+        "google_id": {
+          "name": "google_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
         },
         "email": {
           "name": "email",
@@ -1264,7 +1188,7 @@
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "default": "now()"
         },
         "updated_at": {
@@ -1279,19 +1203,20 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
+        "users_google_id_unique": {
+          "name": "users_google_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["google_id"]
+        },
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         },
         "users_nickname_unique": {
           "name": "users_nickname_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "nickname"
-          ]
+          "columns": ["nickname"]
         }
       },
       "policies": {},
@@ -1303,22 +1228,12 @@
     "public.pattern_size": {
       "name": "pattern_size",
       "schema": "public",
-      "values": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
-      ]
+      "values": ["XS", "S", "M", "L", "XL", "XXL"]
     },
     "public.visibility_level": {
       "name": "visibility_level",
       "schema": "public",
-      "values": [
-        "PUBLIC",
-        "PRIVATE"
-      ]
+      "values": ["PUBLIC", "PRIVATE"]
     }
   },
   "schemas": {},

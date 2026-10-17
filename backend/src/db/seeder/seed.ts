@@ -1,7 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import * as schema from './schema.js';
+import * as schema from '../schema/schema.js';
 
 const algorithmSeeds = [
   {

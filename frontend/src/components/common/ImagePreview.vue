@@ -86,7 +86,7 @@ const stopDrag = () => {
   <Dialog @update:open="resetZoom">
     <DialogTrigger as-child>
       <div
-        class="relative group cursor-zoom-in overflow-hidden rounded-md bg-card shadow-sm w-full h-full"
+        class="relative group cursor-zoom-in overflow-hidden rounded-md bg-card shadow-lg w-full h-full"
       >
         <img
           :src="src"

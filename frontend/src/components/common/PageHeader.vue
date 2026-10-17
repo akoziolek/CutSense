@@ -15,7 +15,7 @@ withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
-  <header class="w-full flex items-center justify-between gap-4 pb-4">
+  <header class="w-full flex items-center justify-between gap-4 pb-2 ">
     <h1 class="text-3xl font-bold tracking-tight flex-1 w-full text-left">
       <TextHighlight :full-width="fullWidth" :color="color">
         <slot>{{ title }}</slot>

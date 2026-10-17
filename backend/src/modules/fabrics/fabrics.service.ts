@@ -4,13 +4,16 @@ import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import { fabrics } from '../../db/schema/schema.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
+import { StorageService, StoragePaths } from '../storage/storage.service.js';
 
 @Injectable()
 export class FabricService {
   constructor(
     @Inject(DRIZZLE)
     private readonly db: DrizzleDB,
+    private readonly storageService: StorageService,
   ) {}
+
 
   async getFabricById(
     fabricId: number,
@@ -31,12 +34,18 @@ export class FabricService {
       throw new ResourceNotFoundException(`Fabric`, fabricId);
     }
 
+    const pictureUrl = fabric.pictureS3Key
+      ? await this.storageService.generatePresignedUrl(fabric.pictureS3Key)
+      : undefined;
+
     return {
       id: fabric.id,
       name: fabric.name,
       description: fabric.description ?? undefined,
       pictureS3Key: fabric.pictureS3Key ?? undefined,
+      pictureUrl, 
       isFavourite: fabric.isFavourite,
+      area: fabric.area,
       userId: fabric.userId,
       createdAt: fabric.createdAt.toISOString(),
       tags: fabric.tags.map((item) => item.tag.name),

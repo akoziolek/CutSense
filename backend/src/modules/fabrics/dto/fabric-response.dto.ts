@@ -9,21 +9,30 @@ export class FabricResponseDto {
 
   @ApiPropertyOptional({
     description: 'Description of the fabric',
-    example: 'Durable medium-weight cotton fabric',
+    example: 'Durable cotton',
   })
   description?: string;
 
-  @ApiPropertyOptional({
-    description: 'URL of the fabric image',
-    example: 'https://example.com/fabrics/cotton-canvas.jpg',
+  @ApiProperty({
+    description: 'S3 key of the fabric image',
+    example: 'users/1/fabrics/uuid.jpg',
   })
-  pictureS3Key?: string;
+  pictureS3Key!: string;
 
   @ApiPropertyOptional({
+    description: 'S3 signed photo URL',
+    example: 'https://...',
+  })
+  pictureUrl?: string;
+
+  @ApiProperty({
     description: 'Whether the fabric is marked as a favourite',
     example: false,
   })
-  isFavourite?: boolean;
+  isFavourite!: boolean;
+
+  @ApiProperty({ description: 'Fabric area', example: 4.32 })
+  area!: number;
 
   @ApiProperty({
     description: 'Identifier of the user who owns the fabric',
@@ -32,16 +41,14 @@ export class FabricResponseDto {
   userId!: number;
 
   @ApiProperty({
-    description:
-      'Date and time when the fabric was created, in ISO 8601 format',
-    example: '2025-01-15T10:30:00.000Z',
-    format: 'date-time',
+    description: 'Date and time when created',
+    example: '2026-10-17T10:30:00.000Z',
   })
   createdAt!: string;
 
   @ApiProperty({
-    description: 'Names of the tags assigned to the fabric',
-    example: ['cotton', 'canvas'],
+    description: 'Names of the tags',
+    example: ['cotton'],
     type: [String],
   })
   tags!: string[];

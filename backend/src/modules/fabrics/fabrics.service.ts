@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { eq, and } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
-import { fabrics } from '../../db/schema.js';
+import { fabrics } from '../../db/schema/schema.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 

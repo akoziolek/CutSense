@@ -21,24 +21,40 @@ export const StoragePaths = {
 export class StorageService {
   private readonly s3Client: S3Client;
   private readonly bucketName: string;
+  private readonly internalEndpoint?: string;
+  private readonly publicEndpoint?: string;
 
   constructor(
     @Inject(ConfigService) private readonly configService: ConfigService,
   ) {
     this.bucketName = this.configService.getOrThrow<string>('S3_BUCKET_NAME');
+    this.internalEndpoint = this.configService.get<string>('S3_ENDPOINT');
+    this.publicEndpoint = this.configService.get<string>('S3_PUBLIC_ENDPOINT');
 
-    const endpoint = this.configService.get<string>('S3_ENDPOINT');
+    const region =
+      this.configService.get<string>('S3_REGION') ||
+      this.configService.get<string>('AWS_REGION', 'eu-central-1');
+
     const forcePathStyle =
-      this.configService.get<string>('S3_FORCE_PATH_STYLE') === 'true';
+      this.configService.get<string>('S3_FORCE_PATH_STYLE') === 'true' ||
+      Boolean(this.internalEndpoint);
+
+    const accessKeyId =
+      this.configService.get<string>('S3_ACCESS_KEY') ||
+      this.configService.get<string>('AWS_ACCESS_KEY_ID', 'test');
+
+    const secretAccessKey =
+      this.configService.get<string>('S3_SECRET_KEY') ||
+      this.configService.get<string>('AWS_SECRET_ACCESS_KEY', 'test');
 
     this.s3Client = new S3Client({
-      region: this.configService.get<string>('S3_REGION', 'us-east-1'),
-      endpoint: endpoint || undefined,
-      credentials: {
-        accessKeyId: this.configService.getOrThrow<string>('S3_ACCESS_KEY'),
-        secretAccessKey: this.configService.getOrThrow<string>('S3_SECRET_KEY'),
-      },
+      region,
+      endpoint: this.internalEndpoint || undefined,
       forcePathStyle,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
     });
   }
 
@@ -75,9 +91,15 @@ export class StorageService {
     });
 
     try {
-      return await getSignedUrl(this.s3Client, command, {
+      let url = await getSignedUrl(this.s3Client, command, {
         expiresIn: expiresInSeconds,
       });
+
+       if (this.internalEndpoint && this.publicEndpoint) {
+        url = url.replace(this.internalEndpoint, this.publicEndpoint);
+      }
+
+      return url;
     } catch (error) {
       const details = error instanceof Error ? error.message : String(error);
       throw new StorageOperationFailedException('read', details);

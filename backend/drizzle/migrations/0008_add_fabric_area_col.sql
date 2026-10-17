@@ -1,0 +1,1 @@
+ALTER TABLE "fabrics" ADD COLUMN "area" double precision NOT NULL;

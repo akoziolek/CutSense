@@ -11,6 +11,7 @@ import {
   primaryKey,
   geometry,
   index,
+  doublePrecision
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { postgisPolygon } from './custom-types.js';
@@ -140,6 +141,7 @@ export const fabrics = pgTable(
     description: varchar('description', { length: 400 }),
     pictureS3Key: varchar('picture_s3_key', { length: 512 }).notNull(),
     boundary: postgisPolygon('boundary').notNull(),
+    area: doublePrecision('area').notNull(),
     isFavourite: boolean('is_favourite').notNull().default(false),
     userId: bigint('user_id', { mode: 'number' })
       .notNull()

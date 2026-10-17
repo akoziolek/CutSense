@@ -118,6 +118,7 @@ const fabricTemplates = [
       'Plain-weave cotton fabric (160 g/m²). Natural, breathable, ideal for shirts and blouses.',
     width: 1500,
     length: 3000,
+    area: 4.5,
   },
   {
     name: 'Stonewashed Linen',
@@ -125,6 +126,7 @@ const fabricTemplates = [
       '100% natural linen (210 g/m²). Pre-washed relaxed texture, no ironing needed. Great for dresses and shorts.',
     width: 1450,
     length: 2500,
+    area: 3.625,
   },
   {
     name: 'Worsted Wool 120S',
@@ -132,6 +134,7 @@ const fabricTemplates = [
       'High-grade suiting wool (280 g/m²). Crease-resistant and maintains sharp pleats.',
     width: 1500,
     length: 4000,
+    area: 6,
   },
   {
     name: 'Natural Mulberry Silk',
@@ -139,6 +142,7 @@ const fabricTemplates = [
       'Luxury silk satin with high luster (85 g/m²). Requires precise cutting along the grainline.',
     width: 1380,
     length: 2000,
+    area: 2.76,
   },
   {
     name: 'Viscose Jersey with Elastane',
@@ -146,6 +150,7 @@ const fabricTemplates = [
       'Stretch single-jersey knit (220 g/m²). 2-way stretch capacity up to 40%.',
     width: 1600,
     length: 3500,
+    area: 5.6,
   },
   {
     name: '11-Cord Cotton Corduroy',
@@ -153,6 +158,7 @@ const fabricTemplates = [
       'Heavyweight ribbed corduroy (310 g/m²). Requires pattern layout matching nap direction.',
     width: 1400,
     length: 3000,
+    area: 4.2,
   },
 ];
 
@@ -369,6 +375,7 @@ async function main(): Promise<void> {
           description: template.description,
           pictureS3Key: pictureS3Key,
           boundary: sql`ST_GeomFromText(${irregularFabricPolygon(index, template.width, template.length)}, 0)`,
+          area: template.area,
           userId,
         };
       }),

@@ -57,6 +57,13 @@
       "when": 1792246226483,
       "tag": "0007_update_fabrics_picture_column",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792252148648,
+      "tag": "0008_add_fabric_area_col",
+      "breakpoints": true
     }
   ]
 }

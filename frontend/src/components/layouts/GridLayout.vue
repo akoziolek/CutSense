@@ -5,7 +5,7 @@ import NavigationBar from '../common/NavigationBar.vue'
 <template>
   <div class="relative w-full min-h-screen flex flex-col bg-background text-foreground">
     <NavigationBar class="fixed top-0 left-0 right-0 z-50 pointer-events-none" />
-    <header class="relative w-full min-h-16 bg-grid flex flex-col pt-20 sm:pt-24">
+    <header class="relative w-full min-h-16 bg-grid flex flex-col pt-24 sm:pt-28">
       <slot name="header" />
     </header>
 

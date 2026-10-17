@@ -10,7 +10,8 @@ import {
   timestamp,
   primaryKey,
   geometry,
-  index
+  index,
+  doublePrecision
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { postgisPolygon } from './custom-types.js';
@@ -50,7 +51,9 @@ export const tagsForPatterns = pgTable('tags_for_patterns', {
     .primaryKey()
     .generatedByDefaultAsIdentity(),
   name: varchar('name', { length: 20 }).notNull().unique(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
@@ -59,7 +62,9 @@ export const tagsForFabrics = pgTable('tags_for_fabrics', {
     .primaryKey()
     .generatedByDefaultAsIdentity(),
   name: varchar('name', { length: 20 }).notNull().unique(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
@@ -67,13 +72,15 @@ export const users = pgTable('users', {
   id: bigint('id', { mode: 'number' })
     .primaryKey()
     .generatedByDefaultAsIdentity(),
-  googleId: varchar('google_id', { length: 64}).notNull().unique(), 
+  googleId: varchar('google_id', { length: 64 }).notNull().unique(),
   email: varchar('email', { length: 254 }).notNull().unique(),
   name: varchar('name', { length: 60 }).notNull(),
   surname: varchar('surname', { length: 60 }),
   nickname: varchar('nickname', { length: 64 }).unique(),
   pictureUrl: varchar('picture_url', { length: 2048 }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
@@ -94,7 +101,9 @@ export const patterns = pgTable(
     userId: bigint('user_id', { mode: 'number' })
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => [index('patterns_user_id_idx').on(table.userId)],
@@ -111,7 +120,9 @@ export const patternPieces = pgTable(
       .references(() => patterns.id, { onDelete: 'cascade' }),
     // polygon on Cartesian coordinate system
     boundary: postgisPolygon('boundary').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => [
@@ -128,13 +139,16 @@ export const fabrics = pgTable(
       .generatedByDefaultAsIdentity(),
     name: varchar('name', { length: 35 }).notNull(),
     description: varchar('description', { length: 400 }),
-    pictureUrl: varchar('picture_url', { length: 2048 }),
+    pictureS3Key: varchar('picture_s3_key', { length: 512 }).notNull(),
     boundary: postgisPolygon('boundary').notNull(),
+    area: doublePrecision('area').notNull(),
     isFavourite: boolean('is_favourite').notNull().default(false),
     userId: bigint('user_id', { mode: 'number' })
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => [
@@ -162,7 +176,9 @@ export const placedPieces = pgTable(
       mode: 'xy',
       srid: 0,
     }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => [
@@ -183,7 +199,9 @@ export const patternTags = pgTable(
     tagId: bigint('tag_id', { mode: 'number' })
       .notNull()
       .references(() => tagsForPatterns.id, { onDelete: 'cascade' }),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => [
@@ -202,7 +220,9 @@ export const patternStars = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     rating: smallint('rating').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => [
@@ -220,7 +240,9 @@ export const patternFavourites = pgTable(
     userId: bigint('user_id', { mode: 'number' })
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => [
@@ -238,7 +260,9 @@ export const fabricTags = pgTable(
     tagId: bigint('tag_id', { mode: 'number' })
       .notNull()
       .references(() => tagsForFabrics.id, { onDelete: 'cascade' }),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => [
@@ -268,7 +292,9 @@ export const optimizationResults = pgTable(
     ),
     seamAllowance: integer('seam_allowance').notNull(),
     cuttingAllowance: integer('cutting_allowance').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => [

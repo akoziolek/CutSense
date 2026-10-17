@@ -1,30 +1,41 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
-import { consumeReturnTo } from '../utils/returnTo';
+import { consumeReturnTo } from '../utils/returnTo'
 
 declare module 'vue-router' {
   interface RouteMeta {
-    requiresAuth?: boolean;
+    requiresAuth?: boolean
   }
 }
 
 const LandingPage = () => import('../views/LandingPage.vue')
-const ComingSoonPage = () => import('../views/ComingSoonPage.vue'); // temporary, to change for correct ones later
+const ComingSoonPage = () => import('../views/ComingSoonPage.vue') // temporary, to change for correct ones later
+const FabricPage = () => import('../views/FabricView.vue')
 
 const routes = [
-  { path: '/', name: 'Landing', component: LandingPage }, 
+  { path: '/', name: 'Landing', component: LandingPage },
 
   // public pages (guests can browse public patterns)
   { path: '/patterns', name: 'Patterns', component: ComingSoonPage },
 
   // pages that need a logged-in user
   { path: '/home', name: 'Home', component: ComingSoonPage, meta: { requiresAuth: true } },
-  { path: '/optimizations', name: 'Optimizations', component: ComingSoonPage, meta: { requiresAuth: true } },
+  {
+    path: '/optimizations',
+    name: 'Optimizations',
+    component: ComingSoonPage,
+    meta: { requiresAuth: true },
+  },
   { path: '/fabrics', name: 'Fabrics', component: ComingSoonPage, meta: { requiresAuth: true } },
+  { path: '/fabrics/:id', name: 'fabric-details', component: FabricPage, props: true },
   { path: '/account', name: 'Account', component: ComingSoonPage, meta: { requiresAuth: true } },
 
   // needs to stay last, so that it does not override other routes
-  { path: '/:pathMatch(.*)*', name: 'NotFound', component: () => import('../views/NotFoundPage.vue') },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('../views/NotFoundPage.vue'),
+  },
 ]
 
 const router = createRouter({
@@ -33,25 +44,18 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
-  const { state, loadUser } = useAuth();
-  await loadUser();
+  const { state, loadUser } = useAuth()
+  await loadUser()
 
   if (to.meta.requiresAuth && !state.user) {
-    return { name: 'Landing', query: { login: '1', redirect: to.fullPath } };
+    return { name: 'Landing', query: { login: '1', redirect: to.fullPath } }
   }
 
   // existing user came back from Google to "/": continue where they wanted to go
   if (state.user && to.name === 'Landing' && !to.query.registration) {
-    const target = consumeReturnTo();
-    if (target !== '/') return target;
+    const target = consumeReturnTo()
+    if (target !== '/') return target
   }
-
-  // // Użytkownik wrócił z Google na stronę Landing
-  // if (state.user && to.name === 'Landing' && !to.query.registration) {
-  //   const target = consumeReturnTo();
-    
-  //   // Jeśli użytkownik próbował wejść na konkretną podstronę, wróć tam
-  //   if (target && tar
-});
+})
 
 export default router

@@ -14,8 +14,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAuth, login } from '@/composables/useAuth'
 
-const route = useRoute();
-const router = useRouter();
+const route = useRoute()
+const router = useRouter()
 const { state, logout } = useAuth()
 
 const isLoggedIn = computed(() => !!state.user)
@@ -32,9 +32,7 @@ async function onLogout() {
   if (route.meta.requiresAuth) router.replace({ name: 'Landing' })
 }
 
-const guestLinks = [
-  { name: 'Patterns', path: '/patterns' },
-]
+const guestLinks = [{ name: 'Patterns', path: '/patterns' }]
 
 const authLinks = [
   { name: 'Home', path: '/home' },
@@ -187,7 +185,12 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
             <Button
               variant="outline"
               class="border-2 border-border mt-2 w-full justify-center transition-shadow hover:shadow-lg"
-              @click="() => { isMenuOpen = false; login('/home') }"
+              @click="
+                () => {
+                  isMenuOpen = false
+                  login('/home')
+                }
+              "
             >
               Get started
             </Button>

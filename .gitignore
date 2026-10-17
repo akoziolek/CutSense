@@ -3,3 +3,10 @@
 **/bin/
 **/obj/
 .vscode/*
+
+.terraform/
+terraform/*.tfvars
+
+*.tfstate
+*.tfstate.*
+*.tfplan

@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { eq, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../../db/drizzle.provider.js';
 import type { DrizzleDB } from '../../db/drizzle.provider.js';
-import { users } from '../../db/schema.js';
+import { users } from '../../db/schema/schema.js';
 import { ResourceConflictException } from '../../common/exceptions/resource-conflict.exception.js';
 
 export type User = typeof users.$inferSelect;

@@ -1,7 +1,21 @@
+import 'dotenv/config';
+import * as fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { eq, sql } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
-import * as schema from './schema.js';
+import { NestFactory } from '@nestjs/core';
+import {
+  StoragePaths,
+  StorageService,
+} from '../../modules/storage/storage.service.js';
+import { DRIZZLE } from '../drizzle.provider.js';
+import * as schema from '../schema/schema.js';
+import { SeedModule } from './seed.module.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const fabricsAssetsDir = path.join(__dirname, 'assets/fabrics');
 
 const algorithmSeeds = [
   {
@@ -104,6 +118,7 @@ const fabricTemplates = [
       'Plain-weave cotton fabric (160 g/m²). Natural, breathable, ideal for shirts and blouses.',
     width: 1500,
     length: 3000,
+    area: 4.5,
   },
   {
     name: 'Stonewashed Linen',
@@ -111,6 +126,7 @@ const fabricTemplates = [
       '100% natural linen (210 g/m²). Pre-washed relaxed texture, no ironing needed. Great for dresses and shorts.',
     width: 1450,
     length: 2500,
+    area: 3.625,
   },
   {
     name: 'Worsted Wool 120S',
@@ -118,6 +134,7 @@ const fabricTemplates = [
       'High-grade suiting wool (280 g/m²). Crease-resistant and maintains sharp pleats.',
     width: 1500,
     length: 4000,
+    area: 6,
   },
   {
     name: 'Natural Mulberry Silk',
@@ -125,6 +142,7 @@ const fabricTemplates = [
       'Luxury silk satin with high luster (85 g/m²). Requires precise cutting along the grainline.',
     width: 1380,
     length: 2000,
+    area: 2.76,
   },
   {
     name: 'Viscose Jersey with Elastane',
@@ -132,6 +150,7 @@ const fabricTemplates = [
       'Stretch single-jersey knit (220 g/m²). 2-way stretch capacity up to 40%.',
     width: 1600,
     length: 3500,
+    area: 5.6,
   },
   {
     name: '11-Cord Cotton Corduroy',
@@ -139,6 +158,7 @@ const fabricTemplates = [
       'Heavyweight ribbed corduroy (310 g/m²). Requires pattern layout matching nap direction.',
     width: 1400,
     length: 3000,
+    area: 4.2,
   },
 ];
 
@@ -242,19 +262,17 @@ function irregularPolygon(variant: number, scale = 1): string {
 }
 
 async function main(): Promise<void> {
-  const connectionString = process.env.RUNTIME_DATABASE_URL;
-  if (!connectionString) {
-    throw new Error('Set RUNTIME_DATABASE_URL to seed the database.');
-  }
-
-  const pool = new Pool({ connectionString });
-  const db = drizzle(pool, { schema });
+  const app = await NestFactory.createApplicationContext(SeedModule);
 
   try {
+    const db = app.get(DRIZZLE);
+    const storageService = app.get(StorageService);
+
     const [existingUser] = await db
       .select({ id: schema.users.id })
       .from(schema.users)
       .limit(1);
+
     if (existingUser) {
       console.info(
         'Database already contains data – skipping demo data generation.',
@@ -294,19 +312,16 @@ async function main(): Promise<void> {
 
     const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const;
 
-    const insertedPatterns = await db
-      .insert(schema.patterns)
-      .values(
-        patternTemplates.map((template, index) => ({
-          name: template.name,
-          description: template.description,
-          size: sizes[index % sizes.length], // Typ: "XS" | "S" | "M" | "L" | "XL" | "XXL"
-          starCount: 0,
-          starAverage: '0',
-          userId: insertedUsers[index % insertedUsers.length].id,
-        })),
-      )
-      .returning({ id: schema.patterns.id, userId: schema.patterns.userId });
+    await db.insert(schema.patterns).values(
+      patternTemplates.map((template, index) => ({
+        name: template.name,
+        description: template.description,
+        size: sizes[index % sizes.length],
+        starCount: 0,
+        starAverage: '0',
+        userId: insertedUsers[index % insertedUsers.length].id,
+      })),
+    );
 
     const [users, patterns, patternTagRows, fabricTagRows] = await Promise.all([
       db.select({ id: schema.users.id }).from(schema.users),
@@ -329,63 +344,105 @@ async function main(): Promise<void> {
     ]);
 
     console.log('Generating irregular fabric sheets (Fabrics)...');
-    const fabrics = await db
-      .insert(schema.fabrics)
-      .values(
-        fabricTemplates.map((template, index) => ({
+    const fabricValues = await Promise.all(
+      fabricTemplates.map(async (template, index) => {
+        const userId = users[index % users.length].id;
+
+        const fileNumber = String(index + 1).padStart(2, '0');
+        const fileName = `fabric_${fileNumber}.jpg`;
+        const filePath = path.join(fabricsAssetsDir, fileName);
+
+        let pictureS3Key: string | null = null;
+
+        if (fs.existsSync(filePath)) {
+          const buffer = fs.readFileSync(filePath);
+
+          const mockFile = {
+            originalname: fileName,
+            mimetype: 'image/jpeg',
+            buffer,
+            size: buffer.length,
+          } as Express.Multer.File;
+
+          const folderPath = StoragePaths.fabrics(userId);
+          pictureS3Key = await storageService.uploadFile(mockFile, folderPath);
+        } else {
+          console.warn(`File ${fileName} doesn't exist in${fabricsAssetsDir}.`);
+        }
+
+        return {
           name: template.name,
           description: template.description,
-          boundary: sql`ST_GeomFromText(${irregularFabricPolygon(index, template.width, template.width)}, 0)`,
-          userId: users[index % users.length].id,
-        })),
-      )
+          pictureS3Key: pictureS3Key,
+          boundary: sql`ST_GeomFromText(${irregularFabricPolygon(index, template.width, template.length)}, 0)`,
+          area: template.area,
+          userId,
+        };
+      }),
+    );
+
+    const fabrics = await db
+      .insert(schema.fabrics)
+      .values(fabricValues)
       .returning({ id: schema.fabrics.id });
 
-    const patternTagIds = new Map(
-      patternTagRows.map(({ id, name }) => [name, id]),
+    const patternTagIds = new Map<string, number>(
+      patternTagRows.map(({ id, name }: { id: number; name: string }) => [
+        name,
+        id,
+      ]),
     );
-    const fabricTagIds = new Map(
-      fabricTagRows.map(({ id, name }) => [name, id]),
+    const fabricTagIds = new Map<string, number>(
+      fabricTagRows.map(({ id, name }: { id: number; name: string }) => [
+        name,
+        id,
+      ]),
     );
 
     const patternTagLinks: { patternId: number; tagId: number }[] = [];
-    patterns.forEach((pattern, index) => {
-      const tagNames = [
-        patternTagNames[index % patternTagNames.length],
-        patternTagNames[(index + 3) % patternTagNames.length],
-      ];
-      tagNames.forEach((tagName) => {
-        const tagId = patternTagIds.get(tagName);
-        if (tagId !== undefined)
-          patternTagLinks.push({ patternId: pattern.id, tagId });
-      });
-    });
+    patterns.forEach(
+      (pattern: { id: number; userId: number }, index: number) => {
+        const tagNames = [
+          patternTagNames[index % patternTagNames.length],
+          patternTagNames[(index + 3) % patternTagNames.length],
+        ];
+        tagNames.forEach((tagName: string) => {
+          const tagId = patternTagIds.get(tagName);
+          if (tagId !== undefined) {
+            patternTagLinks.push({ patternId: pattern.id, tagId });
+          }
+        });
+      },
+    );
     if (patternTagLinks.length > 0)
       await db.insert(schema.patternTags).values(patternTagLinks);
 
     const fabricTagLinks: { fabricId: number; tagId: number }[] = [];
-    fabrics.forEach((fabric, index) => {
+    fabrics.forEach((fabric: { id: number }, index: number) => {
       const tagNames = [
         fabricTagNames[index % fabricTagNames.length],
         fabricTagNames[(index + 2) % fabricTagNames.length],
       ];
-      tagNames.forEach((tagName) => {
+      tagNames.forEach((tagName: string) => {
         const tagId = fabricTagIds.get(tagName);
-        if (tagId !== undefined)
+        if (tagId !== undefined) {
           fabricTagLinks.push({ fabricId: fabric.id, tagId });
+        }
       });
     });
     if (fabricTagLinks.length > 0)
       await db.insert(schema.fabricTags).values(fabricTagLinks);
 
     console.log('Generating irregular pattern pieces (Pattern Pieces)...');
-    const pieceRows = patterns.flatMap((pattern, patternIndex) => {
-      const piecesCount = 3 + (patternIndex % 3); // 3 to 5 pieces per garment pattern
-      return Array.from({ length: piecesCount }, (_, pieceIndex) => ({
-        patternId: pattern.id,
-        boundary: sql`ST_GeomFromText(${irregularPolygon(patternIndex * 3 + pieceIndex, 10 + (pieceIndex % 3) * 5)}, 0)`,
-      }));
-    });
+    const pieceRows = patterns.flatMap(
+      (pattern: { id: number; userId: number }, patternIndex: number) => {
+        const piecesCount = 3 + (patternIndex % 3);
+        return Array.from({ length: piecesCount }, (_, pieceIndex: number) => ({
+          patternId: pattern.id,
+          boundary: sql`ST_GeomFromText(${irregularPolygon(patternIndex * 3 + pieceIndex, 10 + (pieceIndex % 3) * 5)}, 0)`,
+        }));
+      },
+    );
 
     if (pieceRows.length > 0) {
       await db.insert(schema.patternPieces).values(pieceRows);
@@ -395,32 +452,36 @@ async function main(): Promise<void> {
       [];
     const patternRatings = new Map<number, number[]>();
 
-    patterns.forEach((pattern, patternIndex) => {
-      const ratingCount = 1 + (patternIndex % 3);
-      for (let i = 0; i < ratingCount; i++) {
-        const user = users[(patternIndex + i + 1) % users.length];
-        if (user.id === pattern.userId) continue;
+    patterns.forEach(
+      (pattern: { id: number; userId: number }, patternIndex: number) => {
+        const ratingCount = 1 + (patternIndex % 3);
+        for (let i = 0; i < ratingCount; i++) {
+          const user = users[(patternIndex + i + 1) % users.length];
+          if (user.id === pattern.userId) continue;
 
-        const rating = 4 + (i % 2); // Ratings 4 or 5
-        starRows.push({ patternId: pattern.id, userId: user.id, rating });
+          const rating = 4 + (i % 2); // Ratings 4 or 5
+          starRows.push({ patternId: pattern.id, userId: user.id, rating });
 
-        const current = patternRatings.get(pattern.id) ?? [];
-        current.push(rating);
-        patternRatings.set(pattern.id, current);
-      }
-    });
+          const current = patternRatings.get(pattern.id) ?? [];
+          current.push(rating);
+          patternRatings.set(pattern.id, current);
+        }
+      },
+    );
 
     if (starRows.length > 0)
       await db.insert(schema.patternStars).values(starRows);
 
     const favouriteRows: { patternId: number; userId: number }[] = [];
-    patterns.forEach((pattern, patternIndex) => {
-      const favouriteCount = Math.min(1 + (patternIndex % 3), users.length);
-      for (let i = 0; i < favouriteCount; i++) {
-        const user = users[(patternIndex + i) % users.length];
-        favouriteRows.push({ patternId: pattern.id, userId: user.id });
-      }
-    });
+    patterns.forEach(
+      (pattern: { id: number; userId: number }, patternIndex: number) => {
+        const favouriteCount = Math.min(1 + (patternIndex % 3), users.length);
+        for (let i = 0; i < favouriteCount; i++) {
+          const user = users[(patternIndex + i) % users.length];
+          favouriteRows.push({ patternId: pattern.id, userId: user.id });
+        }
+      },
+    );
 
     if (favouriteRows.length > 0)
       await db.insert(schema.patternFavourites).values(favouriteRows);
@@ -441,7 +502,7 @@ async function main(): Promise<void> {
       `Success! Seeded: ${users.length} users, ${patterns.length} patterns, ${fabrics.length} fabric sheets, ${pieceRows.length} 2D pieces, and ${favouriteRows.length} pattern favourites.`,
     );
   } finally {
-    await pool.end();
+    await app.close();
   }
 }
 

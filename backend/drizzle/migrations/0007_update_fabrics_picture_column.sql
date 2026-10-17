@@ -1,0 +1,1 @@
+ALTER TABLE "fabrics" RENAME COLUMN "picture_url" TO "picture_s3_key";--> statement-breakpoint

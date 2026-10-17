@@ -50,6 +50,13 @@
       "when": 1791720646271,
       "tag": "0006_make_created_at_col_mandatory",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792246226483,
+      "tag": "0007_update_fabrics_picture_column",
+      "breakpoints": true
     }
   ]
 }

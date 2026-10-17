@@ -17,7 +17,7 @@ export class FabricResponseDto {
     description: 'URL of the fabric image',
     example: 'https://example.com/fabrics/cotton-canvas.jpg',
   })
-  pictureUrl?: string;
+  pictureS3Key?: string;
 
   @ApiPropertyOptional({
     description: 'Whether the fabric is marked as a favourite',
@@ -32,7 +32,8 @@ export class FabricResponseDto {
   userId!: number;
 
   @ApiProperty({
-    description: 'Date and time when the fabric was created, in ISO 8601 format',
+    description:
+      'Date and time when the fabric was created, in ISO 8601 format',
     example: '2025-01-15T10:30:00.000Z',
     format: 'date-time',
   })

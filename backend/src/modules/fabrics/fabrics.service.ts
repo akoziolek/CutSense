@@ -35,7 +35,7 @@ export class FabricService {
       id: fabric.id,
       name: fabric.name,
       description: fabric.description ?? undefined,
-      pictureUrl: fabric.pictureUrl ?? undefined,
+      pictureS3Key: fabric.pictureS3Key ?? undefined,
       isFavourite: fabric.isFavourite,
       userId: fabric.userId,
       createdAt: fabric.createdAt.toISOString(),

@@ -71,7 +71,7 @@ export const users = pgTable('users', {
   id: bigint('id', { mode: 'number' })
     .primaryKey()
     .generatedByDefaultAsIdentity(),
-  googleId: varchar('google_id', { length: 64}).notNull().unique(), 
+  googleId: varchar('google_id', { length: 64 }).notNull().unique(),
   email: varchar('email', { length: 254 }).notNull().unique(),
   name: varchar('name', { length: 60 }).notNull(),
   surname: varchar('surname', { length: 60 }),
@@ -138,7 +138,7 @@ export const fabrics = pgTable(
       .generatedByDefaultAsIdentity(),
     name: varchar('name', { length: 35 }).notNull(),
     description: varchar('description', { length: 400 }),
-    pictureUrl: varchar('picture_url', { length: 2048 }),
+    pictureS3Key: varchar('picture_s3_key', { length: 512 }).notNull(),
     boundary: postgisPolygon('boundary').notNull(),
     isFavourite: boolean('is_favourite').notNull().default(false),
     userId: bigint('user_id', { mode: 'number' })

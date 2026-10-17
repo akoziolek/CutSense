@@ -28,7 +28,7 @@ describe('FabricService', () => {
       id: 17,
       name: 'Cotton canvas',
       description: 'Medium-weight cotton',
-      pictureUrl: 'https://example.com/fabric.jpg',
+      pictureS3Key: 'https://example.com/fabric.jpg',
       isFavourite: true,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
@@ -39,7 +39,7 @@ describe('FabricService', () => {
       id: 17,
       name: 'Cotton canvas',
       description: 'Medium-weight cotton',
-      pictureUrl: 'https://example.com/fabric.jpg',
+      pictureS3Key: 'https://example.com/fabric.jpg',
       isFavourite: true,
       userId: 3,
       createdAt: '2025-01-15T10:30:00.000Z',
@@ -59,7 +59,7 @@ describe('FabricService', () => {
       id: 18,
       name: 'Linen',
       description: null,
-      pictureUrl: null,
+      pictureS3Key: null,
       isFavourite: false,
       userId: 3,
       createdAt: new Date('2025-02-01T00:00:00.000Z'),
@@ -68,7 +68,7 @@ describe('FabricService', () => {
 
     await expect(service.getFabricById(18, 3)).resolves.toMatchObject({
       description: undefined,
-      pictureUrl: undefined,
+      pictureS3Key: undefined,
       tags: [],
     });
   });

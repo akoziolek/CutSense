@@ -6,6 +6,7 @@ import { DrizzleModule } from './db/drizzle.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { FabricModule } from './modules/fabrics/fabrics.module.js';
+import { StorageModule } from './modules/storage/storage.module.js';
 
 @Module({
   imports: [
@@ -13,7 +14,8 @@ import { FabricModule } from './modules/fabrics/fabrics.module.js';
     DrizzleModule,
     AuthModule,
     UsersModule,
-    FabricModule
+    FabricModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

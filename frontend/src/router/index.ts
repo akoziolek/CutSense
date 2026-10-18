@@ -11,6 +11,7 @@ declare module 'vue-router' {
 const LandingPage = () => import('../views/LandingPage.vue')
 const ComingSoonPage = () => import('../views/ComingSoonPage.vue') // temporary, to change for correct ones later
 const FabricPage = () => import('../views/FabricView.vue')
+const FabricsPage = () => import('../views/FabricsView.vue')
 
 const routes = [
   { path: '/', name: 'Landing', component: LandingPage },
@@ -26,8 +27,14 @@ const routes = [
     component: ComingSoonPage,
     meta: { requiresAuth: true },
   },
-  { path: '/fabrics', name: 'Fabrics', component: ComingSoonPage, meta: { requiresAuth: true } },
-  { path: '/fabrics/:id', name: 'fabric-details', component: FabricPage, props: true },
+  { path: '/fabrics', name: 'Fabrics', component: FabricsPage, meta: { requiresAuth: true } },
+  {
+    path: '/fabrics/:id',
+    name: 'fabric-details',
+    component: FabricPage,
+    props: true,
+    meta: { requiresAuth: true },
+  },
   { path: '/account', name: 'Account', component: ComingSoonPage, meta: { requiresAuth: true } },
 
   // needs to stay last, so that it does not override other routes

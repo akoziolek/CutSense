@@ -1,6 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { DRIZZLE } from '../../db/drizzle.provider.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
+import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
 import { PatternsService } from './patterns.service.js';
 
 describe('PatternsService', () => {
@@ -53,7 +54,7 @@ describe('PatternsService', () => {
       userId: 3,
       createdAt: '2025-01-15T10:30:00.000Z',
       tags: ['summer', 'tops'],
-      author: { id: 3, name: 'ala_k' },
+      author: { id: 3, nickname: 'ala_k' },
       pieces: [
         { id: 1, points: [[0, 0], [10, 0], [10, 5], [0, 0]] },
         { id: 2, points: [[0, 0], [4, 0], [4, 4], [0, 0]] },
@@ -88,7 +89,7 @@ describe('PatternsService', () => {
       description: undefined,
       tags: [],
       pieces: [],
-      author: { id: 3, name: 'Ala' },
+      author: { id: 3, nickname: 'Ala' },
     });
   });
 
@@ -97,6 +98,27 @@ describe('PatternsService', () => {
 
     await expect(service.getPatternById(99, 3)).rejects.toBeInstanceOf(
       ResourceNotFoundException,
+    );
+  });
+
+    it('throws access denied for a private pattern of another user', async () => {
+    findFirst.mockResolvedValue({
+      id: 20,
+      name: 'Secret coat',
+      description: null,
+      size: 'L',
+      visibility: 'PRIVATE',
+      starCount: 0,
+      starAverage: '0',
+      userId: 5,
+      createdAt: new Date('2025-03-01T00:00:00.000Z'),
+      tags: [],
+      user: { id: 5, nickname: 'other', name: 'Other' },
+      pieces: [],
+    });
+
+    await expect(service.getPatternById(20, 3)).rejects.toBeInstanceOf(
+      AccessDeniedException,
     );
   });
 });

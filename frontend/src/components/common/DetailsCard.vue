@@ -2,6 +2,7 @@
 import { type Component } from 'vue'
 import { Card, CardContent } from '@/components/ui/card'
 import TagsList from '../common/TagsList.vue'
+import { FileText } from 'lucide-vue-next'
 
 export interface MetaItem {
   icon?: Component
@@ -26,7 +27,7 @@ withDefaults(
   <Card class="overflow-hidden border border-muted shadow-sm rounded-md gap-0 py-0">
     <div
       v-if="metaItems.length || $slots.header"
-      class="bg-brand-green px-5 py-3 sm:py-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-foreground"      
+      class="bg-brand-green px-5 py-3 sm:py-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-foreground"
     >
       <slot name="header">
         <div v-for="(item, index) in metaItems" :key="index" class="flex items-center gap-2">
@@ -42,20 +43,29 @@ withDefaults(
       </slot>
     </div>
 
-    <CardContent
-      v-if="tags.length || description || $slots.default"
-      class="px-5 py-4 space-y-4 sm:space-y-5 bg-card"
-    >
+    <CardContent class="px-5 py-4 space-y-4 sm:space-y-5 bg-card">
       <slot>
-        <TagsList v-if="tags.length" :tags="tags" />
+        <TagsList :tags="tags" />
 
-        <div v-if="description" class="space-y-1.5">
+        <div class="space-y-1.5">
           <h3 class="font-semibold font-inter text-base text-foreground tracking-tight">
             Description
           </h3>
-          <p class="text-sm text-muted-foreground leading-relaxed">
+          <p v-if="description" class="text-sm text-muted-foreground leading-relaxed">
             {{ description }}
           </p>
+          <div
+            v-else
+            class="bg-white text-xs sm:text-sm border border-muted rounded-md p-3 text-center"
+          >
+            <p class="text-muted-foreground">
+              <FileText
+                class="inline-block h-4 w-4 align-text-center mr-1.5 text-foreground"
+              />
+              <strong class="text-foreground">No description yet.</strong> Add fabric details or
+              instructions.
+            </p>
+          </div>
         </div>
       </slot>
     </CardContent>

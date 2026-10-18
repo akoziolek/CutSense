@@ -4,6 +4,7 @@ import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import { patterns } from '../../db/schema/schema.js';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
+import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
 
 const ringOf = (geojson: string): [number, number][] =>
   (JSON.parse(geojson) as { coordinates: [number, number][][] }).coordinates[0];
@@ -20,13 +21,7 @@ export class PatternsService {
     currentUserId: number,
   ): Promise<PatternResponseDto> {
     const pattern = await this.db.query.patterns.findFirst({
-      where: and(
-        eq(patterns.id, patternId),
-        or(
-          eq(patterns.visibility, 'PUBLIC'),
-          eq(patterns.userId, currentUserId)
-        )
-      ),
+      where: eq(patterns.id, patternId),
       with: {
         tags: {
           with: {
@@ -48,6 +43,11 @@ export class PatternsService {
 
     if (!pattern) {
       throw new ResourceNotFoundException(`Pattern`, patternId);
+    }
+    if (pattern.visibility === 'PRIVATE' && pattern.userId !== currentUserId) {
+      throw new AccessDeniedException(
+        'This pattern is private and belongs to another user.',
+      );
     }
 
     return {

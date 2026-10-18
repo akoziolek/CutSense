@@ -34,6 +34,7 @@ const pattern = ref<Pattern | null>(null)
 const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
+const isForbidden = ref(false)
 
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -70,6 +71,7 @@ const fetchPattern = async (id: string, activeSignal = { active: true }) => {
   clearSkeletonTimer()
   pattern.value = null
   error.value = ''
+  isForbidden.value = false
   isFetching.value = true
   showSkeleton.value = false
 
@@ -84,8 +86,12 @@ const fetchPattern = async (id: string, activeSignal = { active: true }) => {
     if (activeSignal.active) pattern.value = result
   } catch (e) {
     if (activeSignal.active) {
-      error.value =
-        e instanceof ApiError ? e.body.message : 'Could not load pattern. Please try again.'
+      if (e instanceof ApiError) {
+        isForbidden.value = e.status === 403
+        error.value = e.body.message
+      } else {
+        error.value = 'Could not load pattern. Please try again.'
+      }
     }
   } finally {
     if (activeSignal.active) {
@@ -151,9 +157,18 @@ watch(
         </main>
 
         <main v-else-if="error" key="error">
-          <ErrorState title="Unable to load pattern" :message="error" code="Error">
+          <ErrorState
+            :title="isForbidden ? 'This pattern is private' : 'Unable to load pattern'"
+            :message="error"
+            :code="isForbidden ? 'Access denied' : 'Error'"
+          >
             <template #actions>
-              <Button variant="outline" class="rounded-lg gap-2" @click="fetchPattern(props.id)">
+              <Button
+                v-if="!isForbidden"
+                variant="outline"
+                class="rounded-lg gap-2"
+                @click="fetchPattern(props.id)"
+              >
                 <RotateCcw class="w-4 h-4" />
                 <span>Try again</span>
               </Button>

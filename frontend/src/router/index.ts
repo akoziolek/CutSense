@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { consumeReturnTo } from '../utils/returnTo'
+import { useFabricWizardStore } from '@/stores/fabricWizard.ts'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -10,8 +11,9 @@ declare module 'vue-router' {
 
 const LandingPage = () => import('../views/LandingPage.vue')
 const ComingSoonPage = () => import('../views/ComingSoonPage.vue') // temporary, to change for correct ones later
-const FabricPage = () => import('../views/FabricView.vue')
-const FabricsPage = () => import('../views/FabricsView.vue')
+const FabricPage = () => import('../views/fabrics/FabricView.vue')
+const FabricsPage = () => import('../views/fabrics/FabricsView.vue')
+const FabricPhotoConfigPage = () => import('../views/fabrics/FabricPhotoConfigView.vue')
 
 const routes = [
   { path: '/', name: 'Landing', component: LandingPage },
@@ -34,6 +36,17 @@ const routes = [
     component: FabricPage,
     props: true,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/fabric-photo-config',
+    name: 'FabricPhotoConfig',
+    component: FabricPhotoConfigPage,
+    beforeEnter: () => {
+      const wizardStore = useFabricWizardStore()
+      if (!wizardStore.file) {
+        return { name: 'Fabrics' }
+      }
+    },
   },
   { path: '/account', name: 'Account', component: ComingSoonPage, meta: { requiresAuth: true } },
 

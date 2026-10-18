@@ -17,7 +17,7 @@ import {
   AttachmentTitle,
 } from '@/components/ui/attachment'
 import { Button } from '@/components/ui/button'
-import { UploadCloud, FileImage, Paperclip, X } from 'lucide-vue-next'
+import { UploadCloud, FileImage, Paperclip, X, Trash2 } from 'lucide-vue-next'
 
 const props = withDefaults(
   defineProps<{
@@ -201,10 +201,10 @@ onUnmounted(() => {
               type="button"
               variant="ghost"
               size="icon"
-              class="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg shrink-0 cursor-pointer"
+              class="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg shrink-0 cursor-pointer"
               @click="handleRemove"
             >
-              <X class="h-4 w-4" />
+              <Trash2 class="h-4 w-4" />
               <span class="sr-only">Remove file</span>
             </Button>
           </AttachmentActions>
@@ -214,7 +214,7 @@ onUnmounted(() => {
           <Button
             type="button"
             variant="ghost"
-            class="rounded-lg text-xs sm:text-sm cursor-pointer hover:bg-destructive/10"
+            class="rounded-lg text-xs font-inter sm:text-sm cursor-pointer hover:bg-destructive/10"
             @click="emit('update:open', false)"
           >
             Cancel
@@ -223,7 +223,7 @@ onUnmounted(() => {
             type="button"
             :disabled="!selectedFile || props.loading"
             @click="handleSubmit"
-            class="rounded-lg text-xs sm:text-sm font-semibold disabled:opacity-50 cursor-pointer"
+            class="rounded-lg text-xs font-inter sm:text-sm font-semibold disabled:opacity-50 cursor-pointer"
           >
             {{ props.loading ? 'Saving...' : 'Confirm' }}
           </Button>

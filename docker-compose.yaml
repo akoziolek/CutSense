@@ -59,15 +59,18 @@ services:
     depends_on:
       migration:
         condition: service_completed_successfully
+      s3:
+        condition: service_healthy
 
   s3:
-    image: localstack/localstack:latest
+    image: localstack/localstack-pro:latest
     ports:
       - "4566:4566"
     environment:
       SERVICES: s3
       LOCALSTACK_AUTH_TOKEN: "${LOCALSTACK_AUTH_TOKEN}"
       S3_BUCKET_NAME: "${S3_BUCKET_NAME}"
+      PERSISTENCE: 1
     healthcheck:
       test:
         [

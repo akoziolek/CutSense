@@ -1,5 +1,29 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+class PatternAuthorDto {
+  @ApiProperty({ description: 'Unique identifier of the author', example: 42 })
+  id!: number;
+
+  @ApiProperty({ description: 'Nickname of the author', example: 'user_1' })
+  nickname!: string;
+}
+
+class PatternPieceDto {
+  @ApiProperty({ description: 'Identifier of the pattern piece', example: 1 })
+  id!: number;
+
+  @ApiProperty({
+    description: 'Outer ring of the piece polygon as [x, y] pairs',
+    type: 'array',
+    items: {
+      type: 'array',
+      items: { type: 'number' },
+    },
+    example: [[0, 0], [15, 0], [15, 9]],
+  })
+  points!: [number, number][];
+}
+
 export class PatternResponseDto {
   @ApiProperty({ description: 'Unique identifier of the pattern', example: 1 })
   id!: number;
@@ -51,4 +75,13 @@ export class PatternResponseDto {
     type: [String],
   })
   tags!: string[];
+
+  @ApiProperty({ type: PatternAuthorDto })
+    author!: PatternAuthorDto;
+
+  @ApiProperty({
+    description: 'All pieces that make up the pattern',
+    type: [PatternPieceDto],
+  })
+  pieces!: PatternPieceDto[];
 }

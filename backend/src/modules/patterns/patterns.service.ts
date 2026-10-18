@@ -5,6 +5,9 @@ import { patterns } from '../../db/schema/schema.js';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 
+const ringOf = (geojson: string): [number, number][] =>
+  (JSON.parse(geojson) as { coordinates: [number, number][][] }).coordinates[0];
+
 @Injectable()
 export class PatternsService {
   constructor(
@@ -30,8 +33,18 @@ export class PatternsService {
             tag: true,
           },
         },
+                user: {
+          columns: { id: true, nickname: true, name: true },
+        },
+        pieces: {
+          columns: { id: true },
+          extras: (piece, { sql }) => ({
+            geojson: sql<string>`ST_AsGeoJSON(${piece.boundary})`.as('geojson'),
+          }),
+          orderBy: (piece, { asc }) => [asc(piece.id)],
       },
-    });
+    },
+  });
 
     if (!pattern) {
       throw new ResourceNotFoundException(`Pattern`, patternId);
@@ -48,6 +61,14 @@ export class PatternsService {
       userId: pattern.userId,
       createdAt: pattern.createdAt.toISOString(),
       tags: pattern.tags.map((item) => item.tag.name),
+      author: {
+        id: pattern.user.id,
+        nickname: pattern.user.nickname ?? pattern.user.name,
+      },
+      pieces: pattern.pieces.map((piece) => ({
+        id: piece.id,
+        points: ringOf(piece.geojson),
+      })),
     };
   }
 }

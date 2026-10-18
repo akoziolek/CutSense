@@ -23,6 +23,7 @@ const props = withDefaults(
   defineProps<{
     open: boolean
     loading?: boolean
+    description: string
   }>(),
   {
     loading: false,
@@ -143,7 +144,7 @@ onUnmounted(() => {
         </div>
 
         <DialogDescription class="text-sm text-brand-grey-foreground pt-1">
-          Add a photo for your fabric or material. Max 5MB.
+          {{ description }}
         </DialogDescription>
       </DialogHeader>
 

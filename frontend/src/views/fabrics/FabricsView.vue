@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import FloatingButton from '@/components/common/FloatingButton.vue'
-import UploadFileModal from '@/components/common/UploadFileModal.vue'
+import UploadFileModal from '@/components/fabrics/UploadFileModal.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFabricWizardStore } from '@/stores/fabricWizard'
@@ -54,8 +54,9 @@ const closeModal = () => {
     <UploadFileModal
       :open="isModalOpen"
       :loading="isLoading"
-      @update:open="(val) => (!val ? closeModal() : openModal())"
+      @update:open="(val: boolean) => (!val ? closeModal() : openModal())"
       @submit="handleFileSubmit"
+      description="Add a photo for your fabric. Max 5MB."
     />
   </GridLayout>
 </template>

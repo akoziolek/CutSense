@@ -8,7 +8,7 @@ const emit = defineEmits<{ (e: 'update:open', v: boolean): void; (e: 'login'): v
 
 <template>
   <Dialog :open="open" @update:open="(v) => emit('update:open', v)">
-    <DialogContent class="p-7 sm:p-8 rounded-mm bg-background text-foreground shadow-2xl">
+    <DialogContent class="p-7 sm:p-8 rounded-xl bg-background text-foreground shadow-2xl">
       <DialogHeader class="text-left">
         <DialogTitle class="text-2xl font-bold font-inter">
           {{ props.registrationCancelled ? 'Registration cancelled' : 'Sign in to continue' }}

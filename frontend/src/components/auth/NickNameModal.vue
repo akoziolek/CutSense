@@ -60,7 +60,7 @@ const handleSave = () => {
     <DialogContent
       @pointer-down-outside.prevent
       @escape-key-down.prevent
-      class="... [&>button]:hidden p-7 sm:p-8 rounded-mm bg-background text-foreground shadow-2xl"
+      class="... [&>button]:hidden p-7 sm:p-8 rounded-xl bg-background text-foreground shadow-2xl"
     >
       <DialogHeader class="text-left">
         <DialogTitle class="text-2xl sm:text-3xl font-bold font-inter tracking-tight">

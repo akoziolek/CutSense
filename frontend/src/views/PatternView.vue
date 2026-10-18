@@ -9,6 +9,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { CalendarDays, RulerDimensionLine, Lock, Globe, ArrowLeft, RotateCcw } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
+import PatternPiecesCarousel, {
+  type PatternPiece,
+} from '@/components/patterns/PatternPiecesCarousel.vue'
+
 
 interface Pattern {
   id: number
@@ -20,6 +24,8 @@ interface Pattern {
   starAverage: string
   tags: string[]
   createdAt: string
+  author: { id: number; name: string }
+  pieces: PatternPiece[]
 }
 
 const props = defineProps<{ id: string }>()
@@ -110,6 +116,12 @@ watch(
       <PageHeader :title="pattern?.name ?? (isFetching ? '' : 'Pattern details')">
         <!-- Place for icons -->
       </PageHeader>
+      <p
+        v-if="pattern"
+        class="-mt-4 text-xs text-muted-foreground"
+      >
+        Author: {{ pattern.author.nickname }}
+      </p>
 
       <Transition
         mode="out-in"
@@ -160,12 +172,8 @@ watch(
           key="content"
           class="grid grid-cols-1 md:grid-cols-5 gap-8 items-start"
         >
-          <div class="w-full aspect-square max-h-[500px] md:col-span-2">
-            <div
-              class="flex h-full items-center justify-center rounded-md bg-muted text-muted-foreground border"
-            >
-              Pattern preview not available
-            </div>
+          <div class="w-full md:col-span-2">
+            <PatternPiecesCarousel :pieces="pattern.pieces" />
           </div>
 
           <div class="md:col-span-3">

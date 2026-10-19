@@ -1,10 +1,19 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { eq, and, or } from 'drizzle-orm';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
-import { patterns } from '../../db/schema/schema.js';
+import { patternPieces, patternTags, patterns, tagsForPatterns, } from '../../db/schema/schema.js';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
+import type { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
+
+const toWkt = (points: { x: number; y: number }[]): string => {
+  const ring = [...points];
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  if (first.x !== last.x || first.y !== last.y) ring.push(first);
+  return `POLYGON((${ring.map((p) => `${p.x} ${p.y}`).join(', ')}))`;
+};
 
 const ringOf = (geojson: string): [number, number][] =>
   (JSON.parse(geojson) as { coordinates: [number, number][][] }).coordinates[0];
@@ -70,5 +79,54 @@ export class PatternsService {
         points: ringOf(piece.geojson),
       })),
     };
+  }
+
+    async createPattern(dto: CreatePatternDto, userId: number): Promise<{ id: number }> {
+    const tagNames = [...new Set(dto.tags.map((t) => t.trim().toLowerCase()))];
+
+    // one transaction: if anything fails, nothing is saved
+    return this.db.transaction(async (tx) => {
+      const tagRows = tagNames.length
+        ? await tx
+            .select({ id: tagsForPatterns.id, name: tagsForPatterns.name })
+            .from(tagsForPatterns)
+            .where(inArray(tagsForPatterns.name, tagNames))
+        : [];
+
+      const unknown = tagNames.filter((n) => !tagRows.some((r) => r.name === n));
+      if (unknown.length) {
+        // an array message is mapped to VALIDATION_ERROR by AllExceptionsFilter
+        throw new BadRequestException([`Unknown tags: ${unknown.join(', ')}`]);
+      }
+
+      const [created] = await tx
+        .insert(patterns)
+        .values({
+          name: dto.name,
+          description: dto.description?.trim() || null,
+          size: dto.size,
+          visibility: dto.visibility,
+          userId,
+        })
+        .returning({ id: patterns.id });
+
+      if (tagRows.length) {
+        await tx
+          .insert(patternTags)
+          .values(tagRows.map((t) => ({ patternId: created.id, tagId: t.id })));
+      }
+
+      await tx.insert(patternPieces).values(
+        dto.pieces.map((piece) => ({
+          patternId: created.id,
+          boundary: sql`ST_GeomFromText(${toWkt(piece.points)}, 0)`,
+          grainline: piece.grainline,
+          normalCount: piece.normal,
+          mirroredCount: piece.mirrored,
+        })),
+      );
+
+      return { id: created.id };
+    });
   }
 }

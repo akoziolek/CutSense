@@ -138,7 +138,7 @@ const zoomOut = () => {
               type="button"
               variant="outline"
               size="sm"
-              class="h-8 px-2.5 gap-1.5 text-xs cursor-pointer bg-brand-green/70 hover:bg-brand-green text-foreground border-brand-green/30 focus-visible:ring-2 focus-visible:ring-violet-500"
+              class="h-8 px-2.5 gap-1.5 text-xs cursor-pointer bg-brand-green/70 hover:bg-brand-green text-foreground border-brand-green/30"
               title="Rotate 90° counter-clockwise"
               @click="emit('rotate', 'ccw')"
             >
@@ -150,7 +150,7 @@ const zoomOut = () => {
               type="button"
               variant="outline"
               size="sm"
-              class="h-8 px-2.5 gap-1.5 text-xs cursor-pointer bg-brand-green/70 hover:bg-brand-green text-foreground border-brand-green/30 focus-visible:ring-2 focus-visible:ring-violet-500"
+              class="h-8 px-2.5 gap-1.5 text-xs cursor-pointer bg-brand-green/70 hover:bg-brand-green text-foreground border-brand-green/30 "
               title="Rotate 90° clockwise"
               @click="emit('rotate', 'cw')"
             >
@@ -212,7 +212,7 @@ const zoomOut = () => {
                   type="button"
                   variant="outline"
                   size="sm"
-                  class="w-24 h-8 px-2.5 justify-between text-xs font-mono font-semibold bg-background border border-border rounded-lg shadow-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-violet-500"
+                  class="w-24 h-8 px-2.5 justify-between hover:bg-brand-green/70 text-xs font-mono font-semibold bg-background border border-border rounded-lg shadow-xs cursor-pointer "
                 >
                   <span>{{ props.threadAngle }}°</span>
                   <ChevronDown class="h-3.5 w-3.5 opacity-50 shrink-0" />
@@ -295,7 +295,7 @@ const zoomOut = () => {
               @change="handleLineSubmit"
               @keyup.enter="handleLineEnter"
               placeholder="e.g. 8.5"
-              class="flex-1 h-8 text-xs font-mono font-semibold text-center bg-background border border-border focus-visible:ring-2 focus-visible:ring-violet-500"
+              class="flex-1 h-8 text-xs font-mono font-semibold text-center bg-background border border-border focus-visible:ring-2"
             />
             <span class="text-xs text-muted-foreground font-medium">cm</span>
           </div>
@@ -306,7 +306,7 @@ const zoomOut = () => {
             type="button"
             variant="outline"
             size="sm"
-            class="w-full h-8 gap-1.5 text-xs cursor-pointer font-inter bg-warning/70 hover:bg-warning text-foreground border-warning/30 focus-visible:ring-2 focus-visible:ring-violet-500"
+            class="w-full h-8 gap-1.5 text-xs cursor-pointer font-inter bg-warning/70 hover:bg-warning text-foreground border-warning/30 focus-visible:ring-2"
             @click="emit('resetLines')"
           >
             <RotateCcw class="h-3.5 w-3.5 text-warning-foreground" />

@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
 import { useSpatialWorkspace } from '@/composables/useSpatialWorkspace'
+import { useAddFabricFormGuard } from '@/composables/useAddFabricFormGuard'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StepCounter from '@/components/forms/StepCounter.vue'
 import FabricConfigSidebar from '@/components/fabrics/FabricConfigSidebar.vue'
@@ -13,7 +14,7 @@ import DiscardNewFabricModal from '@/components/fabrics/DiscardNewFabricModal.vu
 const wizardStore = useFabricAddingStore()
 const workspaceRef = ref<InstanceType<typeof SpatialWorkspace> | null>(null)
 
-const isCancelModalOpen = ref(false)
+const { isCancelModalOpen, handleCancel, confirmExit } = useAddFabricFormGuard()
 
 const {
   points,
@@ -99,11 +100,9 @@ watch(
   { deep: true },
 )
 
-const handleCancel = () => {
-  isCancelModalOpen.value = true
+const handleSubmit = () => {
+  // next step
 }
-
-const handleSubmit = () => {}
 </script>
 
 <template>
@@ -166,6 +165,9 @@ const handleSubmit = () => {}
       @cancel="handleCancel"
       @next="handleSubmit"
     />
-    <DiscardNewFabricModal v-model:open="isCancelModalOpen" />
+    <DiscardNewFabricModal
+      v-model:open="isCancelModalOpen"
+      @confirm="confirmExit"
+    />
   </GridLayout>
 </template>

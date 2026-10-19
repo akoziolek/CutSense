@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
+import { useAddFabricFormGuard } from '@/composables/useAddFabricFormGuard'
 import PageHeader from '@/components/common/PageHeader.vue'
 import UploadFileCard from '@/components/forms/UploadFileCard.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
@@ -11,22 +12,19 @@ import DiscardNewFabricModal from '@/components/fabrics/DiscardNewFabricModal.vu
 
 const router = useRouter()
 const wizardStore = useFabricAddingStore()
-const isCancelModalOpen = ref(false)
+
+const { isCancelModalOpen, handleCancel, confirmExit } = useAddFabricFormGuard()
 
 const selectedFile = computed({
   get: () => wizardStore.file,
   set: (newFile) => {
     if (newFile) {
-      wizardStore.setFile(newFile) // save to pinia/indexedDB
+      wizardStore.setFile(newFile)
     } else {
-      wizardStore.resetWizard() // reset pinia/indexd
+      wizardStore.resetWizard()
     }
   },
 })
-
-const handleCancel = () => {
-  isCancelModalOpen.value = true
-}
 
 const handleSubmit = async () => {
   if (!selectedFile.value) return
@@ -63,6 +61,7 @@ const handleSubmit = async () => {
         />
       </main>
     </div>
-    <DiscardNewFabricModal v-model:open="isCancelModalOpen" />
+
+    <DiscardNewFabricModal v-model:open="isCancelModalOpen" @confirm="confirmExit" />
   </GridLayout>
 </template>

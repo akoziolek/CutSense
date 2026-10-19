@@ -1,18 +1,11 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import { useFabricAddingStore } from '@/stores/addingFabricStore'
 import BaseModal from '@/components/common/BaseModal.vue'
 
 const isOpen = defineModel<boolean>('open', { default: false })
 
-const router = useRouter()
-const wizardStore = useFabricAddingStore()
-
-const handleConfirm = async () => {
-  isOpen.value = false
-  await wizardStore.resetWizard()
-  router.push('/fabrics')
-}
+const emit = defineEmits<{
+  (e: 'confirm'): void
+}>()
 </script>
 
 <template>
@@ -23,7 +16,7 @@ const handleConfirm = async () => {
     confirm-label="Yes, discard"
     cancel-label="Continue editing"
     show-cancel
-    @confirm="handleConfirm"
+    @confirm="emit('confirm')"
     @cancel="isOpen = false"
   />
 </template>

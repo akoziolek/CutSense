@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
 import { useSpatialWorkspace } from '@/composables/useSpatialWorkspace'
 import { useAddFabricFormGuard } from '@/composables/useAddFabricFormGuard'
@@ -12,6 +14,7 @@ import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import DiscardNewFabricModal from '@/components/fabrics/DiscardNewFabricModal.vue'
 
 const wizardStore = useFabricAddingStore()
+const router = useRouter()
 const workspaceRef = ref<InstanceType<typeof SpatialWorkspace> | null>(null)
 
 const { isCancelModalOpen, handleCancel, confirmExit } = useAddFabricFormGuard()
@@ -90,18 +93,32 @@ watch(
   () => {
     if (!wizardStore.isHydrated || isSyncing) return
 
-    wizardStore.updateConfig({
+    void wizardStore.updateConfig({
       points: JSON.parse(JSON.stringify(points.value)),
       pxPerCm: pxPerCm.value,
       threadAngle: threadAngle.value,
       rotation: imageRotation.value,
+    }).catch((error: unknown) => {
+      console.error('Failed to persist fabric configuration:', error)
     })
   },
   { deep: true },
 )
 
-const handleSubmit = () => {
-  // next step
+const handleSubmit = async () => {
+  try {
+    await wizardStore.updateConfig({
+      points: JSON.parse(JSON.stringify(points.value)),
+      pxPerCm: pxPerCm.value,
+      threadAngle: threadAngle.value,
+      rotation: imageRotation.value,
+    })
+  } catch {
+    toast.error('Could not save fabric configuration. Please try again.')
+    return
+  }
+
+  await router.push({ name: 'FabricDescription' })
 }
 </script>
 
@@ -161,7 +178,7 @@ const handleSubmit = () => {
 
     <FormFloatingActions
       cancel-label="Cancel"
-      next-label="Calibrate"
+      next-label="Next"
       @cancel="handleCancel"
       @next="handleSubmit"
     />

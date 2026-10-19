@@ -53,6 +53,7 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     tags: [...DEFAULT_DETAILS.tags],
   })
   const isHydrated = ref(false) // will be false after each F5 => file will be read from IndexDB
+  const isConfigPersisted = ref(false)
   let detailsWriteQueue = Promise.resolve()
 
   async function setFile(newFile: File) {
@@ -65,6 +66,7 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
 
     // pinia reset configuration options
     config.value = { ...DEFAULT_CONFIG }
+    isConfigPersisted.value = false
     details.value = {
       ...DEFAULT_DETAILS,
       tags: [...DEFAULT_DETAILS.tags],
@@ -101,11 +103,14 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
       ...config.value,
       ...partialConfig,
     }
+    isConfigPersisted.value = false
 
     try {
       await set(STORAGE_CONFIG_KEY, JSON.parse(JSON.stringify(config.value)))
+      isConfigPersisted.value = true
     } catch (error) {
       console.error('Error saving config to IndexedDB:', error)
+      throw error
     }
   }
 
@@ -130,6 +135,7 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
           ...DEFAULT_CONFIG,
           ...savedConfig,
         }
+        isConfigPersisted.value = true
       }
 
       if (savedDetails) {
@@ -154,6 +160,7 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     file.value = null
     previewUrl.value = null
     config.value = { ...DEFAULT_CONFIG }
+    isConfigPersisted.value = false
     details.value = {
       ...DEFAULT_DETAILS,
       tags: [...DEFAULT_DETAILS.tags],
@@ -179,7 +186,7 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     const hasValidPoints = Array.isArray(config.value.points) && config.value.points.length >= 3
     const hasValidScale = typeof config.value.pxPerCm === 'number' && config.value.pxPerCm > 0
 
-    return hasValidPoints && hasValidScale
+    return isConfigPersisted.value && hasValidPoints && hasValidScale
   })
 
   return {
@@ -188,8 +195,8 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     config,
     details,
     isHydrated,
-    isStep1Valid: isFileLoaded,
-    isStep2Valid: isShapeConfigured,
+    isFileLoaded,
+    isShapeConfigured,
     setFile,
     updateDetails,
     updateConfig,

@@ -3,7 +3,7 @@ import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
 
 // steps of the form
-const FORM_ROUTE_NAMES = ['AddFabric', 'FabricPhotoConfig']
+const FORM_ROUTE_NAMES = ['AddFabric', 'FabricPhotoConfig', 'FabricDescription']
 
 export function useAddFabricFormGuard() {
   const router = useRouter()

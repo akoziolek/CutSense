@@ -6,6 +6,7 @@ import { PatternResponseDto } from './dto/pattern-response.dto.js';
 import type { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
+import { rotateAndAnchor } from './geometry.js';
 
 const toWkt = (points: { x: number; y: number }[]): string => {
   const ring = [...points];
@@ -95,7 +96,6 @@ export class PatternsService {
 
       const unknown = tagNames.filter((n) => !tagRows.some((r) => r.name === n));
       if (unknown.length) {
-        // an array message is mapped to VALIDATION_ERROR by AllExceptionsFilter
         throw new BadRequestException([`Unknown tags: ${unknown.join(', ')}`]);
       }
 
@@ -119,8 +119,7 @@ export class PatternsService {
       await tx.insert(patternPieces).values(
         dto.pieces.map((piece) => ({
           patternId: created.id,
-          boundary: sql`ST_GeomFromText(${toWkt(piece.points)}, 0)`,
-          grainline: piece.grainline,
+          boundary: sql`ST_GeomFromText(${toWkt(rotateAndAnchor(piece.points, piece.grainline))}, 0)`,
           normalCount: piece.normal,
           mirroredCount: piece.mirrored,
         })),

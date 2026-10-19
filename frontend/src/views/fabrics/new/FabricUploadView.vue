@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
@@ -7,9 +7,11 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import UploadFileCard from '@/components/forms/UploadFileCard.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
+import DiscardNewFabricModal from '@/components/fabrics/DiscardNewFabricModal.vue'
 
 const router = useRouter()
 const wizardStore = useFabricAddingStore()
+const isCancelModalOpen = ref(false)
 
 const selectedFile = computed({
   get: () => wizardStore.file,
@@ -22,9 +24,8 @@ const selectedFile = computed({
   },
 })
 
-const handleCancel = async () => {
-  router.push({ name: 'Fabrics' })
-  await wizardStore.resetWizard() // reset pinia/indexd
+const handleCancel = () => {
+  isCancelModalOpen.value = true
 }
 
 const handleSubmit = async () => {
@@ -62,5 +63,6 @@ const handleSubmit = async () => {
         />
       </main>
     </div>
+    <DiscardNewFabricModal v-model:open="isCancelModalOpen" />
   </GridLayout>
 </template>

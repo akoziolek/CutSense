@@ -22,7 +22,8 @@ export interface Photo {
 export interface DetectedPiece {
   id: number
   photoId: number
-  grainline: number // degrees, 0-359
+  points: { x: number; y: number }[]
+  grainline: number
   normal: number
   mirrored: number
 }
@@ -94,17 +95,31 @@ export function useNewPattern() {
     draft.photos = draft.photos.filter((p) => p.id !== id)
   }
 
-  // TODO: replace with shapes-engine. now every photo gets placeholder piece.
+  const rect = (w: number, h: number) => [
+    { x: 0, y: 0 },
+    { x: Math.round(w), y: 0 },
+    { x: Math.round(w), y: Math.round(h) },
+    { x: 0, y: Math.round(h) },
+  ]
+
+  // TODO: replace with shapes-engine. Placeholder: one rectangle per photo, in mm,
+
   function generatePieces() {
-    const signature = draft.photos.map((p) => p.id).join(',')
+    const signature = draft.photos.map((p) => `${p.id}:${p.widthCm}`).join(',')
     if (signature === draft.piecesFor) return
-    draft.pieces = draft.photos.map((p) => ({
-      id: nextId++,
-      photoId: p.id,
-      grainline: 0,
-      normal: 1,
-      mirrored: 0,
-    }))
+    draft.pieces = draft.photos.map((p) => {
+      const w = p.widthCm * 10
+      const h = w * p.ratio
+      return {
+        id: nextId++,
+        photoId: p.id,
+        points: rect(w, h),
+        grainline: 0,
+        normal: 1,
+        mirrored: 0,
+      }
+    })
+    draft.piecesFor = signature
   }
 
   function removePiece(id: number) {
@@ -124,5 +139,22 @@ export function useNewPattern() {
       draft.details.tags.length > 0,
   )
 
-  return { draft, hasData, addPhotos, removePhoto, generatePieces, removePiece, reset }
+  function toPayload() {
+    const d = draft.details
+    return {
+      name: d.name.trim(),
+      size: d.size,
+      description: d.description.trim() || undefined,
+      visibility: d.visibility,
+      tags: d.tags,
+      pieces: draft.pieces.map((p) => ({
+        points: p.points,
+        grainline: p.grainline,
+        normal: p.normal,
+        mirrored: p.mirrored,
+      })),
+    }
+  }
+
+  return { draft, hasData, addPhotos, removePhoto, generatePieces, removePiece, reset, toPayload }
 }

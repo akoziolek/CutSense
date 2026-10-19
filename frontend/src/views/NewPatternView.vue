@@ -12,17 +12,23 @@ import StepPieces from '@/components/patterns/new/StepPieces.vue'
 import StepDetails from '@/components/patterns/new/StepDetails.vue'
 import { Button } from '@/components/ui/button'
 import { useNewPattern } from '@/composables/useNewPattern'
+import { api, ApiError } from '@/api/client'
 
 const TITLES = ['Pattern source', 'Pattern configuration', 'Detected pieces', 'Pattern details']
 
 const router = useRouter()
-const { draft, hasData, generatePieces, reset } = useNewPattern()
 
 const step = ref(1)
 const loadError = ref('')
 const cancelOpen = ref(false)
 const savedOpen = ref(false)
 const savedName = ref('')
+
+const { draft, hasData, generatePieces, reset, toPayload } = useNewPattern()
+
+const saving = ref(false)
+const saveError = ref('')
+const savedId = ref<number | null>(null)
 
 const canNext = computed(() => {
   switch (step.value) {
@@ -37,16 +43,40 @@ const canNext = computed(() => {
   }
 })
 
-function next() {
-  if (!canNext.value) return
+async function next() {
+  if (!canNext.value || saving.value) return
   if (step.value === 2) generatePieces()
   if (step.value < 4) {
     step.value++
     return
   }
-  // TODO: send the pattern to the API (POST /patterns) once the backend task is done
-  savedName.value = draft.details.name.trim()
-  savedOpen.value = true
+  await save()
+}
+
+
+async function save() {
+  saving.value = true
+  saveError.value = ''
+  try {
+    const created = await api<{ id: number }>('/patterns', {
+      method: 'POST',
+      body: JSON.stringify(toPayload()),
+    })
+    savedName.value = draft.details.name.trim()
+    savedId.value = created.id
+    savedOpen.value = true
+  } catch (e) {
+    if (e instanceof ApiError) {
+      saveError.value =
+        e.body.errorCode === 'VALIDATION_ERROR' && Array.isArray(e.body.details)
+          ? e.body.details.join(' ')
+          : e.body.message
+    } else {
+      saveError.value = 'Could not save the pattern. Please try again.'
+    }
+  } finally {
+    saving.value = false
+  }
 }
 
 function askCancel() {
@@ -68,7 +98,9 @@ function leave() {
 function onSavedClosed(open: boolean) {
   if (open) return
   savedOpen.value = false
-  leave()
+  const id = savedId.value
+  reset()
+  router.push(id ? `/patterns/${id}` : '/patterns')
 }
 
 // closing the tab or the browser interrupts the process, nothing is saved
@@ -120,7 +152,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
         </Button>
         <Button
           type="button"
-          :disabled="!canNext"
+          :disabled="!canNext || saving"
           class="h-9 rounded-lg text-xs sm:text-sm font-semibold inline-flex items-center gap-1.5 bg-zinc-950 text-white hover:bg-zinc-800 disabled:bg-zinc-300 disabled:opacity-100 disabled:cursor-not-allowed"
           @click="next"
         >
@@ -149,6 +181,12 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
       title="Pattern saved"
       :description="`${savedName} was added to your library.`"
       @update:open="onSavedClosed"
+    />
+    <MessageDialog
+      :open="!!saveError"
+      title="Unable to save pattern"
+      :description="saveError"
+      @update:open="(open) => !open && (saveError = '')"
     />
   </GridLayout>
 </template>

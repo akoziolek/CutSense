@@ -120,6 +120,8 @@ export const patternPieces = pgTable(
       .references(() => patterns.id, { onDelete: 'cascade' }),
     // polygon on Cartesian coordinate system
     boundary: postgisPolygon('boundary').notNull(),
+    normalCount: integer('normal_count').notNull().default(1),
+    mirroredCount: integer('mirrored_count').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),

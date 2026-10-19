@@ -1,0 +1,61 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
+// import { useFabricWizardStore } from '@/stores/fabricWizard'
+import PageHeader from '@/components/common/PageHeader.vue'
+import UploadFileCard from '@/components/common/UploadFileCard.vue'
+import FormFloatingActions from '@/components/common/FormFloatingActions.vue'
+import GridLayout from '@/components/layouts/GridLayout.vue'
+
+const router = useRouter()
+// const wizardStore = useFabricWizardStore()
+
+const selectedFile = ref<File | null>(null)
+const isLoading = ref(false)
+
+const handleSubmit = async () => {
+  if (!selectedFile.value) return
+
+  try {
+    isLoading.value = true
+
+    // await wizardStore.resetWizard()
+    // await wizardStore.setFile(selectedFile.value)
+
+    await router.push({ name: 'FabricPhotoConfig' })
+  } catch (error) {
+    console.error('Failed to process file upload:', error)
+    toast.error('Failed to save file. Please try again.')
+  } finally {
+    isLoading.value = false
+  }
+}
+</script>
+
+<template>
+  <GridLayout>
+    <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
+      <PageHeader title="Upload Fabric Photo">
+        <template #description>
+          For best results, upload a high-resolution photo of your fabric. Lay it flat on a clean,
+          neutral surface with even lighting. Avoid shadows, wrinkles, and distracting background
+          elements.
+        </template>
+      </PageHeader>
+
+      <main class="flex flex-col items-center px-3 pb-14">
+        <UploadFileCard v-model="selectedFile" />
+
+        <FormFloatingActions
+          cancel-label="Cancel"
+          next-label="Callibrate"
+          :cancel-to="{ name: 'Fabrics' }"
+          :disabled="!selectedFile"
+          :loading="isLoading"
+          @next="handleSubmit"
+        />
+      </main>
+    </div>
+  </GridLayout>
+</template>

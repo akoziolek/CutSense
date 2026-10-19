@@ -14,6 +14,7 @@ const ComingSoonPage = () => import('../views/ComingSoonPage.vue') // temporary,
 const FabricPage = () => import('../views/fabrics/FabricView.vue')
 const FabricsPage = () => import('../views/fabrics/FabricsView.vue')
 const FabricPhotoConfigPage = () => import('../views/fabrics/FabricPhotoConfigView.vue')
+const UploadImagePage = () => import('../views/fabrics/FabricUploadView.vue')
 
 const routes = [
   { path: '/', name: 'Landing', component: LandingPage },
@@ -38,15 +39,27 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/fabric-photo-config',
+    path: '/new',
+    name: 'AddFabric',
+    component: UploadImagePage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/configure',
     name: 'FabricPhotoConfig',
     component: FabricPhotoConfigPage,
-    beforeEnter: () => {
-      const wizardStore = useFabricWizardStore()
-      if (!wizardStore.file) {
-        return { name: 'Fabrics' }
-      }
+    beforeEnter: async () => {
+      // const wizardStore = useFabricWizardStore()
+
+      // if (!wizardStore.isHydrated) {
+      //   await wizardStore.initFromIndexedDB()
+      // }
+
+      // if (!wizardStore.file) {
+      //   return { name: 'AddFabric' } // lub { name: 'Fabrics' }
+      // }
     },
+    meta: { requiresAuth: true },
   },
   { path: '/account', name: 'Account', component: ComingSoonPage, meta: { requiresAuth: true } },
 

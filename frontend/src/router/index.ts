@@ -47,7 +47,7 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/new',
+    path: '/fabrics/new',
     name: 'AddFabric',
     component: UploadImagePage,
     meta: { requiresAuth: true },
@@ -56,7 +56,7 @@ const routes = [
     },
   },
   {
-    path: '/configure',
+    path: '/fabrics/configure',
     name: 'FabricPhotoConfig',
     component: FabricPhotoConfigPage,
     beforeEnter: async () => {

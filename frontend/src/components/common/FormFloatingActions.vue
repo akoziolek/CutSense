@@ -56,7 +56,7 @@ const handleNext = (event: MouseEvent) => {
         v-bind="props.cancelTo ? { to: props.cancelTo } : { type: 'button' }"
         @click="handleCancel"
       >
-        <X v-if="!props.cancelTo" class="w-4 h-4 mr-2 stroke-[2.5]" />
+        <X v-if="!props.cancelTo" class="w-4 h-4 stroke-[2.5]" />
         {{ props.cancelLabel }}
       </component>
     </Button>

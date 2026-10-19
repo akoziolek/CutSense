@@ -1,12 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { consumeReturnTo } from '../utils/returnTo'
-import { useFabricWizardStore } from '@/stores/fabricWizard.ts'
+import { useFabricAddingStore } from '@/stores/addingFabricStore.ts'
 
 declare module 'vue-router' {
   interface RouteMeta {
     requiresAuth?: boolean
   }
+}
+
+async function ensureWizardHydrated() {
+  const wizardStore = useFabricAddingStore()
+  if (!wizardStore.isHydrated) {
+    await wizardStore.initFromIndexedDB()
+  }
+  return wizardStore
 }
 
 const LandingPage = () => import('../views/LandingPage.vue')
@@ -43,21 +51,19 @@ const routes = [
     name: 'AddFabric',
     component: UploadImagePage,
     meta: { requiresAuth: true },
+    beforeEnter: async () => {
+      await ensureWizardHydrated()
+    },
   },
   {
     path: '/configure',
     name: 'FabricPhotoConfig',
     component: FabricPhotoConfigPage,
     beforeEnter: async () => {
-      // const wizardStore = useFabricWizardStore()
-
-      // if (!wizardStore.isHydrated) {
-      //   await wizardStore.initFromIndexedDB()
-      // }
-
-      // if (!wizardStore.file) {
-      //   return { name: 'AddFabric' } // lub { name: 'Fabrics' }
-      // }
+      const wizardStore = await ensureWizardHydrated()
+      if (!wizardStore.file) {
+        return { name: 'AddFabric' }
+      }
     },
     meta: { requiresAuth: true },
   },

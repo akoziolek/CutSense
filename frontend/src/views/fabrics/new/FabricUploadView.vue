@@ -4,8 +4,8 @@ import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
 import PageHeader from '@/components/common/PageHeader.vue'
-import UploadFileCard from '@/components/common/UploadFileCard.vue'
-import FormFloatingActions from '@/components/common/FormFloatingActions.vue'
+import UploadFileCard from '@/components/forms/UploadFileCard.vue'
+import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 
 const router = useRouter()

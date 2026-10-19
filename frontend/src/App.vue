@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Toaster } from 'vue-sonner'
 import 'vue-sonner/style.css'
+import AuthModal from './components/auth/AuthModal.vue';
 </script>
 
 <template>
+  <!-- TODO - why is the auth backdrop so dark? -->
   <AuthModal />
   <Toaster
     position="top-right"

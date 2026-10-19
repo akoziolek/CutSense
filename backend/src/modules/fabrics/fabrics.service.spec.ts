@@ -1,14 +1,19 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { DRIZZLE } from '../../db/drizzle.provider.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
+import { StorageService } from '../storage/storage.service.js';
 import { FabricService } from './fabrics.service.js';
 
 describe('FabricService', () => {
   let service: FabricService;
   let findFirst: ReturnType<typeof vi.fn>;
+  let generatePresignedUrl: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     findFirst = vi.fn();
+    generatePresignedUrl = vi
+      .fn()
+      .mockResolvedValue('https://example.com/signed.jpg');
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -16,6 +21,10 @@ describe('FabricService', () => {
         {
           provide: DRIZZLE,
           useValue: { query: { fabrics: { findFirst } } },
+        },
+        {
+          provide: StorageService,
+          useValue: { generatePresignedUrl },
         },
       ],
     }).compile();
@@ -28,8 +37,9 @@ describe('FabricService', () => {
       id: 17,
       name: 'Cotton canvas',
       description: 'Medium-weight cotton',
-      pictureS3Key: 'https://example.com/fabric.jpg',
+      pictureS3Key: 'users/3/fabrics/fabric.jpg',
       isFavourite: true,
+      area: 4.32,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
       tags: [{ tag: { name: 'cotton' } }, { tag: { name: 'canvas' } }],
@@ -39,8 +49,10 @@ describe('FabricService', () => {
       id: 17,
       name: 'Cotton canvas',
       description: 'Medium-weight cotton',
-      pictureS3Key: 'https://example.com/fabric.jpg',
+      pictureS3Key: 'users/3/fabrics/fabric.jpg',
+      pictureUrl: 'https://example.com/signed.jpg',
       isFavourite: true,
+      area: 4.32,
       userId: 3,
       createdAt: '2025-01-15T10:30:00.000Z',
       tags: ['cotton', 'canvas'],
@@ -52,6 +64,9 @@ describe('FabricService', () => {
         with: { tags: { with: { tag: true } } },
       }),
     );
+    expect(generatePresignedUrl).toHaveBeenCalledWith(
+      'users/3/fabrics/fabric.jpg',
+    );
   });
 
   it('maps nullable optional fields to undefined', async () => {
@@ -61,6 +76,7 @@ describe('FabricService', () => {
       description: null,
       pictureS3Key: null,
       isFavourite: false,
+      area: 2.1,
       userId: 3,
       createdAt: new Date('2025-02-01T00:00:00.000Z'),
       tags: [],

@@ -48,7 +48,7 @@ const metaItems = computed<MetaItem[]>(() =>
         {
           icon: RulerDimensionLine,
           label: 'Area',
-          value: `${fabric.value.area} m²`,
+          value: `${fabric.value.area.toFixed(2)} m²`,
         },
       ]
     : [],

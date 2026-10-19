@@ -15,6 +15,15 @@ export class FabricService {
     private readonly storageService: StorageService,
   ) {}
 
+  async getFabricTags(): Promise<{ id: number; name: string }[]> {
+    const tags = await this.db.query.tagsForFabrics.findMany({
+      columns: { id: true, name: true },
+      orderBy: (tag, { asc }) => [asc(tag.name)],
+    });
+
+    return tags;
+  }
+
   async getFabricById(
     fabricId: number,
     currentUserId: number,

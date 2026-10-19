@@ -7,10 +7,12 @@ import { FabricService } from './fabrics.service.js';
 describe('FabricService', () => {
   let service: FabricService;
   let findFirst: ReturnType<typeof vi.fn>;
+  let findManyTags: ReturnType<typeof vi.fn>;
   let generatePresignedUrl: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     findFirst = vi.fn();
+    findManyTags = vi.fn();
     generatePresignedUrl = vi
       .fn()
       .mockResolvedValue('https://example.com/signed.jpg');
@@ -20,7 +22,12 @@ describe('FabricService', () => {
         FabricService,
         {
           provide: DRIZZLE,
-          useValue: { query: { fabrics: { findFirst } } },
+          useValue: {
+            query: {
+              fabrics: { findFirst },
+              tagsForFabrics: { findMany: findManyTags },
+            },
+          },
         },
         {
           provide: StorageService,
@@ -30,6 +37,22 @@ describe('FabricService', () => {
     }).compile();
 
     service = module.get(FabricService);
+  });
+
+  it('returns the available fabric tags in alphabetical order', async () => {
+    findManyTags.mockResolvedValue([
+      { id: 2, name: 'cotton' },
+      { id: 5, name: 'linen' },
+    ]);
+
+    await expect(service.getFabricTags()).resolves.toEqual([
+      { id: 2, name: 'cotton' },
+      { id: 5, name: 'linen' },
+    ]);
+    expect(findManyTags).toHaveBeenCalledWith({
+      columns: { id: true, name: true },
+      orderBy: expect.any(Function),
+    });
   });
 
   it('returns a fabric with ISO date and tag names', async () => {

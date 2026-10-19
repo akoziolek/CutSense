@@ -9,13 +9,21 @@ import { DRIZZLE } from '../src/db/drizzle.provider.js';
 import { DrizzleModule } from '../src/db/drizzle.module.js';
 import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter.js';
 import { FabricModule } from '../src/modules/fabrics/fabrics.module.js';
+import { StorageService } from '../src/modules/storage/storage.service.js';
 
 describe('Fabrics endpoint (integration)', () => {
   let app!: INestApplication<App>;
   let findFirst: ReturnType<typeof vi.fn>;
+  let findManyTags: ReturnType<typeof vi.fn>;
   let sessionCookie: string;
 
   beforeEach(async () => {
+    findManyTags = vi
+      .fn()
+      .mockResolvedValue([
+        { id: 2, name: 'cotton' },
+        { id: 5, name: 'linen' },
+      ]);
     findFirst = vi.fn().mockResolvedValue({
       id: 17,
       name: 'Cotton canvas',
@@ -46,7 +54,18 @@ describe('Fabrics endpoint (integration)', () => {
       ],
     })
       .overrideProvider(DRIZZLE)
-      .useValue({ query: { fabrics: { findFirst } } })
+      .useValue({
+        query: {
+          fabrics: { findFirst },
+          tagsForFabrics: { findMany: findManyTags },
+        },
+      })
+      .overrideProvider(StorageService)
+      .useValue({
+        generatePresignedUrl: vi
+          .fn()
+          .mockResolvedValue('https://example.com/fabric.jpg'),
+      })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -78,6 +97,21 @@ describe('Fabrics endpoint (integration)', () => {
       });
 
     expect(findFirst).not.toHaveBeenCalled();
+    await request(app.getHttpServer()).get('/v1/fabrics/tags').expect(401);
+    expect(findManyTags).not.toHaveBeenCalled();
+  });
+
+  it('returns available fabric tags', async () => {
+    await request(app.getHttpServer())
+      .get('/v1/fabrics/tags')
+      .set('Cookie', `session=${sessionCookie}`)
+      .expect(200)
+      .expect([
+        { id: 2, name: 'cotton' },
+        { id: 5, name: 'linen' },
+      ]);
+
+    expect(findManyTags).toHaveBeenCalledOnce();
   });
 
   it('returns the requested fabric and its tags', async () => {
@@ -90,6 +124,7 @@ describe('Fabrics endpoint (integration)', () => {
         name: 'Cotton canvas',
         description: 'Medium-weight cotton',
         pictureS3Key: 'https://example.com/fabric.jpg',
+        pictureUrl: 'https://example.com/fabric.jpg',
         isFavourite: true,
         userId: 1,
         createdAt: '2025-01-15T10:30:00.000Z',

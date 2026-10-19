@@ -32,11 +32,19 @@ import {
 } from '@/components/ui/tags-input'
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CheckIcon, ChevronDown } from 'lucide-vue-next'
+import { api, ApiError } from '@/api/client'
 
 const { isCancelModalOpen, handleCancel, confirmExit } = useAddFabricFormGuard()
+interface FabricTag {
+  id: number
+  name: string
+}
+
 const fabricName = ref('')
 const description = ref('')
 const tags = ref<string[]>(['cotton', 'polyester'])
+const availableTags = ref<FabricTag[]>([])
+const tagLoadError = ref('')
 
 const MAX_NAME_LENGTH = 35
 const MAX_DESC_LENGTH = 45
@@ -48,7 +56,21 @@ const containerRef = ref<HTMLDivElement | null>(null)
 const containerWidth = ref<number>(0)
 let resizeObserver: ResizeObserver | null = null
 
+const loadAvailableTags = async () => {
+  tagLoadError.value = ''
+  try {
+    availableTags.value = await api<FabricTag[]>('/fabrics/tags')
+  } catch (error) {
+    tagLoadError.value =
+      error instanceof ApiError
+        ? error.body.message
+        : 'Could not load fabric tags. Please try again.'
+  }
+}
+
 onMounted(() => {
+  void loadAvailableTags()
+
   if (containerRef.value) {
     containerWidth.value = containerRef.value.offsetWidth
     resizeObserver = new ResizeObserver((entries) => {
@@ -66,32 +88,12 @@ onUnmounted(() => {
   resizeObserver?.disconnect()
 })
 
-const availableTags = [
-  'synthetic',
-  'natural',
-  'semi-synthetic',
-  'cotton',
-  'linen',
-  'wool',
-  'silk',
-  'viscose',
-  'polyester',
-  'knit',
-  'woven',
-  'cashmere',
-  'blend',
-  'leather',
-  'elastane',
-  'corduroy',
-  'velvet',
-]
-
 const { contains } = useFilter({ sensitivity: 'base' })
 
 const filteredTags = computed(() =>
   searchTerm.value === ''
-    ? availableTags
-    : availableTags.filter((tag) => contains(tag, searchTerm.value)),
+    ? availableTags.value
+    : availableTags.value.filter((tag) => contains(tag.name, searchTerm.value)),
 )
 
 watch(searchTerm, (val) => {
@@ -219,8 +221,8 @@ const handleSubmit = () => {
                 >
                   <ListboxItem
                     v-for="item in filteredTags"
-                    :key="item"
-                    :value="item"
+                    :key="item.id"
+                    :value="item.name"
                     class="data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-inter outline-hidden select-none"
                     @select="
                       () => {
@@ -228,7 +230,7 @@ const handleSubmit = () => {
                       }
                     "
                   >
-                    <span>{{ item }}</span>
+                    <span>{{ item.name }}</span>
 
                     <ListboxItemIndicator class="ml-auto inline-flex items-center justify-center">
                       <CheckIcon class="h-4 w-4 text-primary" />
@@ -238,6 +240,16 @@ const handleSubmit = () => {
               </PopoverContent>
             </ListboxRoot>
           </Popover>
+          <p v-if="tagLoadError" class="text-xs text-destructive" role="alert">
+            {{ tagLoadError }}
+            <button
+              type="button"
+              class="underline underline-offset-2"
+              @click="loadAvailableTags"
+            >
+              Try again
+            </button>
+          </p>
         </div>
 
         <p class="text-xs text-destructive pt-2">* Required field</p>

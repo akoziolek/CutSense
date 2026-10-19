@@ -27,6 +27,32 @@ import { SessionGuard } from '../../auth/guards/session.guard.js';
 export class FabricController {
   constructor(private readonly fabricService: FabricService) {}
 
+  @Get('tags')
+  @ApiOperation({
+    summary: 'Get available fabric tags',
+    description: 'Returns the IDs and names of all tags available for fabrics.',
+  })
+  @ApiOkResponse({
+    description: 'The available fabric tags were returned successfully.',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'number', example: 1 },
+          name: { type: 'string', example: 'cotton' },
+        },
+        required: ['id', 'name'],
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  async getFabricTags(): Promise<{ id: number; name: string }[]> {
+    return this.fabricService.getFabricTags();
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Get a fabric by ID',

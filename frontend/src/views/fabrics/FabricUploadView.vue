@@ -1,34 +1,40 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-// import { useFabricWizardStore } from '@/stores/fabricWizard'
+import { useFabricAddingStore } from '@/stores/addingFabricStore'
 import PageHeader from '@/components/common/PageHeader.vue'
 import UploadFileCard from '@/components/common/UploadFileCard.vue'
 import FormFloatingActions from '@/components/common/FormFloatingActions.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 
 const router = useRouter()
-// const wizardStore = useFabricWizardStore()
+const wizardStore = useFabricAddingStore()
 
-const selectedFile = ref<File | null>(null)
-const isLoading = ref(false)
+const selectedFile = computed({
+  get: () => wizardStore.file,
+  set: (newFile) => {
+    if (newFile) {
+      wizardStore.setFile(newFile) // save to pinia/indexedDB
+    } else {
+      wizardStore.resetWizard() // reset pinia/indexd
+    }
+  },
+})
+
+const handleCancel = async () => {
+  router.push({ name: 'Fabrics' })
+  await wizardStore.resetWizard() // reset pinia/indexd
+}
 
 const handleSubmit = async () => {
   if (!selectedFile.value) return
 
   try {
-    isLoading.value = true
-
-    // await wizardStore.resetWizard()
-    // await wizardStore.setFile(selectedFile.value)
-
     await router.push({ name: 'FabricPhotoConfig' })
   } catch (error) {
     console.error('Failed to process file upload:', error)
     toast.error('Failed to save file. Please try again.')
-  } finally {
-    isLoading.value = false
   }
 }
 </script>
@@ -49,10 +55,9 @@ const handleSubmit = async () => {
 
         <FormFloatingActions
           cancel-label="Cancel"
-          next-label="Callibrate"
-          :cancel-to="{ name: 'Fabrics' }"
+          next-label="Calibrate"
+          @cancel="handleCancel"
           :disabled="!selectedFile"
-          :loading="isLoading"
           @next="handleSubmit"
         />
       </main>

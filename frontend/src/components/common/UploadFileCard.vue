@@ -21,12 +21,15 @@ const formatBytes = (bytes: number) => {
 watch(
   file,
   (newFile) => {
-    if (previewUrl.value) {
-      URL.revokeObjectURL(previewUrl.value)
-      previewUrl.value = null
-    }
+    const oldUrl = previewUrl.value
     if (newFile) {
       previewUrl.value = URL.createObjectURL(newFile)
+    } else {
+      previewUrl.value = null
+    }
+
+    if (oldUrl) {
+      URL.revokeObjectURL(oldUrl)
     }
   },
   { immediate: true },
@@ -115,7 +118,7 @@ onUnmounted(() => {
 
     <div
       v-else
-      class="relative w-full rounded-2xl border border-muted bg-card shadow-sm overflow-hidden transition-all"
+      class="relative w-full rounded-2xl border border-muted bg-card shadow-sm overflow-hidden"
     >
       <div
         class="relative w-full min-h-[250px] max-h-[40vh] bg-muted/20 overflow-hidden flex items-center justify-center group"
@@ -124,7 +127,7 @@ onUnmounted(() => {
           v-if="previewUrl"
           :src="previewUrl"
           :alt="file.name"
-          class="max-w-full max-h-[55vh] w-auto h-auto object-contain rounded-lg transition-transform duration-500 group-hover:scale-[1.01]"
+          class="max-w-full max-h-[55vh] w-auto h-auto object-contain rounded-lg block"
         />
         <div v-else class="flex flex-col items-center text-muted-foreground p-6">
           <FileImage class="h-12 w-12 mb-2 stroke-1" />

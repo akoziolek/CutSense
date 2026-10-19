@@ -7,6 +7,7 @@ import type { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
 import { rotateAndAnchor } from './geometry.js';
+import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';
 
 const toWkt = (points: { x: number; y: number }[]): string => {
   const ring = [...points];
@@ -28,7 +29,7 @@ export class PatternsService {
 
   async getPatternById(
     patternId: number,
-    currentUserId: number,
+    currentUserId: number | null,
   ): Promise<PatternResponseDto> {
     const pattern = await this.db.query.patterns.findFirst({
       where: eq(patterns.id, patternId),
@@ -55,9 +56,10 @@ export class PatternsService {
       throw new ResourceNotFoundException(`Pattern`, patternId);
     }
     if (pattern.visibility === 'PRIVATE' && pattern.userId !== currentUserId) {
-      throw new AccessDeniedException(
-        'This pattern is private and belongs to another user.',
-      );
+      if (currentUserId === null) {
+        throw new AuthenticationRequiredException('Sign in to view this pattern.');
+      }
+      throw new AccessDeniedException('This pattern is private and belongs to another user.');
     }
 
     return {

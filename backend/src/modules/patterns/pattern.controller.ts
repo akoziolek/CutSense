@@ -25,15 +25,17 @@ import { PatternsService } from './patterns.service.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { SessionGuard } from '../../auth/guards/session.guard.js';
 import { CreatePatternDto } from './dto/create-pattern.dto.js';
+import { OptionalSessionGuard } from '../../auth/guards/optional-session.guard.js';
+import { OptionalUser } from '../../common/decorators/optional-user.decorator.js';
+import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')
-@UseGuards(SessionGuard)
-@ApiCookieAuth('session')
 export class PatternController {
   constructor(private readonly patternsService: PatternsService) {}
   
   @Get(':id')
+  @UseGuards(OptionalSessionGuard)
   @ApiOperation({
     summary: 'Get a pattern by ID',
     description:
@@ -61,12 +63,14 @@ export class PatternController {
   })
   async getPatternById(
     @Param('id', ParseIntPipe) patternId: number,
-    @CurrentUser() user: { id: number },
+    @OptionalUser() user?: AuthUser,
   ): Promise<PatternResponseDto> {
-    return this.patternsService.getPatternById(patternId, user.id);
+    return this.patternsService.getPatternById(patternId, user?.id ?? null);
   }
 
   @Post()
+  @UseGuards(SessionGuard)
+  @ApiCookieAuth('session')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Create a pattern',

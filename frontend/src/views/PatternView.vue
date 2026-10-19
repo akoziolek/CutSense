@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DetailsCard, { type MetaItem } from '@/components/common/DetailsCard.vue'
@@ -12,6 +12,7 @@ import { api, ApiError } from '@/api/client'
 import PatternPiecesCarousel, {
   type PatternPiece,
 } from '@/components/patterns/PatternPiecesCarousel.vue'
+import { useAuth } from '@/composables/useAuth'
 
 
 interface Pattern {
@@ -35,6 +36,10 @@ const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
 const isForbidden = ref(false)
+
+const route = useRoute()
+const router = useRouter()
+const { state } = useAuth()
 
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -86,6 +91,13 @@ const fetchPattern = async (id: string, activeSignal = { active: true }) => {
     if (activeSignal.active) pattern.value = result
   } catch (e) {
     if (activeSignal.active) {
+      if (e instanceof ApiError && e.status === 401) {
+        router.replace({
+          name: 'Landing',
+          query: { login: '1', redirect: route.fullPath },
+        })
+        return
+      }
       if (e instanceof ApiError) {
         isForbidden.value = e.status === 403
         error.value = e.body.message
@@ -103,8 +115,8 @@ const fetchPattern = async (id: string, activeSignal = { active: true }) => {
 }
 
 watch(
-  () => props.id,
-  (id, _, onCleanup) => {
+  [() => props.id, () => state.user?.id],
+  ([id], _, onCleanup) => {
     const activeSignal = { active: true }
     onCleanup(() => {
       activeSignal.active = false

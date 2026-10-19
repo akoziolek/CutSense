@@ -47,6 +47,9 @@ const handleSubmit = async () => {
           neutral surface with even lighting. Avoid shadows, wrinkles, and distracting background
           elements.
         </template>
+        <template #actions>
+          <StepCounter :current-step="1" :total-steps="3" />
+        </template>
       </PageHeader>
 
       <main class="flex flex-col items-center px-3 pb-14">

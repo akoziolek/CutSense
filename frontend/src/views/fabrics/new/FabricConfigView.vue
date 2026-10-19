@@ -110,7 +110,7 @@ const handleSubmit = () => {
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
       <PageHeader title="Fabric configuration" :show-back="true">
         <template #actions>
-          <StepCounter :current-step="1" :total-steps="2" />
+          <StepCounter :current-step="2" :total-steps="3" />
         </template>
       </PageHeader>
 

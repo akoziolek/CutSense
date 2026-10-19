@@ -33,16 +33,38 @@ import {
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CheckIcon, ChevronDown } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
+import { useFabricAddingStore } from '@/stores/addingFabricStore'
 
 const { isCancelModalOpen, handleCancel, confirmExit } = useAddFabricFormGuard()
+const wizardStore = useFabricAddingStore()
 interface FabricTag {
   id: number
   name: string
 }
 
-const fabricName = ref('')
-const description = ref('')
-const tags = ref<string[]>(['cotton', 'polyester'])
+const detailsSaveError = ref('')
+const saveDetails = async (partial: { name?: string; description?: string; tags?: string[] }) => {
+  detailsSaveError.value = ''
+  try {
+    await wizardStore.updateDetails(partial)
+  } catch (error) {
+    console.error('Failed to save fabric details:', error)
+    detailsSaveError.value = 'Could not save fabric details. Please try again.'
+  }
+}
+
+const fabricName = computed({
+  get: () => wizardStore.details.name,
+  set: (name: string) => void saveDetails({ name }),
+})
+const description = computed({
+  get: () => wizardStore.details.description,
+  set: (value: string) => void saveDetails({ description: value }),
+})
+const tags = computed({
+  get: () => wizardStore.details.tags,
+  set: (selectedTags: string[]) => void saveDetails({ tags: selectedTags }),
+})
 const availableTags = ref<FabricTag[]>([])
 const tagLoadError = ref('')
 
@@ -251,6 +273,10 @@ const handleSubmit = () => {
             </button>
           </p>
         </div>
+
+        <p v-if="detailsSaveError" class="text-xs text-destructive" role="alert">
+          {{ detailsSaveError }}
+        </p>
 
         <p class="text-xs text-destructive pt-2">* Required field</p>
       </div>

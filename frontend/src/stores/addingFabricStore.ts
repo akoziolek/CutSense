@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { get, set, del } from 'idb-keyval'
+import { computed } from 'vue'
 
 export interface Point2D {
   pctX: number
@@ -14,8 +15,21 @@ export interface FabricConfig {
   rotation: number
 }
 
+export interface FabricDetails {
+  name: string
+  description: string
+  tags: string[]
+}
+
 const STORAGE_FILE_KEY = 'adding_fabric_file'
 const STORAGE_CONFIG_KEY = 'adding_fabric_config'
+const STORAGE_DETAILS_KEY = 'adding_fabric_details'
+
+const DEFAULT_DETAILS: FabricDetails = {
+  name: '',
+  description: '',
+  tags: [],
+}
 
 // TODO remove later, for dev purpose
 const DEFAULT_CONFIG: FabricConfig = {
@@ -34,7 +48,12 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
   const file = ref<File | null>(null)
   const previewUrl = ref<string | null>(null)
   const config = ref<FabricConfig>({ ...DEFAULT_CONFIG })
+  const details = ref<FabricDetails>({
+    ...DEFAULT_DETAILS,
+    tags: [...DEFAULT_DETAILS.tags],
+  })
   const isHydrated = ref(false) // will be false after each F5 => file will be read from IndexDB
+  let detailsWriteQueue = Promise.resolve()
 
   async function setFile(newFile: File) {
     if (previewUrl.value) {
@@ -46,13 +65,35 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
 
     // pinia reset configuration options
     config.value = { ...DEFAULT_CONFIG }
-
-    try {
-      // set new file and delete configuration options in IndexedDB
-      await Promise.all([set(STORAGE_FILE_KEY, newFile), del(STORAGE_CONFIG_KEY)])
-    } catch (error) {
-      console.error('Error updating file and resetting config in IndexedDB:', error)
+    details.value = {
+      ...DEFAULT_DETAILS,
+      tags: [...DEFAULT_DETAILS.tags],
     }
+
+    await detailsWriteQueue
+    await Promise.all([
+      set(STORAGE_FILE_KEY, newFile),
+      del(STORAGE_CONFIG_KEY),
+      del(STORAGE_DETAILS_KEY),
+    ])
+  }
+
+  function updateDetails(partialDetails: Partial<FabricDetails>) {
+    details.value = {
+      ...details.value,
+      ...partialDetails,
+      tags: partialDetails.tags ? [...partialDetails.tags] : [...details.value.tags],
+    }
+
+    const snapshot = {
+      ...details.value,
+      tags: [...details.value.tags],
+    }
+    const write = detailsWriteQueue.then(() => set(STORAGE_DETAILS_KEY, snapshot))
+    detailsWriteQueue = write.catch((error: unknown) => {
+      console.error('Error saving fabric details to IndexedDB:', error)
+    })
+    return write
   }
 
   async function updateConfig(partialConfig: Partial<FabricConfig>) {
@@ -73,9 +114,10 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     if (isHydrated.value) return
 
     try {
-      const [savedFile, savedConfig] = await Promise.all([
+      const [savedFile, savedConfig, savedDetails] = await Promise.all([
         get<File>(STORAGE_FILE_KEY),
         get<FabricConfig>(STORAGE_CONFIG_KEY),
+        get<FabricDetails>(STORAGE_DETAILS_KEY),
       ])
 
       if (savedFile) {
@@ -87,6 +129,14 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
         config.value = {
           ...DEFAULT_CONFIG,
           ...savedConfig,
+        }
+      }
+
+      if (savedDetails) {
+        details.value = {
+          ...DEFAULT_DETAILS,
+          ...savedDetails,
+          tags: Array.isArray(savedDetails.tags) ? [...savedDetails.tags] : [],
         }
       }
     } catch (error) {
@@ -104,20 +154,44 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     file.value = null
     previewUrl.value = null
     config.value = { ...DEFAULT_CONFIG }
+    details.value = {
+      ...DEFAULT_DETAILS,
+      tags: [...DEFAULT_DETAILS.tags],
+    }
 
     try {
-      await Promise.all([del(STORAGE_FILE_KEY), del(STORAGE_CONFIG_KEY)])
+      await detailsWriteQueue
+      await Promise.all([
+        del(STORAGE_FILE_KEY),
+        del(STORAGE_CONFIG_KEY),
+        del(STORAGE_DETAILS_KEY),
+      ])
     } catch (error) {
       console.error('Error clearing IndexedDB:', error)
     }
   }
 
+  const isFileLoaded = computed(() => !!file.value)
+
+  const isShapeConfigured = computed(() => {
+    if (!isFileLoaded.value) return false
+
+    const hasValidPoints = Array.isArray(config.value.points) && config.value.points.length >= 3
+    const hasValidScale = typeof config.value.pxPerCm === 'number' && config.value.pxPerCm > 0
+
+    return hasValidPoints && hasValidScale
+  })
+
   return {
     file,
     previewUrl,
     config,
+    details,
     isHydrated,
+    isStep1Valid: isFileLoaded,
+    isStep2Valid: isShapeConfigured,
     setFile,
+    updateDetails,
     updateConfig,
     initFromIndexedDB,
     resetWizard: reset,

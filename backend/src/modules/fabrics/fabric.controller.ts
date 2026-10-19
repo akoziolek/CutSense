@@ -3,10 +3,21 @@ import {
   Controller,
   Param,
   ParseIntPipe,
+  Post,
+  Body,
   UseGuards,
+  UploadedFile,
+  UseInterceptors,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBadRequestResponse,
+  ApiBody,
+  ApiCreatedResponse,
+  ApiConsumes,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -19,6 +30,7 @@ import { FabricResponseDto } from './dto/fabric-response.dto.js';
 import { FabricService } from './fabrics.service.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { SessionGuard } from '../../auth/guards/session.guard.js';
+import { CreateFabricDto } from './dto/create-fabric.dto.js';
 
 @Controller('fabrics')
 @ApiTags('Fabrics')
@@ -51,6 +63,68 @@ export class FabricController {
   })
   async getFabricTags(): Promise<{ id: number; name: string }[]> {
     return this.fabricService.getFabricTags();
+  }
+
+  @Post()
+  @UseInterceptors(
+    FileInterceptor('picture', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['name', 'picture', 'boundary'],
+      properties: {
+        name: { type: 'string', maxLength: 35, example: 'Cotton canvas' },
+        description: { type: 'string', maxLength: 400 },
+        tagIds: {
+          type: 'string',
+          description: 'JSON-encoded array of fabric tag IDs.',
+          example: '[1,2]',
+        },
+        boundary: {
+          type: 'string',
+          description: 'JSON-encoded array of { x, y } points.',
+          example:
+            '[{"x":-250,"y":125},{"x":250,"y":125},{"x":250,"y":625},{"x":-250,"y":625}]',
+        },
+        picture: {
+          type: 'string',
+          format: 'binary',
+          description: 'Fabric photo (PNG, JPG, or WEBP; maximum 5 MB).',
+        },
+      },
+    },
+  })
+  @ApiOperation({
+    summary: 'Add a fabric',
+    description:
+      'Uploads a fabric photo to the current user’s S3 folder and creates a fabric using image-relative boundary points.',
+  })
+  @ApiCreatedResponse({
+    description: 'The fabric was created successfully.',
+    type: FabricResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'The fabric details or boundary are invalid.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  async createFabric(
+    @Body() createFabricDto: CreateFabricDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      }),
+    )
+    picture: Express.Multer.File,
+    @CurrentUser() user: { id: number },
+  ): Promise<FabricResponseDto> {
+    return this.fabricService.createFabric(createFabricDto, picture, user.id);
   }
 
   @Get(':id')

@@ -9,13 +9,23 @@ describe('FabricService', () => {
   let findFirst: ReturnType<typeof vi.fn>;
   let findManyTags: ReturnType<typeof vi.fn>;
   let generatePresignedUrl: ReturnType<typeof vi.fn>;
+  let uploadFile: ReturnType<typeof vi.fn>;
+  let deleteFile: ReturnType<typeof vi.fn>;
+  let insert: ReturnType<typeof vi.fn>;
+  let insertValues: ReturnType<typeof vi.fn>;
+  let insertReturning: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     findFirst = vi.fn();
     findManyTags = vi.fn();
+    insertReturning = vi.fn();
+    insertValues = vi.fn(() => ({ returning: insertReturning }));
+    insert = vi.fn(() => ({ values: insertValues }));
     generatePresignedUrl = vi
       .fn()
       .mockResolvedValue('https://example.com/signed.jpg');
+    uploadFile = vi.fn().mockResolvedValue('users/3/fabrics/uploaded.jpg');
+    deleteFile = vi.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -27,11 +37,14 @@ describe('FabricService', () => {
               fabrics: { findFirst },
               tagsForFabrics: { findMany: findManyTags },
             },
+            insert,
+            transaction: (callback: (tx: { insert: typeof insert }) => unknown) =>
+              callback({ insert }),
           },
         },
         {
           provide: StorageService,
-          useValue: { generatePresignedUrl },
+          useValue: { generatePresignedUrl, uploadFile, deleteFile },
         },
       ],
     }).compile();
@@ -53,6 +66,108 @@ describe('FabricService', () => {
       columns: { id: true, name: true },
       orderBy: expect.any(Function),
     });
+  });
+
+  it('uploads the picture, then creates a fabric from its boundary and computes area in PostGIS', async () => {
+    insertReturning.mockResolvedValue([
+      {
+        id: 19,
+        name: 'Cotton canvas',
+        description: undefined,
+        pictureS3Key: 'users/3/fabrics/uploaded.jpg',
+        isFavourite: false,
+        area: 3600,
+        userId: 3,
+        createdAt: new Date('2025-01-15T10:30:00.000Z'),
+      },
+    ]);
+
+    await expect(
+      service.createFabric(
+        {
+          name: 'Cotton canvas',
+          boundary: [
+            { x: -250, y: 125 },
+            { x: 250, y: 125 },
+            { x: 250, y: 625 },
+            { x: -250, y: 625 },
+          ],
+        },
+        {
+          originalname: 'fabric.jpg',
+          mimetype: 'image/jpeg',
+          buffer: Buffer.from('image'),
+          fieldname: 'picture',
+          encoding: '7bit',
+          size: 5,
+          destination: '',
+          filename: 'fabric.jpg',
+          path: '',
+        },
+        3,
+      ),
+    ).resolves.toEqual({
+      id: 19,
+      name: 'Cotton canvas',
+      description: undefined,
+      pictureS3Key: 'users/3/fabrics/uploaded.jpg',
+      pictureUrl: 'https://example.com/signed.jpg',
+      isFavourite: false,
+      area: 3600,
+      userId: 3,
+      createdAt: '2025-01-15T10:30:00.000Z',
+      tags: [],
+    });
+
+    expect(insert).toHaveBeenCalledOnce();
+    expect(insertValues).toHaveBeenCalledOnce();
+    expect(uploadFile).toHaveBeenCalledWith(
+      expect.objectContaining({ originalname: 'fabric.jpg' }),
+      'users/3/fabrics',
+    );
+    const insertedFabric = insertValues.mock.calls[0]?.[0];
+    expect(insertedFabric).toMatchObject({
+      name: 'Cotton canvas',
+      pictureS3Key: 'users/3/fabrics/uploaded.jpg',
+      userId: 3,
+    });
+    expect(insertedFabric.boundary).toBeDefined();
+    expect(insertedFabric.area).toBeDefined();
+    expect(generatePresignedUrl).toHaveBeenCalledWith(
+      'users/3/fabrics/uploaded.jpg',
+    );
+  });
+
+  it('deletes the uploaded picture if creating the database record fails', async () => {
+    const databaseError = new Error('database unavailable');
+    insertReturning.mockRejectedValue(databaseError);
+
+    await expect(
+      service.createFabric(
+        {
+          name: 'Cotton canvas',
+          boundary: [
+            { x: -250, y: 125 },
+            { x: 250, y: 125 },
+            { x: 250, y: 625 },
+          ],
+        },
+        {
+          originalname: 'fabric.jpg',
+          mimetype: 'image/jpeg',
+          buffer: Buffer.from('image'),
+          fieldname: 'picture',
+          encoding: '7bit',
+          size: 5,
+          destination: '',
+          filename: 'fabric.jpg',
+          path: '',
+        },
+        3,
+      ),
+    ).rejects.toBe(databaseError);
+
+    expect(deleteFile).toHaveBeenCalledWith('users/3/fabrics/uploaded.jpg');
   });
 
   it('returns a fabric with ISO date and tag names', async () => {

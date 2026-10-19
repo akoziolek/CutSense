@@ -106,13 +106,24 @@ watch(
 )
 
 const handleSubmit = async () => {
+  const image = workspaceRef.value?.imgRef
+  if (!image) {
+    toast.error('Fabric photo is not ready. Please try again.')
+    return
+  }
+
   try {
-    await wizardStore.updateConfig({
-      points: JSON.parse(JSON.stringify(points.value)),
-      pxPerCm: pxPerCm.value,
-      threadAngle: threadAngle.value,
-      rotation: imageRotation.value,
-    })
+    await wizardStore.updateConfig(
+      {
+        points: JSON.parse(JSON.stringify(points.value)),
+        pxPerCm: pxPerCm.value,
+        threadAngle: threadAngle.value,
+        rotation: imageRotation.value,
+        imageWidth: image.clientWidth,
+        imageHeight: image.clientHeight,
+      },
+      true,
+    )
   } catch {
     toast.error('Could not save fabric configuration. Please try again.')
     return
@@ -120,6 +131,19 @@ const handleSubmit = async () => {
 
   await router.push({ name: 'FabricDescription' })
 }
+
+const handleImageLoaded = () => {
+  updateEdgeDistances()
+  const image = workspaceRef.value?.imgRef
+  if (!image) return
+
+  void wizardStore
+    .updateConfig({ imageWidth: image.clientWidth, imageHeight: image.clientHeight })
+    .catch((error: unknown) => {
+      console.error('Failed to persist fabric image dimensions:', error)
+    })
+}
+
 </script>
 
 <template>
@@ -158,7 +182,7 @@ const handleSubmit = async () => {
           "
           @start-drag-point="startDragPoint"
           @delete-selected="deleteSelected"
-          @image-loaded="updateEdgeDistances"
+          @image-loaded="handleImageLoaded"
           @canvas-drag-start="startCanvasDrag"
           @reset-canvas="resetCanvasPosition"
         />

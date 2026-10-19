@@ -32,10 +32,7 @@ export function useAddFabricFormGuard() {
       return true
     }
 
-    const isStoreEmpty =
-      !wizardStore.file &&
-      !wizardStore.previewUrl &&
-      (!wizardStore.config?.points || wizardStore.config.points.length === 0)
+    const isStoreEmpty = !wizardStore.file && !wizardStore.previewUrl
 
     if (isStoreEmpty) return true
 

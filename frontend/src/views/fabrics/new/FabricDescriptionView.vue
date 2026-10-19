@@ -34,9 +34,12 @@ import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/compon
 import { CheckIcon, ChevronDown } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
+import { useRouter } from 'vue-router'
+import { toPostgisBoundary } from '@/utils/fabricBoundary'
 
 const { isCancelModalOpen, handleCancel, confirmExit } = useAddFabricFormGuard()
 const wizardStore = useFabricAddingStore()
+const router = useRouter()
 interface FabricTag {
   id: number
   name: string
@@ -67,9 +70,11 @@ const tags = computed({
 })
 const availableTags = ref<FabricTag[]>([])
 const tagLoadError = ref('')
+const submitError = ref('')
+const isSubmitting = ref(false)
 
 const MAX_NAME_LENGTH = 35
-const MAX_DESC_LENGTH = 45
+const MAX_DESC_LENGTH = 400
 
 const searchTerm = ref('')
 const open = ref(false)
@@ -124,8 +129,53 @@ watch(searchTerm, (val) => {
   }
 })
 
-const handleSubmit = () => {
-  // saving
+const handleSubmit = async () => {
+  submitError.value = ''
+  if (isSubmitting.value) return
+
+  const { file, config, details } = wizardStore
+  if (!file || !wizardStore.isShapeConfigured) {
+    submitError.value = 'Fabric photo configuration is missing. Return to the previous step.'
+    return
+  }
+
+  if (!details.name.trim()) {
+    submitError.value = 'Enter a fabric name before saving.'
+    return
+  }
+
+  const selectedTags = details.tags.map((name) =>
+    availableTags.value.find((tag) => tag.name === name),
+  )
+  if (selectedTags.some((tag) => !tag)) {
+    submitError.value = 'One or more selected tags are unavailable. Reload tags and try again.'
+    return
+  }
+  const tagIds = selectedTags.flatMap((tag) => (tag ? [tag.id] : []))
+
+  const boundary = toPostgisBoundary(config.points, config)
+  const formData = new FormData()
+  formData.append('picture', file)
+  formData.append('name', details.name)
+  if (details.description) formData.append('description', details.description)
+  formData.append('boundary', JSON.stringify(boundary))
+  formData.append('tagIds', JSON.stringify(tagIds))
+
+  isSubmitting.value = true
+  try {
+    const createdFabric = await api<{ id: number }>('/fabrics', {
+      method: 'POST',
+      body: formData,
+    })
+    await wizardStore.resetWizard()
+    await router.push({ name: 'fabric-details', params: { id: createdFabric.id } })
+  } catch (error) {
+    console.error('Failed to create fabric:', error)
+    submitError.value =
+      error instanceof ApiError ? error.body.message : 'Could not save fabric. Please try again.'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -278,6 +328,10 @@ const handleSubmit = () => {
           {{ detailsSaveError }}
         </p>
 
+        <p v-if="submitError" class="text-xs text-destructive" role="alert">
+          {{ submitError }}
+        </p>
+
         <p class="text-xs text-destructive pt-2">* Required field</p>
       </div>
     </div>
@@ -285,6 +339,7 @@ const handleSubmit = () => {
     <FormFloatingActions
       cancel-label="Cancel"
       next-label="Save"
+      :disabled="isSubmitting"
       @cancel="handleCancel"
       @next="handleSubmit"
     />

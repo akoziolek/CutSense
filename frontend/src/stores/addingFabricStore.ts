@@ -13,6 +13,9 @@ export interface FabricConfig {
   pxPerCm: number
   threadAngle: number
   rotation: number
+  imageWidth: number
+  imageHeight: number
+  isConfigured: boolean
 }
 
 export interface FabricDetails {
@@ -42,6 +45,9 @@ const DEFAULT_CONFIG: FabricConfig = {
   pxPerCm: 10,
   threadAngle: 0,
   rotation: 0,
+  imageWidth: 0,
+  imageHeight: 0,
+  isConfigured: false,
 }
 
 export const useFabricAddingStore = defineStore('addingFabric', () => {
@@ -55,6 +61,7 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
   const isHydrated = ref(false) // will be false after each F5 => file will be read from IndexDB
   const isConfigPersisted = ref(false)
   let detailsWriteQueue = Promise.resolve()
+  let configWriteQueue = Promise.resolve()
 
   async function setFile(newFile: File) {
     if (previewUrl.value) {
@@ -72,7 +79,7 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
       tags: [...DEFAULT_DETAILS.tags],
     }
 
-    await detailsWriteQueue
+    await Promise.all([detailsWriteQueue, configWriteQueue])
     await Promise.all([
       set(STORAGE_FILE_KEY, newFile),
       del(STORAGE_CONFIG_KEY),
@@ -98,20 +105,31 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     return write
   }
 
-  async function updateConfig(partialConfig: Partial<FabricConfig>) {
+  function updateConfig(
+    partialConfig: Partial<FabricConfig>,
+    confirmConfiguration = false,
+  ) {
     config.value = {
       ...config.value,
       ...partialConfig,
+      isConfigured: confirmConfiguration || config.value.isConfigured,
     }
     isConfigPersisted.value = false
 
-    try {
-      await set(STORAGE_CONFIG_KEY, JSON.parse(JSON.stringify(config.value)))
-      isConfigPersisted.value = true
-    } catch (error) {
+    const snapshot = JSON.parse(JSON.stringify(config.value)) as FabricConfig
+    const write = configWriteQueue.then(() => set(STORAGE_CONFIG_KEY, snapshot))
+    configWriteQueue = write.catch((error: unknown) => {
       console.error('Error saving config to IndexedDB:', error)
-      throw error
-    }
+    })
+    return write.then(
+      () => {
+        isConfigPersisted.value = true
+      },
+      (error: unknown) => {
+        isConfigPersisted.value = false
+        throw error
+      },
+    )
   }
 
   // init after e.g. F5
@@ -135,7 +153,7 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
           ...DEFAULT_CONFIG,
           ...savedConfig,
         }
-        isConfigPersisted.value = true
+        isConfigPersisted.value = Boolean(config.value.isConfigured)
       }
 
       if (savedDetails) {
@@ -167,7 +185,7 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     }
 
     try {
-      await detailsWriteQueue
+      await Promise.all([detailsWriteQueue, configWriteQueue])
       await Promise.all([
         del(STORAGE_FILE_KEY),
         del(STORAGE_CONFIG_KEY),
@@ -186,7 +204,15 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     const hasValidPoints = Array.isArray(config.value.points) && config.value.points.length >= 3
     const hasValidScale = typeof config.value.pxPerCm === 'number' && config.value.pxPerCm > 0
 
-    return isConfigPersisted.value && hasValidPoints && hasValidScale
+    const hasImageDimensions = config.value.imageWidth > 0 && config.value.imageHeight > 0
+
+    return (
+      isConfigPersisted.value &&
+      config.value.isConfigured &&
+      hasValidPoints &&
+      hasValidScale &&
+      hasImageDimensions
+    )
   })
 
   return {

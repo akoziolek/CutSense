@@ -2,9 +2,10 @@
 import { RouterLink } from 'vue-router'
 import { Plus } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
+import type { RouteLocationRaw } from 'vue-router'
 
 const props = defineProps<{
-  to?: string | object
+  to?: RouteLocationRaw
 }>()
 
 const emit = defineEmits<{

@@ -21,7 +21,7 @@ const LandingPage = () => import('../views/LandingPage.vue')
 const ComingSoonPage = () => import('../views/ComingSoonPage.vue') // temporary, to change for correct ones later
 const FabricPage = () => import('../views/fabrics/FabricView.vue')
 const FabricsPage = () => import('../views/fabrics/FabricsView.vue')
-const FabricPhotoConfigPage = () => import('../views/fabrics/FabricPhotoConfigView.vue')
+const FabricPhotoConfigPage = () => import('../views/fabrics/FabricConfigView.vue')
 const UploadImagePage = () => import('../views/fabrics/FabricUploadView.vue')
 
 const routes = [

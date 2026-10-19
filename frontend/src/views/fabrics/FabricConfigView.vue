@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
 import { useSpatialWorkspace } from '@/composables/useSpatialWorkspace'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -8,10 +7,13 @@ import StepCounter from '@/components/common/StepCounter.vue'
 import FabricConfigSidebar from '@/components/fabrics/FabricConfigSidebar.vue'
 import SpatialWorkspace from '@/components/common/SpatialWorkspace.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
+import FormFloatingActions from '@/components/common/FormFloatingActions.vue'
+import DiscardNewFabricModal from '@/components/fabrics/DiscardNewFabricModal.vue'
 
-const router = useRouter()
 const wizardStore = useFabricAddingStore()
 const workspaceRef = ref<InstanceType<typeof SpatialWorkspace> | null>(null)
+
+const isCancelModalOpen = ref(false)
 
 const {
   points,
@@ -75,7 +77,6 @@ const loadSavedConfig = () => {
 watch(
   () => wizardStore.isHydrated,
   (hydrated) => {
-    // has data finished loading from IndexedDB
     if (hydrated) {
       loadSavedConfig()
     }
@@ -98,16 +99,17 @@ watch(
   { deep: true },
 )
 
-const handleCancel = async () => {
-  router.push({ name: 'AddFabric' })
-  await wizardStore.resetWizard()
+const handleCancel = () => {
+  isCancelModalOpen.value = true
 }
+
+const handleSubmit = () => {}
 </script>
 
 <template>
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
-      <PageHeader title="Fabric configuration" :show-back=true>
+      <PageHeader title="Fabric configuration" :show-back="true">
         <template #actions>
           <StepCounter :current-step="1" :total-steps="2" />
         </template>
@@ -157,5 +159,13 @@ const handleCancel = async () => {
         />
       </div>
     </div>
+
+    <FormFloatingActions
+      cancel-label="Cancel"
+      next-label="Calibrate"
+      @cancel="handleCancel"
+      @next="handleSubmit"
+    />
+    <DiscardNewFabricModal v-model:open="isCancelModalOpen" />
   </GridLayout>
 </template>

@@ -12,13 +12,16 @@ const LandingPage = () => import('../views/LandingPage.vue')
 const ComingSoonPage = () => import('../views/ComingSoonPage.vue') // temporary, to change for correct ones later
 const FabricPage = () => import('../views/FabricView.vue')
 const PatternPage = () => import('../views/PatternView.vue')
+const NewPatternPage = () => import('../views/NewPatternView.vue')
 
 const routes = [
   { path: '/', name: 'Landing', component: LandingPage },
 
   // public pages (guests can browse public patterns)
   { path: '/patterns', name: 'Patterns', component: ComingSoonPage },
+  { path: '/patterns/new', name: 'pattern-new', component: NewPatternPage, meta: { requiresAuth: true } },
   { path: '/patterns/:id', name: 'pattern-details', component: PatternPage , props: true },
+  
 
   // pages that need a logged-in user
   { path: '/home', name: 'Home', component: ComingSoonPage, meta: { requiresAuth: true } },
@@ -52,6 +55,7 @@ router.beforeEach(async (to) => {
   if (to.meta.requiresAuth && !state.user) {
     return { name: 'Landing', query: { login: '1', redirect: to.fullPath } }
   }
+
 
   // existing user came back from Google to "/": continue where they wanted to go
   if (state.user && to.name === 'Landing' && !to.query.registration) {

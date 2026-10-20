@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
@@ -12,12 +12,19 @@ import SpatialWorkspace from '@/components/fabrics/SpatialWorkspace.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import DiscardNewFabricModal from '@/components/fabrics/DiscardNewFabricModal.vue'
+import { Skeleton } from '@/components/ui/skeleton'
+import { api, ApiError } from '@/api/client'
+import BaseModal from '@/components/common/BaseModal.vue'
 
 const wizardStore = useFabricAddingStore()
 const router = useRouter()
 const workspaceRef = ref<InstanceType<typeof SpatialWorkspace> | null>(null)
 
 const { isCancelModalOpen, handleCancel, confirmExit } = useAddFabricFormGuard()
+const isErrorModalOpen = ref(false)
+const isAnalyzing = ref(false)
+const analysisError = ref('')
+
 
 const {
   points,
@@ -46,6 +53,7 @@ const {
   resetCanvasPosition,
   deleteSelected,
   resetAll,
+  updateOriginalPoints,
 } = useSpatialWorkspace({
   workspaceRef,
   initialPxPerCm: wizardStore.config.pxPerCm,
@@ -93,21 +101,23 @@ watch(
   () => {
     if (!wizardStore.isHydrated || isSyncing) return
 
-    void wizardStore.updateConfig({
-      points: JSON.parse(JSON.stringify(points.value)),
-      pxPerCm: pxPerCm.value,
-      threadAngle: threadAngle.value,
-      rotation: imageRotation.value,
-    }).catch((error: unknown) => {
-      console.error('Failed to persist fabric configuration:', error)
-    })
+    void wizardStore
+      .updateConfig({
+        points: JSON.parse(JSON.stringify(points.value)),
+        pxPerCm: pxPerCm.value,
+        threadAngle: threadAngle.value,
+        rotation: imageRotation.value,
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to persist fabric configuration:', error)
+      })
   },
   { deep: true },
 )
 
 const handleSubmit = async () => {
   const image = workspaceRef.value?.imgRef
-  if (!image) {
+  if (!image || !wizardStore.file) {
     toast.error('Fabric photo is not ready. Please try again.')
     return
   }
@@ -132,6 +142,61 @@ const handleSubmit = async () => {
   await router.push({ name: 'FabricDescription' })
 }
 
+const detectFabricBoundary = async () => {
+  const picture = wizardStore.file
+  if (!picture) {
+    analysisError.value = 'Fabric photo is missing. Return to the upload step and select a photo.'
+    isErrorModalOpen.value = true
+    return
+  }
+
+  isAnalyzing.value = true
+  analysisError.value = ''
+  try {
+    const formData = new FormData()
+    formData.append('picture', picture)
+    const result = await api<{
+      points: { pctX: number; pctY: number }[]
+      imageWidth: number
+      imageHeight: number
+    }>('/fabrics/analyze-boundary', {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (result.imageWidth <= 0 || result.imageHeight <= 0 || result.points.length < 3) {
+      throw new Error('Shape analysis returned an invalid boundary.')
+    }
+
+    isSyncing = true
+    points.value = result.points
+    updateOriginalPoints(result.points)
+    await wizardStore.updateConfig({
+      points: result.points,
+    })
+  } catch (error) {
+    console.error('Failed to analyze fabric photo:', error)
+    analysisError.value =
+      error instanceof ApiError
+        ? error.body.message
+        : 'Could not analyze fabric photo. Please try again.'
+    isErrorModalOpen.value = true
+  } finally {
+    setTimeout(() => {
+      isSyncing = false
+    }, 50)
+    isAnalyzing.value = false
+  }
+}
+
+const handleConfirm = () => {
+  isErrorModalOpen.value = false
+}
+
+onMounted(() => {
+  void detectFabricBoundary()
+})
+
 const handleImageLoaded = () => {
   updateEdgeDistances()
   const image = workspaceRef.value?.imgRef
@@ -143,7 +208,6 @@ const handleImageLoaded = () => {
       console.error('Failed to persist fabric image dimensions:', error)
     })
 }
-
 </script>
 
 <template>
@@ -155,7 +219,19 @@ const handleImageLoaded = () => {
         </template>
       </PageHeader>
 
-      <div class="flex flex-col lg:flex-row items-start gap-6">
+      <div v-if="isAnalyzing" role="status" aria-live="polite">
+        <p class="mb-3 text-sm text-muted-foreground">Detecting fabric outline from the photo...</p>
+        <div class="flex flex-col lg:flex-row items-start gap-6">
+          <Skeleton class="w-full h-[520px] rounded-md" />
+          <div class="w-full lg:w-80 space-y-4">
+            <Skeleton class="h-24 w-full" />
+            <Skeleton class="h-24 w-full" />
+            <Skeleton class="h-36 w-full" />
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="flex flex-col lg:flex-row items-start gap-6">
         <SpatialWorkspace
           ref="workspaceRef"
           v-model:active-tool="activeTool"
@@ -203,12 +279,18 @@ const handleImageLoaded = () => {
     <FormFloatingActions
       cancel-label="Cancel"
       next-label="Next"
+      :disabled="isAnalyzing || pxPerCm <= 0"
       @cancel="handleCancel"
       @next="handleSubmit"
     />
-    <DiscardNewFabricModal
-      v-model:open="isCancelModalOpen"
-      @confirm="confirmExit"
+    <DiscardNewFabricModal v-model:open="isCancelModalOpen" @confirm="confirmExit" />
+    <BaseModal
+      title="We couldn't process your image."
+      :description="`Try again later or use the default shape and adjust it manually`"
+      :open="isErrorModalOpen"
+      confirmLabel="I understand"
+      fullWidthButton
+      v-on:confirm="handleConfirm"
     />
   </GridLayout>
 </template>

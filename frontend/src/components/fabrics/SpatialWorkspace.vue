@@ -70,7 +70,7 @@ const cursorClass = computed(() => {
 
 const handleWheel = (e: WheelEvent) => {
   e.preventDefault()
-  const zoomDelta = e.deltaY < 0 ? 0.1 : -0.1
+  const zoomDelta = e.deltaY < 0 ? 0.085 : -0.085
   const newZoom = Math.min(Math.max(0.5, props.zoomLevel + zoomDelta), 3.5)
   emit('update:zoomLevel', Number(newZoom.toFixed(2)))
 }

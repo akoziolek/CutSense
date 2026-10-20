@@ -15,6 +15,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBadRequestResponse,
+  ApiBadGatewayResponse,
   ApiBody,
   ApiCreatedResponse,
   ApiConsumes,
@@ -31,6 +32,7 @@ import { FabricService } from './fabrics.service.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { SessionGuard } from '../../auth/guards/session.guard.js';
 import { CreateFabricDto } from './dto/create-fabric.dto.js';
+import { AnalyzeFabricDto } from './dto/analyze-fabric.dto.js';
 
 @Controller('fabrics')
 @ApiTags('Fabrics')
@@ -63,6 +65,53 @@ export class FabricController {
   })
   async getFabricTags(): Promise<{ id: number; name: string }[]> {
     return this.fabricService.getFabricTags();
+  }
+
+  @Post('analyze-boundary')
+  @UseInterceptors(
+    FileInterceptor('picture', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['picture'],
+      properties: {
+        picture: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiOperation({
+    summary: 'Detect the fabric boundary in a photo',
+    description:
+      'Analyzes the uploaded photo and returns a normalized boundary and the original image dimensions.',
+  })
+  @ApiOkResponse({
+    description: 'The fabric boundary was detected.',
+    type: AnalyzeFabricDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'The uploaded image could not be analyzed.',
+  })
+  @ApiBadGatewayResponse({
+    description:
+      'The shape analysis service is unavailable or returned invalid data.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  async analyzeFabricBoundary(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      }),
+    )
+    picture: Express.Multer.File,
+  ): Promise<AnalyzeFabricDto> {
+    return this.fabricService.analyzeFabricBoundary(picture);
   }
 
   @Post()

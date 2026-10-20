@@ -1,12 +1,20 @@
-import { BadRequestException, Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { eq, and, inArray, sql } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import { fabrics, fabricTags, tagsForFabrics } from '../../db/schema/schema.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
+import { ExternalServiceException } from '../../common/exceptions/external-service.exception.js';
+import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
 import { StoragePaths, StorageService } from '../storage/storage.service.js';
 import { FabricMapper } from './fabric.mapper.js';
 import { CreateFabricDto } from './dto/create-fabric.dto.js';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { AnalyzeFabricDto } from './dto/analyze-fabric.dto.js';
+import { AnalyzeFabricEngineResponseDto } from './dto/analyze-fabric-engine-response.dto.js';
+import { FabricBoundaryMapper } from './fabric-boundary.mapper.js';
 
 @Injectable()
 export class FabricService {
@@ -14,7 +22,74 @@ export class FabricService {
     @Inject(DRIZZLE)
     private readonly db: DrizzleDB,
     private readonly storageService: StorageService,
+    private readonly configService: ConfigService,
   ) {}
+
+  async analyzeFabricBoundary(
+    picture: Express.Multer.File,
+  ): Promise<AnalyzeFabricDto> {
+    const engineUrl = this.configService
+      .get<string>('SHAPES_ENGINE_URL', 'http://localhost:8000')
+      .replace(/\/$/, '');
+
+    const imageBytes = new Uint8Array(
+      new ArrayBuffer(picture.buffer.byteLength),
+    );
+    imageBytes.set(picture.buffer);
+
+    const response = await fetch(`${engineUrl}/analyze-fabric-boundary`, {
+      method: 'POST',
+      headers: { 'Content-Type': picture.mimetype },
+      body: new Blob([imageBytes], { type: picture.mimetype }),
+      signal: AbortSignal.timeout(30_000),
+    }).catch((error) => {
+      throw new ExternalServiceException(
+        error instanceof Error
+          ? `Shape analysis service is unavailable: ${error.message}`
+          : 'Shape analysis service is unavailable.',
+      );
+    });
+
+    const payload = await response.json().catch(() => {
+      throw new ExternalServiceException(
+        'Shape analysis returned an invalid response.',
+      );
+    });
+
+    if (!response.ok) {
+      const detail =
+        typeof payload?.detail === 'string'
+          ? payload.detail
+          : 'Shape analysis failed.';
+      if (response.status >= 400 && response.status < 500) {
+        throw new RequestValidationException(detail);
+      }
+      throw new ExternalServiceException(detail);
+    }
+
+    if (typeof payload !== 'object' || !payload || Array.isArray(payload)) {
+      throw new ExternalServiceException(
+        'Shape analysis returned an invalid boundary.',
+      );
+    }
+
+    const engineResult = plainToInstance(
+      AnalyzeFabricEngineResponseDto,
+      payload,
+    );
+    const validationErrors = await validate(engineResult, {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    });
+
+    if (validationErrors.length > 0) {
+      throw new ExternalServiceException(
+        'Shape analysis returned an invalid boundary.',
+      );
+    }
+
+    return FabricBoundaryMapper.toAnalyzeFabricDto(engineResult);
+  }
 
   async getFabricTags(): Promise<{ id: number; name: string }[]> {
     const tags = await this.db.query.tagsForFabrics.findMany({
@@ -39,7 +114,7 @@ export class FabricService {
       : [];
 
     if (selectedTags.length !== selectedTagIds.length) {
-      throw new BadRequestException(
+      throw new RequestValidationException(
         'One or more selected fabric tags do not exist.',
       );
     }
@@ -48,7 +123,7 @@ export class FabricService {
     const first = points[0];
     const last = points.at(-1);
     if (!first || !last || points.length < 3) {
-      throw new BadRequestException(
+      throw new RequestValidationException(
         'A fabric boundary needs at least three points.',
       );
     }

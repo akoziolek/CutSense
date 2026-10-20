@@ -1,11 +1,15 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { DRIZZLE } from '../../db/drizzle.provider.js';
+import { ExternalServiceException } from '../../common/exceptions/external-service.exception.js';
+import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 import { StorageService } from '../storage/storage.service.js';
 import { FabricService } from './fabrics.service.js';
 
 describe('FabricService', () => {
   let service: FabricService;
+  let fetchMock: ReturnType<typeof vi.fn>;
   let findFirst: ReturnType<typeof vi.fn>;
   let findManyTags: ReturnType<typeof vi.fn>;
   let generatePresignedUrl: ReturnType<typeof vi.fn>;
@@ -16,6 +20,8 @@ describe('FabricService', () => {
   let insertReturning: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
+    fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
     findFirst = vi.fn();
     findManyTags = vi.fn();
     insertReturning = vi.fn();
@@ -38,18 +44,93 @@ describe('FabricService', () => {
               tagsForFabrics: { findMany: findManyTags },
             },
             insert,
-            transaction: (callback: (tx: { insert: typeof insert }) => unknown) =>
-              callback({ insert }),
+            transaction: (
+              callback: (tx: { insert: typeof insert }) => unknown,
+            ) => callback({ insert }),
           },
         },
         {
           provide: StorageService,
           useValue: { generatePresignedUrl, uploadFile, deleteFile },
         },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: (_key: string, defaultValue: string) => defaultValue,
+          },
+        },
       ],
     }).compile();
 
     service = module.get(FabricService);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('forwards image bytes to the shape engine and returns the detected boundary', async () => {
+    const result = {
+      points: [
+        { pctX: 20, pctY: 20 },
+        { pctX: 80, pctY: 20 },
+        { pctX: 80, pctY: 80 },
+      ],
+      imageWidth: 800,
+      imageHeight: 600,
+    };
+    fetchMock.mockResolvedValue(Response.json(result));
+
+    await expect(
+      service.analyzeFabricBoundary({
+        buffer: Buffer.from('image-data'),
+        mimetype: 'image/png',
+      } as Express.Multer.File),
+    ).resolves.toEqual(result);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:8000/analyze-fabric-boundary',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'image/png' },
+        signal: expect.any(AbortSignal),
+        body: expect.any(Blob),
+      }),
+    );
+  });
+
+  it('rejects an invalid boundary returned by the shape engine', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({
+        points: [
+          { pctX: 20, pctY: 20 },
+          { pctX: 120, pctY: 20 },
+          { pctX: 80, pctY: 80 },
+        ],
+        imageWidth: 800,
+        imageHeight: 600,
+      }),
+    );
+
+    await expect(
+      service.analyzeFabricBoundary({
+        buffer: Buffer.from('image-data'),
+        mimetype: 'image/png',
+      } as Express.Multer.File),
+    ).rejects.toBeInstanceOf(ExternalServiceException);
+  });
+
+  it('maps a shape-engine request rejection to a validation exception', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({ detail: 'Unsupported image format.' }, { status: 400 }),
+    );
+
+    await expect(
+      service.analyzeFabricBoundary({
+        buffer: Buffer.from('image-data'),
+        mimetype: 'image/png',
+      } as Express.Multer.File),
+    ).rejects.toBeInstanceOf(RequestValidationException);
   });
 
   it('returns the available fabric tags in alphabetical order', async () => {

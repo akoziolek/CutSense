@@ -101,6 +101,7 @@ describe('Fabrics endpoint (integration)', () => {
     if (app) {
       await app.close();
     }
+    vi.unstubAllGlobals();
   });
 
   it('rejects requests without an authenticated session', async () => {
@@ -131,6 +132,48 @@ describe('Fabrics endpoint (integration)', () => {
       ]);
 
     expect(findManyTags).toHaveBeenCalledOnce();
+  });
+
+  it('requires an authenticated session to analyze a fabric photo', async () => {
+    await request(app.getHttpServer())
+      .post('/v1/fabrics/analyze-boundary')
+      .expect(401);
+  });
+
+  it('returns the detected fabric boundary through the authenticated backend', async () => {
+    const analysis = {
+      points: [
+        { pctX: 20, pctY: 20 },
+        { pctX: 80, pctY: 20 },
+        { pctX: 80, pctY: 80 },
+      ],
+      imageWidth: 800,
+      imageHeight: 600,
+    };
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(analysis));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await request(app.getHttpServer())
+      .post('/v1/fabrics/analyze-boundary')
+      .set('Cookie', `session=${sessionCookie}`)
+      .attach(
+        'picture',
+        Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lZsAAAAASUVORK5CYII=',
+          'base64',
+        ),
+        {
+        filename: 'fabric.png',
+        contentType: 'image/png',
+        },
+      )
+      .expect(201)
+      .expect(analysis);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:8000/analyze-fabric-boundary',
+      expect.objectContaining({ method: 'POST' }),
+    );
   });
 
   it('uploads a picture and creates a fabric from multipart boundary points', async () => {

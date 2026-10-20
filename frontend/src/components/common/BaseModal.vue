@@ -71,7 +71,7 @@ const handleEscapeKeyDown = (event: Event) => {
         </DialogTitle>
         <DialogDescription
           v-if="description || $slots.description"
-          class="text-xs sm:text-sm text-brand-grey-foreground font-normal"
+          class="text-xs sm:text-sm text-brand-grey-foreground font-normal whitespace-pre-line"
         >
           <slot name="description">{{ description }}</slot>
         </DialogDescription>

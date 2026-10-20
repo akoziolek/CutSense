@@ -36,13 +36,8 @@ const DEFAULT_DETAILS: FabricDetails = {
 
 // TODO remove later, for dev purpose
 const DEFAULT_CONFIG: FabricConfig = {
-  points: [
-    { pctX: 20, pctY: 20 },
-    { pctX: 80, pctY: 20 },
-    { pctX: 80, pctY: 80 },
-    { pctX: 20, pctY: 80 },
-  ],
-  pxPerCm: 10,
+  points: [],
+  pxPerCm: 0,
   threadAngle: 0,
   rotation: 0,
   imageWidth: 0,

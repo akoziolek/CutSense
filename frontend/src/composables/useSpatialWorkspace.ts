@@ -29,27 +29,32 @@ interface useSpatialWorkspaceOptions {
 }
 
 export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
+  const defaultPxPerCm = 10
   const {
     workspaceRef,
-    initialPxPerCm = 10,
+    initialPxPerCm,
     initialPoints,
     onThreadAngleChange,
     currentThreadAngle,
   } = options
 
+  const backupShape = [
+    { pctX: 20, pctY: 20 },
+    { pctX: 80, pctY: 20 },
+    { pctX: 80, pctY: 80 },
+    { pctX: 20, pctY: 80 },
+  ]
   // how many px per 1 cm
-  const pxPerCm = ref<number>(initialPxPerCm)
+  const pxPerCm = ref<number>(initialPxPerCm && initialPxPerCm > 0 ? initialPxPerCm : defaultPxPerCm)
   // postgis format
   const points = ref<Point2D[]>(
-    initialPoints && initialPoints.length >= 3
-      ? initialPoints
-      : [
-          { pctX: 20, pctY: 20 },
-          { pctX: 80, pctY: 20 },
-          { pctX: 80, pctY: 80 },
-          { pctX: 20, pctY: 80 },
-        ],
+    initialPoints && initialPoints.length >= 3 ? initialPoints : backupShape,
   )
+  const originalPoints = ref<Point2D[]>(JSON.parse(JSON.stringify(points.value)))
+
+  const updateOriginalPoints = (newPoints: Point2D[]) => {
+    originalPoints.value = JSON.parse(JSON.stringify(newPoints))
+  }
 
   const selectedEdgeIndex = ref<number | null>(null)
   const selectedPointIndex = ref<number | null>(null)
@@ -294,7 +299,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
       setTimeout(() => (justDragged = false), 100)
     }
 
-    // inserting new point  
+    // inserting new point
     if (creatingEdgeIndex.value !== null && previewPoint.value) {
       const insertIdx = creatingEdgeIndex.value + 1
       points.value.splice(insertIdx, 0, previewPoint.value)
@@ -341,12 +346,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   }
 
   const resetAll = () => {
-    points.value = [
-      { pctX: 20, pctY: 20 },
-      { pctX: 80, pctY: 20 },
-      { pctX: 80, pctY: 80 },
-      { pctX: 20, pctY: 80 },
-    ]
+    points.value = JSON.parse(JSON.stringify(originalPoints.value))
     selectedEdgeIndex.value = null
     selectedPointIndex.value = null
     creatingEdgeIndex.value = null
@@ -401,5 +401,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     resetCanvasPosition,
     deleteSelected,
     resetAll,
+    updateOriginalPoints,
   }
 }

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { consumeReturnTo } from '../utils/returnTo'
+import { useFabricAddingStore } from '@/stores/addingFabricStore.ts'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -8,9 +9,21 @@ declare module 'vue-router' {
   }
 }
 
+async function ensureWizardHydrated() {
+  const wizardStore = useFabricAddingStore()
+  if (!wizardStore.isHydrated) {
+    await wizardStore.initFromIndexedDB()
+  }
+  return wizardStore
+}
+
 const LandingPage = () => import('../views/LandingPage.vue')
 const ComingSoonPage = () => import('../views/ComingSoonPage.vue') // temporary, to change for correct ones later
-const FabricPage = () => import('../views/FabricView.vue')
+const FabricPage = () => import('../views/fabrics/FabricView.vue')
+const FabricsPage = () => import('../views/fabrics/FabricsView.vue')
+const FabricPhotoConfigPage = () => import('../views/fabrics/new/FabricConfigView.vue')
+const UploadImagePage = () => import('../views/fabrics/new/FabricUploadView.vue')
+const FabricDescritptionPage = () => import('../views/fabrics/new/FabricDescriptionView.vue')
 
 const routes = [
   { path: '/', name: 'Landing', component: LandingPage },
@@ -26,8 +39,47 @@ const routes = [
     component: ComingSoonPage,
     meta: { requiresAuth: true },
   },
-  { path: '/fabrics', name: 'Fabrics', component: ComingSoonPage, meta: { requiresAuth: true } },
-  { path: '/fabrics/:id', name: 'fabric-details', component: FabricPage, props: true },
+  { path: '/fabrics', name: 'Fabrics', component: FabricsPage, meta: { requiresAuth: true } },
+  {
+    path: '/fabrics/:id',
+    name: 'fabric-details',
+    component: FabricPage,
+    props: true,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/fabrics/new',
+    name: 'AddFabric',
+    component: UploadImagePage,
+    meta: { requiresAuth: true },
+    beforeEnter: async () => {
+      await ensureWizardHydrated()
+    },
+  },
+  {
+    path: '/fabrics/configure',
+    name: 'FabricPhotoConfig',
+    component: FabricPhotoConfigPage,
+    beforeEnter: async () => {
+      const wizardStore = await ensureWizardHydrated()
+      if (!wizardStore.isFileLoaded) {
+        return { name: 'AddFabric' }
+      }
+    },
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/fabrics/describe',
+    name: 'FabricDescription',
+    component: FabricDescritptionPage,
+    beforeEnter: async () => {
+      const wizardStore = await ensureWizardHydrated()
+      if (!wizardStore.isShapeConfigured) {
+        return { name: wizardStore.file ? 'FabricPhotoConfig' : 'AddFabric' }
+      }
+    },
+    meta: { requiresAuth: true },
+  },
   { path: '/account', name: 'Account', component: ComingSoonPage, meta: { requiresAuth: true } },
 
   // needs to stay last, so that it does not override other routes

@@ -25,6 +25,7 @@ lxml==5.4.0
 matplotlib==3.10.9
 multidict==6.4.4
 numpy==2.4.4
+opencv-python-headless==4.13.0.92
 opentelemetry-api==1.45.1
 packaging==26.2
 pandas==3.0.2

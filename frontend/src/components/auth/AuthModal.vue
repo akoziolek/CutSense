@@ -17,10 +17,23 @@ const authError = computed(() =>
 )
 const registrationCancelled = computed(() => route.query.registration_cancelled === '1')
 const dismissError = ref('')
-const loginOpen = computed(
-  () => route.query.login === '1' || registrationCancelled.value || !!authError.value,
-)
 const loginError = computed(() => dismissError.value || authError.value)
+
+const googleName = ref('')
+const regError = ref('')
+const saving = ref(false)
+
+const activeModal = computed<'login' | 'registration' | null>(() => {
+  if (route.query.registration === '1') {
+    return 'registration'
+  }
+  if (route.query.login === '1' || registrationCancelled.value || !!authError.value) {
+    return 'login'
+  }
+  return null
+})
+
+const registrationOpen = computed(() => activeModal.value === 'registration')
 
 async function closeLogin() {
   if (registrationCancelled.value) {
@@ -34,13 +47,6 @@ async function closeLogin() {
   await router.replace({ name: 'Landing' })
 }
 
-// ---------- nickname (registration) modal ----------
-const registrationOpen = computed(() => route.query.registration === '1')
-const googleName = ref('')
-const regError = ref('')
-const saving = ref(false)
-
-// when the modal opens, check that the registration session (cookie, 15 min) is still valid
 watch(
   registrationOpen,
   async (open) => {
@@ -93,14 +99,16 @@ async function onCancel() {
 
 <template>
   <LoginModal
-    :open="loginOpen && !registrationOpen"
+    v-if="activeModal === 'login'"
+    :open="true"
     :error="loginError"
     :registration-cancelled="registrationCancelled"
     @update:open="(v) => !v && closeLogin()"
     @login="login()"
   />
   <NickNameModal
-    :open="registrationOpen"
+    v-else-if="activeModal === 'registration'"
+    :open="true"
     :user-name="googleName"
     :error="regError"
     :loading="saving"

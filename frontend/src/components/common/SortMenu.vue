@@ -18,7 +18,7 @@ const model = defineModel<T>({ required: true })
       <Button
         variant="outline"
         size="sm"
-        class="gap-2 data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
+        class="gap-2 data-[state=open]:bg-brand-pink hover:bg-brand-pink data-[state=open]:text-accent-foreground"
       >
         <ArrowDownAZ class="size-4" />
         Sort

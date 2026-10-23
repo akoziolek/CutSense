@@ -36,7 +36,7 @@ def _segment_fabric_grabcut(small_image: np.ndarray, border_box_ratio: float = 0
 def _segment_fabric_LAB_comparison(
     small_image: np.ndarray,
     center_box_ratio: float = 0.20,
-    border_box_ratio: float = 0.03,
+    border_box_ratio: float = 0.05,
     l_weight: float = 0.2,  # shadow
 ) -> np.ndarray:
     height, width = small_image.shape[:2]
@@ -49,7 +49,7 @@ def _segment_fabric_LAB_comparison(
 
     # 255 white = foreground, 0 black - background
     bin_mask = np.where(distance_to_foreground < distance_to_background, 255, 0).astype(np.uint8)
-    cleaned_mask = _clean_mask_morphology(bin_mask, 9)
+    cleaned_mask = _clean_mask_morphology(bin_mask, 12)
 
     contours, _ = cv2.findContours(cleaned_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     solid_mask = np.zeros((height, width), dtype=np.uint8)
@@ -63,7 +63,7 @@ def _segment_fabric_LAB_comparison(
 def _segment_fabric_hybrid(
     small_image: np.ndarray,
     center_box_ratio: float = 0.20,
-    border_box_ratio: float = 0.03,
+    border_box_ratio: float = 0.05,
     l_weight: float = 0.2,
     variance_threshold: float = 53.0,  # pattern threshold
     min_contrast_threshold: float = 35.0,  # (fabric vs background)

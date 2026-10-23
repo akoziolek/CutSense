@@ -7,7 +7,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import FloatingButton from '@/components/common/FloatingButton.vue'
 import SortMenu from '@/components/common/SortMenu.vue'
-import FabricCard from '@/components/fabrics/FabricCard.vue'
+import ResourceCard from '@/components/common/ResourceCard.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/pagination'
 import { api, ApiError } from '@/api/client'
 import type { FabricListResponse, FabricSort } from '@/types/fabric'
+import { formatCardDate } from '@/utils/formatCardDate'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: FabricSort = 'date_desc'
@@ -208,34 +209,24 @@ watch(
         <!-- list -->
         <div v-else-if="data" key="list" class="space-y-10">
           <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            <FabricCard v-for="fabric in data.items" :key="fabric.id" :fabric="fabric" />
+            <ResourceCard
+              v-for="fabric in data.items"
+              :key="fabric.id"
+              :to="{ name: 'fabric-details', params: { id: fabric.id } }"
+              :title="fabric.name"
+              :meta="`${formatCardDate(fabric.createdAt)} • ${fabric.area.toFixed(1)} m²`"
+              :image-url="fabric.pictureURL"
+              :is-favourite="fabric.isFavourite"
+            />
           </div>
 
-          <Pagination
+          <ListPagination
             v-if="data.totalPages > 1"
-            v-slot="{ page: currentPage }"
+            :page="page"
             :total="data.total"
             :items-per-page="PAGE_SIZE"
-            :sibling-count="1"
-            :page="page"
-            show-edges
             @update:page="goToPage"
-          >
-            <PaginationContent v-slot="{ items }">
-              <PaginationPrevious />
-              <template v-for="(item, index) in items" :key="index">
-                <PaginationItem
-                  v-if="item.type === 'page'"
-                  :value="item.value"
-                  :is-active="item.value === currentPage"
-                >
-                  {{ item.value }}
-                </PaginationItem>
-                <PaginationEllipsis v-else :index="index" />
-              </template>
-              <PaginationNext />
-            </PaginationContent>
-          </Pagination>
+          />
         </div>
       </Transition>
     </div>

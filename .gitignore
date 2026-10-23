@@ -11,4 +11,4 @@ terraform/*.tfvars
 *.tfstate.*
 *.tfplan
 
-shapes-engine/sample-images/results
+shapes-engine/sample-images/

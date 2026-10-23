@@ -11,6 +11,7 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -33,6 +34,8 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { SessionGuard } from '../../auth/guards/session.guard.js';
 import { CreateFabricDto } from './dto/create-fabric.dto.js';
 import { AnalyzeFabricDto } from './dto/analyze-fabric.dto.js';
+import { FabricListResponseDto } from './dto/fabric-list.dto.js';
+import { ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
 
 @Controller('fabrics')
 @ApiTags('Fabrics')
@@ -40,6 +43,24 @@ import { AnalyzeFabricDto } from './dto/analyze-fabric.dto.js';
 @ApiCookieAuth('session')
 export class FabricController {
   constructor(private readonly fabricService: FabricService) {}
+
+  @Get()
+  @ApiOperation({
+    summary: 'List fabrics of the current user',
+    description: 'Returns a page of fabrics owned by the current user, sorted by the chosen option.',
+  })
+  @ApiOkResponse({ 
+    description: 'A page of fabrics was returned successfully.',
+    type: FabricListResponseDto })
+  @ApiBadRequestResponse({ description: 'Invalid pagination or sort parameters.' })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  async getFabrics(
+    @Query() query: ListFabricsQueryDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<FabricListResponseDto> {
+    return this.fabricService.getFabrics(query, user.id);
+  }
+  
 
   @Get('tags')
   @ApiOperation({

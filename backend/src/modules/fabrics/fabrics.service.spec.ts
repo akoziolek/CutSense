@@ -6,6 +6,7 @@ import { RequestValidationException } from '../../common/exceptions/request-vali
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 import { StorageService } from '../storage/storage.service.js';
 import { FabricService } from './fabrics.service.js';
+import { FabricSortOption } from './dto/list-fabrics-query.dto.js';
 
 describe('FabricService', () => {
   let service: FabricService;
@@ -18,6 +19,8 @@ describe('FabricService', () => {
   let insert: ReturnType<typeof vi.fn>;
   let insertValues: ReturnType<typeof vi.fn>;
   let insertReturning: ReturnType<typeof vi.fn>;
+  let findManyFabrics: ReturnType<typeof vi.fn>;
+  let selectWhere: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     fetchMock = vi.fn();
@@ -32,6 +35,8 @@ describe('FabricService', () => {
       .mockResolvedValue('https://example.com/signed.jpg');
     uploadFile = vi.fn().mockResolvedValue('users/3/fabrics/uploaded.jpg');
     deleteFile = vi.fn();
+    findManyFabrics = vi.fn();
+    selectWhere = vi.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -40,9 +45,10 @@ describe('FabricService', () => {
           provide: DRIZZLE,
           useValue: {
             query: {
-              fabrics: { findFirst },
+              fabrics: { findFirst, findMany: findManyFabrics },
               tagsForFabrics: { findMany: findManyTags },
             },
+            select: vi.fn(() => ({ from: () => ({ where: selectWhere }) })),
             insert,
             transaction: (
               callback: (tx: { insert: typeof insert }) => unknown,
@@ -308,11 +314,73 @@ describe('FabricService', () => {
     });
   });
 
+  it('returns a paginated page of the user fabrics with presigned URLs', async () => {
+  findManyFabrics.mockResolvedValue([
+    { id: 2, name: 'Silk', pictureS3Key: 'users/3/fabrics/a.jpg', isFavourite: true, area: 0.9, createdAt: new Date('2026-03-01T00:00:00.000Z') },
+    { id: 1, name: 'Linen', pictureS3Key: null, isFavourite: false, area: 1.5, createdAt: new Date('2026-03-21T00:00:00.000Z') },
+  ]);
+  selectWhere.mockResolvedValue([{ total: 25 }]);
+
+  await expect(
+    service.getFabrics({ page: 2, limit: 12, sort: FabricSortOption.NAME_ASC }, 3),
+  ).resolves.toEqual({
+    items: [
+      { id: 2, name: 'Silk', pictureUrl: 'https://example.com/signed.jpg', isFavourite: true, area: 0.9, createdAt: '2026-03-01T00:00:00.000Z' },
+      { id: 1, name: 'Linen', pictureUrl: undefined, isFavourite: false, area: 1.5, createdAt: '2026-03-21T00:00:00.000Z' },
+    ],
+    total: 25,
+    page: 2,
+    limit: 12,
+    totalPages: 3,
+  });
+
+  expect(findManyFabrics).toHaveBeenCalledWith(
+    expect.objectContaining({ limit: 12, offset: 12 }),
+  );
+  expect(generatePresignedUrl).toHaveBeenCalledTimes(1);
+  });
+
   it('throws a not-found exception when no owned fabric matches', async () => {
     findFirst.mockResolvedValue(undefined);
 
     await expect(service.getFabricById(99, 3)).rejects.toBeInstanceOf(
       ResourceNotFoundException,
     );
+  });
+
+  it('returns an empty page with zero total pages when the user has no fabrics', async () => {
+  findManyFabrics.mockResolvedValue([]);
+  selectWhere.mockResolvedValue([{ total: 0 }]);
+
+  await expect(
+    service.getFabrics({ page: 1, limit: 12, sort: FabricSortOption.DATE_DESC }, 3),
+  ).resolves.toEqual({ items: [], total: 0, page: 1, limit: 12, totalPages: 0 });
+
+  expect(generatePresignedUrl).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [1, 12, 0],
+    [3, 12, 24],
+    [2, 5, 5],
+  ])('computes the offset for page %i with limit %i as %i', async (page, limit, offset) => {
+    findManyFabrics.mockResolvedValue([]);
+    selectWhere.mockResolvedValue([{ total: 100 }]);
+
+    await service.getFabrics({ page, limit, sort: FabricSortOption.DATE_DESC }, 3);
+
+    expect(findManyFabrics).toHaveBeenCalledWith(expect.objectContaining({ limit, offset }));
+  });
+
+  it('rounds the number of pages up', async () => {
+    findManyFabrics.mockResolvedValue([]);
+    selectWhere.mockResolvedValue([{ total: 13 }]);
+
+    const result = await service.getFabrics(
+      { page: 1, limit: 12, sort: FabricSortOption.DATE_DESC },
+      3,
+    );
+
+    expect(result.totalPages).toBe(2);
   });
 });

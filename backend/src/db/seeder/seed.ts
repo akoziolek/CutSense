@@ -74,15 +74,18 @@ const patternTemplates = [
     name: 'Oversized Button-Down Shirt',
     description:
       'Classic oversized shirt with dropped shoulders, cuffs, and a band collar. Ideal for linen and cotton woven fabrics.',
+    visibility: 'PUBLIC',
   },
   {
     name: 'Pleated Suit Trousers',
     description:
       'Tailored high-waisted trousers with front pleats, creased legs, and side-seam pockets.',
+    visibility: 'PUBLIC',
   },
   {
     name: 'Wrap Midi Dress',
     description: 'Flowy wrap dress with a V-neckline and a flared panel skirt.',
+    visibility: 'PUBLIC',
   },
   {
     name: 'Double-Breasted Wool Coat',
@@ -317,6 +320,7 @@ async function main(): Promise<void> {
         name: template.name,
         description: template.description,
         size: sizes[index % sizes.length],
+        visibility: template.visibility ?? 'PRIVATE',
         starCount: 0,
         starAverage: '0',
         userId: insertedUsers[index % insertedUsers.length].id,
@@ -354,20 +358,25 @@ async function main(): Promise<void> {
 
         let pictureS3Key: string | null = null;
 
-        if (fs.existsSync(filePath)) {
-          const buffer = fs.readFileSync(filePath);
+if (fs.existsSync(filePath)) {
+          try {
+            const buffer = fs.readFileSync(filePath);
 
-          const mockFile = {
-            originalname: fileName,
-            mimetype: 'image/jpeg',
-            buffer,
-            size: buffer.length,
-          } as Express.Multer.File;
+            const mockFile = {
+              originalname: fileName,
+              mimetype: 'image/jpeg',
+              buffer,
+              size: buffer.length,
+            } as Express.Multer.File;
 
-          const folderPath = StoragePaths.fabrics(userId);
-          pictureS3Key = await storageService.uploadFile(mockFile, folderPath);
+            const folderPath = StoragePaths.fabrics(userId);
+            pictureS3Key = await storageService.uploadFile(mockFile, folderPath);
+          } catch (uploadError) {
+            console.warn(`Warning: Failed to upload ${fileName} to S3, skipping image.`, uploadError);
+            pictureS3Key = null;
+          }
         } else {
-          console.warn(`File ${fileName} doesn't exist in${fabricsAssetsDir}.`);
+          console.warn(`File ${fileName} doesn't exist in ${fabricsAssetsDir}.`);
         }
 
         return {

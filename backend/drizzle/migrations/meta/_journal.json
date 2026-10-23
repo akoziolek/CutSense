@@ -64,6 +64,13 @@
       "when": 1792252148648,
       "tag": "0008_add_fabric_area_col",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792414358851,
+      "tag": "0009_add_normal_mirrored_pieces_count_col",
+      "breakpoints": true
     }
   ]
 }

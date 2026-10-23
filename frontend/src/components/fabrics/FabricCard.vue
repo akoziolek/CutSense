@@ -23,12 +23,12 @@ const meta = computed(() => {
     class="group block rounded-xl focus-visible:outline-none"
   >
     <Card
-      class="gap-2 px-3 py-3 border-muted shadow-md transition-shadow group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring"
+      class="gap-2 px-3 py-3 bg-card border-muted shadow-md transition-shadow group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring"
     >
       <div class="relative aspect-square overflow-hidden rounded-md bg-muted">
         <img
-          v-if="fabric.pictureUrl"
-          :src="fabric.pictureUrl"
+          v-if="fabric.pictureURL"
+          :src="fabric.pictureURL"
           :alt="fabric.name"
           loading="lazy"
           class="h-full w-full object-cover"

@@ -18,6 +18,15 @@ describe('FabricService', () => {
   let insert: ReturnType<typeof vi.fn>;
   let insertValues: ReturnType<typeof vi.fn>;
   let insertReturning: ReturnType<typeof vi.fn>;
+  let update: ReturnType<typeof vi.fn>;
+  let updateSet: ReturnType<typeof vi.fn>;
+  let updateWhere: ReturnType<typeof vi.fn>;
+  let updateReturning: ReturnType<typeof vi.fn>;
+  let deleteQuery: ReturnType<typeof vi.fn>;
+  let deleteWhere: ReturnType<typeof vi.fn>;
+  let select: ReturnType<typeof vi.fn>;
+  let selectFrom: ReturnType<typeof vi.fn>;
+  let selectWhere: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     fetchMock = vi.fn();
@@ -27,6 +36,15 @@ describe('FabricService', () => {
     insertReturning = vi.fn();
     insertValues = vi.fn(() => ({ returning: insertReturning }));
     insert = vi.fn(() => ({ values: insertValues }));
+    updateReturning = vi.fn();
+    updateWhere = vi.fn(() => ({ returning: updateReturning }));
+    updateSet = vi.fn(() => ({ where: updateWhere }));
+    update = vi.fn(() => ({ set: updateSet }));
+    deleteWhere = vi.fn().mockResolvedValue(undefined);
+    deleteQuery = vi.fn(() => ({ where: deleteWhere }));
+    selectWhere = vi.fn().mockResolvedValue([{ id: 17 }]);
+    selectFrom = vi.fn(() => ({ where: selectWhere }));
+    select = vi.fn(() => ({ from: selectFrom }));
     generatePresignedUrl = vi
       .fn()
       .mockResolvedValue('https://example.com/signed.jpg');
@@ -44,9 +62,14 @@ describe('FabricService', () => {
               tagsForFabrics: { findMany: findManyTags },
             },
             insert,
-            transaction: (
-              callback: (tx: { insert: typeof insert }) => unknown,
-            ) => callback({ insert }),
+            transaction: async (
+              callback: (tx: {
+                insert: typeof insert;
+                update: typeof update;
+                delete: typeof deleteQuery;
+                select: typeof select;
+              }) => unknown,
+            ) => callback({ insert, update, delete: deleteQuery, select }),
           },
         },
         {
@@ -314,5 +337,150 @@ describe('FabricService', () => {
     await expect(service.getFabricById(99, 3)).rejects.toBeInstanceOf(
       ResourceNotFoundException,
     );
+  });
+
+  it('updates supplied fields, replaces tags, and returns the reloaded fabric', async () => {
+    updateReturning.mockResolvedValue([
+      {
+        id: 17,
+        name: 'Linen canvas',
+        description: 'Heavy linen',
+        pictureS3Key: 'users/3/fabrics/fabric.jpg',
+        isFavourite: false,
+        area: 4.32,
+        userId: 3,
+        createdAt: new Date('2025-01-15T10:30:00.000Z'),
+      },
+    ]);
+    findManyTags.mockResolvedValue([{ id: 2 }, { id: 5 }]);
+    findFirst.mockResolvedValue({
+      id: 17,
+      name: 'Linen canvas',
+      description: 'Heavy linen',
+      pictureS3Key: 'users/3/fabrics/fabric.jpg',
+      isFavourite: false,
+      area: 4.32,
+      userId: 3,
+      createdAt: new Date('2025-01-15T10:30:00.000Z'),
+      tags: [{ tag: { name: 'cotton' } }, { tag: { name: 'linen' } }],
+    });
+
+    await expect(
+      service.updateFabric(
+        17,
+        { name: 'Linen canvas', description: 'Heavy linen', tagIds: [2, 5, 2] },
+        3,
+      ),
+    ).resolves.toMatchObject({
+      name: 'Linen canvas',
+      description: 'Heavy linen',
+      pictureUrl: 'https://example.com/signed.jpg',
+      tags: ['cotton', 'linen'],
+    });
+
+    expect(findManyTags).toHaveBeenCalledOnce();
+    expect(updateSet).toHaveBeenCalledWith({
+      name: 'Linen canvas',
+      description: 'Heavy linen',
+    });
+    expect(deleteQuery).toHaveBeenCalledOnce();
+    expect(deleteWhere).toHaveBeenCalledOnce();
+    expect(insertValues).toHaveBeenCalledWith([
+      { fabricId: 17, tagId: 2 },
+      { fabricId: 17, tagId: 5 },
+    ]);
+    expect(findFirst).toHaveBeenCalledOnce();
+  });
+
+  it('does not alter fabric tags when tag IDs are omitted', async () => {
+    updateReturning.mockResolvedValue([
+      {
+        id: 17,
+        name: 'New name',
+        pictureS3Key: null,
+        isFavourite: false,
+        area: 4.32,
+        userId: 3,
+        createdAt: new Date('2025-01-15T10:30:00.000Z'),
+      },
+    ]);
+    findFirst.mockResolvedValue({
+      id: 17,
+      name: 'New name',
+      pictureS3Key: null,
+      isFavourite: false,
+      area: 4.32,
+      userId: 3,
+      createdAt: new Date('2025-01-15T10:30:00.000Z'),
+      tags: [{ tag: { name: 'cotton' } }],
+    });
+
+    await service.updateFabric(17, { name: 'New name' }, 3);
+
+    expect(deleteQuery).not.toHaveBeenCalled();
+    expect(insert).not.toHaveBeenCalled();
+    expect(findManyTags).not.toHaveBeenCalled();
+    expect(findFirst).toHaveBeenCalledOnce();
+  });
+
+  it('clears tags when an empty tag ID array is supplied', async () => {
+    updateReturning.mockResolvedValue([
+      {
+        id: 17,
+        name: 'Cotton',
+        pictureS3Key: null,
+        isFavourite: false,
+        area: 4.32,
+        userId: 3,
+        createdAt: new Date('2025-01-15T10:30:00.000Z'),
+      },
+    ]);
+    findFirst.mockResolvedValue({
+      id: 17,
+      name: 'Cotton',
+      pictureS3Key: null,
+      isFavourite: false,
+      area: 4.32,
+      userId: 3,
+      createdAt: new Date('2025-01-15T10:30:00.000Z'),
+      tags: [],
+    });
+
+    await service.updateFabric(17, { tagIds: [] }, 3);
+
+    expect(findManyTags).not.toHaveBeenCalled();
+    expect(deleteQuery).toHaveBeenCalledOnce();
+    expect(insert).not.toHaveBeenCalled();
+    expect(select).toHaveBeenCalledOnce();
+  });
+
+  it('rejects invalid tag IDs before starting a database transaction', async () => {
+    findManyTags.mockResolvedValue([]);
+
+    await expect(
+      service.updateFabric(17, { tagIds: [8] }, 3),
+    ).rejects.toBeInstanceOf(RequestValidationException);
+
+    expect(update).not.toHaveBeenCalled();
+    expect(findFirst).not.toHaveBeenCalled();
+  });
+
+  it('rejects an empty update', async () => {
+    await expect(service.updateFabric(17, {}, 3)).rejects.toBeInstanceOf(
+      RequestValidationException,
+    );
+
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('does not update a fabric that is missing or owned by another user', async () => {
+    updateReturning.mockResolvedValue([]);
+
+    await expect(
+      service.updateFabric(17, { name: 'Changed' }, 3),
+    ).rejects.toBeInstanceOf(ResourceNotFoundException);
+
+    expect(updateWhere).toHaveBeenCalledOnce();
+    expect(findFirst).not.toHaveBeenCalled();
   });
 });

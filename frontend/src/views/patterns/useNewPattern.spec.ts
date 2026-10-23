@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MAX_FILE_SIZE, useNewPattern } from '../composables/useNewPattern'
+import { MAX_FILE_SIZE, useNewPattern } from '../../composables/useNewPattern'
 
 class FakeImage {
   onload: (() => void) | null = null

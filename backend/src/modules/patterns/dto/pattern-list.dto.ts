@@ -1,4 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { patternSizeEnum } from '../../../db/schema/schema.js';
+
+export type PatternSize = (typeof patternSizeEnum.enumValues)[number];
 
 export class PatternListItemDto {
   @ApiProperty({ description: 'Unique identifier of the pattern', example: 1 })
@@ -9,10 +12,11 @@ export class PatternListItemDto {
 
   @ApiProperty({
     description: 'Size of the pattern',
+    enum: patternSizeEnum.enumValues,
+    enumName: 'PatternSize',
     example: 'S',
-    enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   })
-  size!: string;
+  size!: PatternSize;
 
   @ApiProperty({
     description:

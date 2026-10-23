@@ -49,7 +49,9 @@ export class FabricController {
     summary: 'List fabrics of the current user',
     description: 'Returns a page of fabrics owned by the current user, sorted by the chosen option.',
   })
-  @ApiOkResponse({ type: FabricListResponseDto })
+  @ApiOkResponse({ 
+    description: 'A page of fabrics was returned successfully.',
+    type: FabricListResponseDto })
   @ApiBadRequestResponse({ description: 'Invalid pagination or sort parameters.' })
   @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
   async getFabrics(

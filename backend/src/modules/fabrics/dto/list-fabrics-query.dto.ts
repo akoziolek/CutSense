@@ -12,14 +12,22 @@ export enum FabricSortOption {
 }
 
 export class ListFabricsQueryDto {
-  @ApiPropertyOptional({ minimum: 1, default: 1 })
+  @ApiPropertyOptional({ 
+    description: 'Page number, starting from 1', 
+    minimum: 1, 
+    default: 1, 
+    example: 1 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   page: number = 1;
 
-  @ApiPropertyOptional({ minimum: 1, maximum: 50, default: 12 })
+  @ApiPropertyOptional({ 
+    description: 'Number of fabrics per page', 
+    minimum: 1, 
+    maximum: 50, 
+    default: 12 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -28,7 +36,10 @@ export class ListFabricsQueryDto {
   limit: number = 12;
 
   @ApiPropertyOptional({
+    description:
+      'Sort order: name A-Z / Z-A, newest / oldest first, smallest / biggest area first',
     enum: FabricSortOption,
+    enumName: 'FabricSortOption',
     default: FabricSortOption.DATE_DESC,
   })
   @IsOptional()

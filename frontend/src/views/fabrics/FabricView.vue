@@ -15,7 +15,7 @@ interface Fabric {
   id: number
   name: string
   description?: string
-  pictureUrl?: string
+  pictureURL?: string
   tags: string[]
   createdAt: string
   area: number
@@ -155,7 +155,7 @@ watch(
           class="grid grid-cols-1 md:grid-cols-5 gap-8 items-start"
         >
           <div class="w-full aspect-square max-h-[500px] md:col-span-2">
-            <ImagePreview v-if="fabric.pictureUrl" :src="fabric.pictureUrl" :alt="fabric.name" />
+            <ImagePreview v-if="fabric.pictureURL" :src="fabric.pictureURL" :alt="fabric.name" />
             <div
               v-else
               class="flex h-full items-center justify-center rounded-md bg-muted text-muted-foreground"

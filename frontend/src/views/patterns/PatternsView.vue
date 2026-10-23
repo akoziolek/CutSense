@@ -9,17 +9,11 @@ import SortMenu from '@/components/common/SortMenu.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination'
 import { api, ApiError } from '@/api/client'
 import type { PatternListResponse, PatternSort } from '@/types/pattern'
 import { formatCardDate } from '@/utils/formatCardDate'
+import ResourceCard from '@/components/common/ResourceCard.vue'
+import ListPagination from '@/components/common/ListPagination.vue'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: PatternSort = 'name_asc'
@@ -202,26 +196,26 @@ watch(
 
         <!-- list -->
         <div v-else-if="data" key="list" class="space-y-10">
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             <ResourceCard
-            v-for="pattern in data.items"
-            :key="pattern.id"
-            :to="{ name: 'pattern-details', params: { id: pattern.id } }"
-            :title="pattern.name"
-            :meta="`${formatCardDate(pattern.createdAt)} • ${pattern.size}`"
-            :is-favourite="pattern.isFavourite"
-            >
-            <template #placeholder><Scissors class="size-8" /></template>
+              v-for="pattern in data.items"
+              :key="pattern.id"
+              :to="{ name: 'pattern-details', params: { id: pattern.id } }"
+              :title="pattern.name"
+              :meta="`${formatCardDate(pattern.createdAt)} • ${pattern.size}`"
+              :is-favourite="pattern.isFavourite"
+              >
+              <template #placeholder><Scissors class="size-8" /></template>
             </ResourceCard>
-        </div>
+          </div>
 
-        <ListPagination
-            v-if="data.totalPages > 1"
-            :page="page"
-            :total="data.total"
-            :items-per-page="PAGE_SIZE"
-            @update:page="goToPage"
-        />
+          <ListPagination
+              v-if="data.totalPages > 1"
+              :page="page"
+              :total="data.total"
+              :items-per-page="PAGE_SIZE"
+              @update:page="goToPage"
+          />
         </div>
       </Transition>
     </div>

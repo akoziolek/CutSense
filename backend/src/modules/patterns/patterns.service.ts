@@ -1,13 +1,20 @@
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { eq, and, or, sql, asc, desc, count, type SQL, inArray } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
-import { patternPieces, patternTags, patterns, tagsForPatterns, } from '../../db/schema/schema.js';
+import { patternPieces, patternTags, patterns, tagsForPatterns, patternFavourites } from '../../db/schema/schema.js';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
 import type { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
 import { rotateAndAnchor } from './geometry.js';
 import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';
+import { PatternListResponseDto } from './dto/pattern-list.dto.js';
+import {
+  ListPatternsQueryDto,
+  PatternSortOption,
+} from './dto/list-patterns-query.dto.js';
+
+const NO_USER_ID = 0;
 
 const toWkt = (points: { x: number; y: number }[]): string => {
   const ring = [...points];
@@ -129,5 +136,73 @@ export class PatternsService {
 
       return { id: created.id };
     });
+  }
+
+  private getOrderBy(sort: PatternSortOption): SQL[] {
+    const nameLower = sql`lower(${patterns.name})`;
+    switch (sort) {
+      case PatternSortOption.NAME_DESC:
+        return [desc(nameLower), desc(patterns.id)];
+    case PatternSortOption.DATE_DESC:
+      return [desc(patterns.createdAt), desc(patterns.id)];
+    case PatternSortOption.DATE_ASC:
+      return [asc(patterns.createdAt), asc(patterns.id)];
+    case PatternSortOption.NAME_ASC:
+    default:
+      return [asc(nameLower), asc(patterns.id)];
+    }
+  }
+
+  async getPatterns(
+    query: ListPatternsQueryDto,
+    currentUserId?: number,
+  ): Promise<PatternListResponseDto> {
+    const { page, limit, sort } = query;
+
+    const where =
+      currentUserId === undefined
+        ? eq(patterns.visibility, 'PUBLIC')
+        : or(
+            eq(patterns.visibility, 'PUBLIC'),
+            eq(patterns.userId, currentUserId),
+          );
+
+    const [rows, [{ total }]] = await Promise.all([
+      this.db
+        .select({
+          id: patterns.id,
+          name: patterns.name,
+          size: patterns.size,
+          createdAt: patterns.createdAt,
+          isFavourite: sql<boolean>`${patternFavourites.userId} is not null`,
+        })
+        .from(patterns)
+        .leftJoin(
+          patternFavourites,
+          and(
+            eq(patternFavourites.patternId, patterns.id),
+            eq(patternFavourites.userId, currentUserId ?? NO_USER_ID),
+          ),
+        )
+        .where(where)
+        .orderBy(...this.getOrderBy(sort))
+        .limit(limit)
+        .offset((page - 1) * limit),
+      this.db.select({ total: count() }).from(patterns).where(where),
+    ]);
+
+    return {
+      items: rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        size: row.size,
+        isFavourite: row.isFavourite,
+        createdAt: row.createdAt.toISOString(),
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 }

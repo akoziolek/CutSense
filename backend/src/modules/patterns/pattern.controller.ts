@@ -7,7 +7,8 @@ import {
   Body,
   Post,
   HttpCode,
-  HttpStatus
+  HttpStatus,
+  Query
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -28,12 +29,37 @@ import { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { OptionalSessionGuard } from '../../auth/guards/optional-session.guard.js';
 import { OptionalUser } from '../../common/decorators/optional-user.decorator.js';
 import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
+import { PatternListResponseDto } from './dto/pattern-list.dto.js';
+import { ListPatternsQueryDto } from './dto/list-patterns-query.dto.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')
 export class PatternController {
   constructor(private readonly patternsService: PatternsService) {}
   
+  @Get()
+  @UseGuards(OptionalSessionGuard)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'List patterns',
+    description:
+      'Guests get public patterns only. A logged-in user gets public patterns plus their own private ones. Supports pagination (page, limit) and sorting (sort).',
+  })
+  @ApiOkResponse({
+    description: 'A page of patterns was returned successfully.',
+    type: PatternListResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description:
+      'Invalid query parameters: page must be an integer >= 1, limit an integer between 1 and 50, sort one of the allowed values.',
+  })
+  async getPatterns(
+    @Query() query: ListPatternsQueryDto,
+    @OptionalCurrentUser() user?: { id: number },
+  ): Promise<PatternListResponseDto> {
+    return this.patternsService.getPatterns(query, user?.id);
+  }
+
   @Get(':id')
   @UseGuards(OptionalSessionGuard)
   @ApiOperation({
@@ -86,4 +112,8 @@ export class PatternController {
     return this.patternsService.createPattern(dto, user.id);
   }
 
+}
+
+function OptionalCurrentUser(): (target: PatternController, propertyKey: "getPatterns", parameterIndex: 1) => void {
+  throw new Error('Function not implemented.');
 }

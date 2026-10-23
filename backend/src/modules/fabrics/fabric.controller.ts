@@ -11,6 +11,7 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
+  Patch,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -33,6 +34,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { SessionGuard } from '../../auth/guards/session.guard.js';
 import { CreateFabricDto } from './dto/create-fabric.dto.js';
 import { AnalyzeFabricDto } from './dto/analyze-fabric.dto.js';
+import { EditFabricDto } from './dto/edit-fabric.dto.js';
 
 @Controller('fabrics')
 @ApiTags('Fabrics')
@@ -174,6 +176,30 @@ export class FabricController {
     @CurrentUser() user: { id: number },
   ): Promise<FabricResponseDto> {
     return this.fabricService.createFabric(createFabricDto, picture, user.id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update an existing fabric',
+    description:
+      'Updates the supplied fabric fields and optionally replaces its tags. The fabric must belong to the current user.',
+  })
+  @ApiBody({ type: EditFabricDto })
+  @ApiOkResponse({
+    description: 'The fabric has been successfully updated.',
+    type: FabricResponseDto,
+  })
+  @ApiNotFoundResponse({ description: 'Fabric not found.' })
+  @ApiBadRequestResponse({ description: 'Invalid payload or ID parameter.' })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  async editFabric(
+    @Param('id', ParseIntPipe) fabricId: number,
+    @Body() editFabricDto: EditFabricDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<FabricResponseDto> {
+    return this.fabricService.updateFabric(fabricId, editFabricDto, user.id);
   }
 
   @Get(':id')

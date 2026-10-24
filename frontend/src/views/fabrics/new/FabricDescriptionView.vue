@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, ApiError } from '@/api/client'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
-import { useAddFabricFormGuard } from '@/composables/useAddFabricFormGuard'
+import { useAddFabricFormGuard } from '@/composables/fabrics/useAddFabricFormGuard'
 import { toPostgisBoundary } from '@/utils/fabricBoundary'
 
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -68,7 +68,7 @@ const handleSubmit = async (payload: FabricFormPayload) => {
       body: formData,
     })
     await wizardStore.resetWizard()
-    await router.push({ name: 'fabric-details', params: { id: createdFabric.id } })
+    await router.push({ name: 'FabricDetails', params: { id: createdFabric.id } })
   } catch (error) {
     console.error('Failed to create fabric:', error)
     submitError.value =

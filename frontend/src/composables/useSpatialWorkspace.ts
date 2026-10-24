@@ -1,21 +1,9 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted, type Ref } from 'vue'
-
-// percent of the image height/width
-export interface Point2D {
-  pctX: number
-  pctY: number
-}
-
-export interface PolygonEdge {
-  index: number
-  p1: Point2D
-  p2: Point2D
-  distanceCm: string
-}
+import type { Point2D, PolygonEdge } from '@/types/geometry'
 
 interface SpatialWorkspaceExposed {
-  imgRef: HTMLImageElement | null
-  svgRef: SVGSVGElement | null
+  imgRef: HTMLImageElement | null | undefined
+  svgRef: SVGSVGElement | null | undefined
   getPointFromEvent: (e: MouseEvent) => Point2D | null
 }
 
@@ -233,7 +221,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
       if (clickPoint) {
         creatingEdgeIndex.value = edgeIndex
         previewPoint.value = clickPoint
-        selectedEdgeIndex.value = edgeIndex
+        selectedEdgeIndex.value = null
         selectedPointIndex.value = null
       }
     }

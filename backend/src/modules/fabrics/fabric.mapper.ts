@@ -1,9 +1,21 @@
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
-import { fabrics } from '../../db/schema/schema.js';
 
-type FabricWithTags = typeof fabrics.$inferSelect & {
-  tags: { tag: { name: string } }[];
-};
+interface FabricWithTags {
+  id: number;
+  name: string;
+  description?: string | null;
+  pictureS3Key?: string | null;
+  isFavourite: boolean;
+  area: number;
+  userId: number;
+  createdAt: Date;
+  tags: {
+    tag: {
+      id: number;
+      name: string;
+    };
+  }[];
+}
 
 export class FabricMapper {
   static toResponseDto(
@@ -20,7 +32,10 @@ export class FabricMapper {
       area: fabric.area,
       userId: fabric.userId,
       createdAt: fabric.createdAt.toISOString(),
-      tags: fabric.tags.map((item) => item.tag.name),
+      tags: fabric.tags.map((item) => ({
+        id: item.tag.id,
+        name: item.tag.name,
+      })),
     });
   }
 }

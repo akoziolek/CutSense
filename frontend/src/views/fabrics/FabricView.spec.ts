@@ -3,6 +3,7 @@ import { defineComponent, h, type PropType } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, api } from '@/api/client'
 import type { MetaItem } from '@/components/common/DetailsCard.vue'
+import type { FabricTag } from '@/types/fabric'
 import FabricView from './FabricView.vue'
 
 vi.mock('@/api/client', async (importOriginal) => {
@@ -29,14 +30,14 @@ const ImagePreviewStub = defineComponent({
 const DetailsCardStub = defineComponent({
   props: {
     description: String,
-    tags: { type: Array as PropType<string[]>, default: () => [] },
+    tags: { type: Array as PropType<FabricTag[]>, default: () => [] },
     metaItems: { type: Array as PropType<MetaItem[]>, default: () => [] },
   },
   setup(props) {
     return () =>
       h('section', [
         props.description ? h('p', props.description) : null,
-        ...props.tags.map((tag) => h('span', tag)),
+        ...props.tags.map((tag) => h('span', { key: tag.id }, tag.name)),
         ...props.metaItems.map((item) => h('p', `${item.label}: ${item.value}`)),
       ])
   },
@@ -97,7 +98,10 @@ const fabric = {
   name: 'Linen',
   description: 'Natural linen fabric',
   pictureUrl: 'https://example.com/linen.jpg',
-  tags: ['linen', 'natural'],
+  tags: [
+    { id: 1, name: 'linen' },
+    { id: 2, name: 'natural' },
+  ],
   createdAt: '2025-02-03T00:00:00.000Z',
   area: 12.5,
 }
@@ -120,6 +124,7 @@ describe('FabricView', () => {
       src: fabric.pictureUrl,
       alt: fabric.name,
     })
+    expect(wrapper.findComponent(DetailsCardStub).props('tags')).toEqual(fabric.tags)
     expect(wrapper.text()).toContain(fabric.description)
     expect(wrapper.text()).toContain('linen')
     expect(wrapper.text()).toContain('natural')

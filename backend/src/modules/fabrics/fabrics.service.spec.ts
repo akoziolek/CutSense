@@ -274,7 +274,7 @@ describe('FabricService', () => {
     expect(deleteFile).toHaveBeenCalledWith('users/3/fabrics/uploaded.jpg');
   });
 
-  it('returns a fabric with ISO date and tag names', async () => {
+  it('returns a fabric with ISO date and tag IDs and names', async () => {
     findFirst.mockResolvedValue({
       id: 17,
       name: 'Cotton canvas',
@@ -284,7 +284,10 @@ describe('FabricService', () => {
       area: 4.32,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
-      tags: [{ tag: { name: 'cotton' } }, { tag: { name: 'canvas' } }],
+      tags: [
+        { tag: { id: 2, name: 'cotton' } },
+        { tag: { id: 5, name: 'canvas' } },
+      ],
     });
 
     await expect(service.getFabricById(17, 3)).resolves.toEqual({
@@ -297,7 +300,10 @@ describe('FabricService', () => {
       area: 4.32,
       userId: 3,
       createdAt: '2025-01-15T10:30:00.000Z',
-      tags: ['cotton', 'canvas'],
+      tags: [
+        { id: 2, name: 'cotton' },
+        { id: 5, name: 'canvas' },
+      ],
     });
 
     expect(findFirst).toHaveBeenCalledWith(
@@ -362,7 +368,10 @@ describe('FabricService', () => {
       area: 4.32,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
-      tags: [{ tag: { name: 'cotton' } }, { tag: { name: 'linen' } }],
+      tags: [
+        { tag: { id: 2, name: 'cotton' } },
+        { tag: { id: 5, name: 'linen' } },
+      ],
     });
 
     await expect(
@@ -375,7 +384,10 @@ describe('FabricService', () => {
       name: 'Linen canvas',
       description: 'Heavy linen',
       pictureUrl: 'https://example.com/signed.jpg',
-      tags: ['cotton', 'linen'],
+      tags: [
+        { id: 2, name: 'cotton' },
+        { id: 5, name: 'linen' },
+      ],
     });
 
     expect(findManyTags).toHaveBeenCalledOnce();
@@ -412,7 +424,7 @@ describe('FabricService', () => {
       area: 4.32,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
-      tags: [{ tag: { name: 'cotton' } }],
+      tags: [{ tag: { id: 2, name: 'cotton' } }],
     });
 
     await service.updateFabric(17, { name: 'New name' }, 3);

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { get, set, del } from 'idb-keyval'
+import type { FabricTag } from '@/types/fabric'
 
 export interface Point2D {
   pctX: number
@@ -15,11 +16,6 @@ export interface FabricConfig {
   imageWidth: number
   imageHeight: number
   isConfigured: boolean
-}
-
-export interface FabricTag {
-  id: number
-  name: string
 }
 
 export interface FabricDetails {

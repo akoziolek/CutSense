@@ -11,13 +11,14 @@ import { Button } from '@/components/ui/button'
 import { CalendarDays, RulerDimensionLine, ArrowLeft, RotateCcw } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import DetailsActions from '@/components/common/DetailsActions.vue'
+import type { FabricTag } from '@/types/fabric'
 
 interface Fabric {
   id: number
   name: string
   description?: string
   pictureUrl?: string
-  tags: string[]
+  tags: FabricTag[]
   createdAt: string
   area: number
 }
@@ -179,4 +180,3 @@ watch(
     </div>
   </GridLayout>
 </template>
-

@@ -28,14 +28,10 @@ import { CheckIcon } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import FormFloatingActions from '../forms/FormFloatingActions.vue'
 import Skeleton from '../ui/skeleton/Skeleton.vue'
+import type { FabricTag } from '@/types/fabric'
 
 const MAX_NAME_LENGTH = 35
 const MAX_DESC_LENGTH = 400
-
-export interface FabricTag {
-  id: number
-  name: string
-}
 
 export interface FabricFormPayload {
   name: string

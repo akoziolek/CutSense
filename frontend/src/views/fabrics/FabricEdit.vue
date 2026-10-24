@@ -8,8 +8,12 @@ import { onMounted, ref, watch, computed } from 'vue'
 import { api, ApiError } from '@/api/client'
 import FabricForm, {
   type FabricFormPayload,
-  type FabricTag,
 } from '@/components/fabrics/FabricForm.vue'
+import type { FabricTag } from '@/types/fabric'
+import ErrorState from '@/components/common/ErrorState.vue'
+import { RotateCcw } from 'lucide-vue-next'
+import { ArrowLeft } from 'lucide-vue-next'
+import Button from '@/components/ui/button/Button.vue'
 
 interface Fabric {
   id: number
@@ -17,10 +21,6 @@ interface Fabric {
   description?: string
   tags: FabricTag[]
 }
-import ErrorState from '@/components/common/ErrorState.vue'
-import { RotateCcw } from 'lucide-vue-next'
-import { ArrowLeft } from 'lucide-vue-next'
-import Button from '@/components/ui/button/Button.vue'
 
 const route = useRoute()
 const fabricId = computed(() => Number(route.params.id))

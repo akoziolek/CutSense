@@ -2,7 +2,7 @@
 import FabricForm from '@/components/fabrics/FabricForm.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
-import DiscardNewFabricModal from '@/components/fabrics/DiscardNewFabricModal.vue'
+import DiscardNewFabricModal from '@/components/forms/DiscardChangesModal.vue'
 import { useRoute } from 'vue-router'
 import { useEditFabricFormGuard } from '@/composables/fabrics/useEditFabricFormGuars'
 import { onMounted, ref } from 'vue'

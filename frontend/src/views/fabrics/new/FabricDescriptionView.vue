@@ -9,7 +9,7 @@ import { toPostgisBoundary } from '@/utils/fabricBoundary'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StepCounter from '@/components/forms/StepCounter.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
-import DiscardNewFabricModal from '@/components/fabrics/DiscardNewFabricModal.vue'
+import DiscardNewFabricModal from '@/components/forms/DiscardChangesModal.vue'
 import FabricForm, { type FabricFormPayload } from '@/components/fabrics/FabricForm.vue'
 
 const { isCancelModalOpen, handleCancel, confirmExit } = useAddFabricFormGuard()

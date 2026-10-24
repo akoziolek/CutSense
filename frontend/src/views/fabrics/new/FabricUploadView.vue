@@ -8,7 +8,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import UploadFileCard from '@/components/forms/UploadFileCard.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
-import DiscardNewFabricModal from '@/components/fabrics/DiscardNewFabricModal.vue'
+import DiscardNewFabricModal from '@/components/forms/DiscardChangesModal.vue'
 import StepCounter from '@/components/forms/StepCounter.vue'
 
 const router = useRouter()

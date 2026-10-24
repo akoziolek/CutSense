@@ -9,6 +9,7 @@ import UploadFileCard from '@/components/forms/UploadFileCard.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import DiscardNewFabricModal from '@/components/fabrics/DiscardNewFabricModal.vue'
+import StepCounter from '@/components/forms/StepCounter.vue'
 
 const router = useRouter()
 const wizardStore = useFabricAddingStore()

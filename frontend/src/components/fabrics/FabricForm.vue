@@ -49,7 +49,7 @@ const props = withDefaults(
   defineProps<{
     name?: string
     description?: string
-    tags?: (FabricTag | string)[]
+    tags?: FabricTag[]
     isSubmitting?: boolean
     isLoading?: boolean
     submitError?: string
@@ -67,18 +67,7 @@ const props = withDefaults(
 const fabricName = ref(props.name)
 const description = ref(props.description)
 
-const extractTagName = (tag: FabricTag | string | undefined | null): string => {
-  if (!tag) return ''
-  if (typeof tag === 'string') return tag
-  if (typeof tag === 'object' && 'name' in tag && typeof tag.name === 'string') {
-    return tag.name
-  }
-  return ''
-}
-
-const selectedTagNames = ref<string[]>(
-  props.tags ? props.tags.map(extractTagName).filter(Boolean) : [],
-)
+const selectedTagNames = ref<string[]>(props.tags ? props.tags.map((tag) => tag.name) : [])
 
 const availableTags = ref<FabricTag[]>([])
 const tagLoadError = ref('')
@@ -174,7 +163,7 @@ watch(
     if (newDesc !== description.value) {
       description.value = newDesc
     }
-    const parsedNames = newTags ? newTags.map(extractTagName).filter(Boolean) : []
+    const parsedNames = newTags ? newTags.map((tag) => tag.name) : []
     if (JSON.stringify(parsedNames) !== JSON.stringify(selectedTagNames.value)) {
       selectedTagNames.value = parsedNames
     }

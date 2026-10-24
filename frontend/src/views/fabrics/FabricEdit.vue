@@ -193,7 +193,6 @@ onMounted(() => {
         leave-to-class="opacity-0"
       >
         <main v-if="error" key="error">
-          <!-- Move to ERROR STATE!! -->
           <ErrorState title="Unable to load fabric" :message="error" code="Error">
             <template #actions>
               <Button variant="outline" class="rounded-lg gap-2" @click="fetchFabric(fabricId)">

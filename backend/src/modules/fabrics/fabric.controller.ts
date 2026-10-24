@@ -35,6 +35,7 @@ import { SessionGuard } from '../../auth/guards/session.guard.js';
 import { CreateFabricDto } from './dto/create-fabric.dto.js';
 import { AnalyzeFabricDto } from './dto/analyze-fabric.dto.js';
 import { EditFabricDto } from './dto/edit-fabric.dto.js';
+import { FabricTagDto } from './dto/fabric-tags.dto.js';
 
 @Controller('fabrics')
 @ApiTags('Fabrics')
@@ -50,22 +51,13 @@ export class FabricController {
   })
   @ApiOkResponse({
     description: 'The available fabric tags were returned successfully.',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'number', example: 1 },
-          name: { type: 'string', example: 'cotton' },
-        },
-        required: ['id', 'name'],
-      },
-    },
+    type: FabricTagDto,
+    isArray: true
   })
   @ApiUnauthorizedResponse({
     description: 'A valid session cookie is required.',
   })
-  async getFabricTags(): Promise<{ id: number; name: string }[]> {
+  async getFabricTags(): Promise<FabricTagDto[]> {
     return this.fabricService.getFabricTags();
   }
 

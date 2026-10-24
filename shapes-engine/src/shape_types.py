@@ -7,7 +7,6 @@ class PointPCT(TypedDict):
 
 
 class ShapeAnalysisResult(TypedDict):
-    status: str
     imageWidth: int
     imageHeight: int
     points: List[PointPCT]

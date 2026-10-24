@@ -52,9 +52,9 @@ withDefaults(
           <h3 class="font-semibold font-inter text-base text-foreground tracking-tight">
             Description
           </h3>
-          <p v-if="description" class="text-sm text-muted-foreground leading-relaxed">
+          <div v-if="description" class="text-sm text-muted-foreground leading-relaxed whitespace-pre-line break-words">
             {{ description }}
-          </p>
+          </div>
           <div
             v-else
             class="bg-white text-xs sm:text-sm border border-muted rounded-md p-3 text-center"

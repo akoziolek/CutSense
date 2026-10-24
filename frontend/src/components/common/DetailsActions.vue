@@ -35,7 +35,7 @@ const isMenuOpen = ref(false)
     <DropdownMenuContent
       :align="'end'"
       :side-offset="12"
-      class="hidden lg:block w-48 border-2 p-0 overflow-hidden"
+      class="hidden lg:block w-38 border-2 p-0 overflow-hidden"
     >
       <DropdownMenuItem
         as-child

@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue'
+import { ref, unref, type Ref } from 'vue'
 import { useRouter, onBeforeRouteLeave, type RouteLocationRaw } from 'vue-router'
 
 export function useEditFabricFormGuard(isDirty: Ref<boolean>, defaultTarget?: RouteLocationRaw) {
@@ -7,6 +7,15 @@ export function useEditFabricFormGuard(isDirty: Ref<boolean>, defaultTarget?: Ro
   const isCancelModalOpen = ref(false)
   const isLeavingAllowed = ref(false)
   const targetRoute = ref<RouteLocationRaw | null>(null)
+  const getResolvedDestination = (): RouteLocationRaw | null => {
+    return targetRoute.value || (defaultTarget ? unref(defaultTarget) : null)
+  }
+
+  const resetGuard = () => {
+    isCancelModalOpen.value = false
+    isLeavingAllowed.value = false
+    targetRoute.value = null
+  }
 
   const handleCancel = () => {
     const destination = defaultTarget || null
@@ -37,8 +46,10 @@ export function useEditFabricFormGuard(isDirty: Ref<boolean>, defaultTarget?: Ro
     isLeavingAllowed.value = true
     isCancelModalOpen.value = false
 
-    if (targetRoute.value) {
-      void router.push(targetRoute.value)
+    const destination = getResolvedDestination()
+
+    if (destination) {
+      void router.push(destination)
     } else {
       router.back()
     }
@@ -48,5 +59,6 @@ export function useEditFabricFormGuard(isDirty: Ref<boolean>, defaultTarget?: Ro
     isCancelModalOpen,
     handleCancel,
     confirmExit,
+    resetGuard
   }
 }

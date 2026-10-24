@@ -27,6 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CheckIcon } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import FormFloatingActions from '../forms/FormFloatingActions.vue'
+import Skeleton from '../ui/skeleton/Skeleton.vue'
 
 const MAX_NAME_LENGTH = 35
 const MAX_DESC_LENGTH = 400
@@ -52,8 +53,9 @@ const props = withDefaults(
   defineProps<{
     name?: string
     description?: string
-    tags?: FabricTag[]
+    tags?: (FabricTag | string)[]
     isSubmitting?: boolean
+    isLoading?: boolean
     submitError?: string
   }>(),
   {
@@ -61,21 +63,56 @@ const props = withDefaults(
     description: '',
     tags: () => [],
     isSubmitting: false,
+    isLoading: false,
     submitError: '',
   },
 )
 
 const fabricName = ref(props.name)
 const description = ref(props.description)
-const selectedTagNames = ref<string[]>(props.tags.map((t) => t.name))
-const selectedTags = computed<FabricTag[]>(() =>
-  selectedTagNames.value
-    .map((name) => availableTags.value.find((t) => t.name === name))
-    .filter((t): t is FabricTag => t !== undefined),
+
+const extractTagName = (tag: FabricTag | string | undefined | null): string => {
+  if (!tag) return ''
+  if (typeof tag === 'string') return tag
+  if (typeof tag === 'object' && 'name' in tag && typeof tag.name === 'string') {
+    return tag.name
+  }
+  return ''
+}
+
+const selectedTagNames = ref<string[]>(
+  props.tags ? props.tags.map(extractTagName).filter(Boolean) : [],
 )
 
 const availableTags = ref<FabricTag[]>([])
 const tagLoadError = ref('')
+
+const knownTagsMap = computed(() => {
+  const map = new Map<string, FabricTag>()
+
+  if (Array.isArray(props.tags)) {
+    props.tags.forEach((tag) => {
+      if (typeof tag === 'object' && tag && tag.name) {
+        map.set(tag.name.toLowerCase(), tag)
+      }
+    })
+  }
+
+  availableTags.value.forEach((tag) => {
+    if (tag && tag.name) {
+      map.set(tag.name.toLowerCase(), tag)
+    }
+  })
+
+  return map
+})
+
+const selectedTags = computed<FabricTag[]>(() => {
+  return selectedTagNames.value.map((name) => {
+    const lower = name.toLowerCase()
+    return knownTagsMap.value.get(lower) || { id: 0, name }
+  })
+})
 
 const searchTerm = ref('')
 const open = ref(false)
@@ -128,31 +165,38 @@ const handleCancel = (event?: Event) => {
   emit('cancel')
 }
 
+let isSyncingFromProps = false
+
 watch(
   () => [props.name, props.description, props.tags] as const,
   ([newName, newDesc, newTags]) => {
+    isSyncingFromProps = true
+
     if (newName !== fabricName.value) {
       fabricName.value = newName
     }
     if (newDesc !== description.value) {
       description.value = newDesc
     }
-    const incomingNames = newTags.map((t) => t.name)
-    if (JSON.stringify(incomingNames) !== JSON.stringify(selectedTagNames.value)) {
-      selectedTagNames.value = incomingNames
+    const parsedNames = newTags ? newTags.map(extractTagName).filter(Boolean) : []
+    if (JSON.stringify(parsedNames) !== JSON.stringify(selectedTagNames.value)) {
+      selectedTagNames.value = parsedNames
     }
+
+    isSyncingFromProps = false
   },
   { deep: true },
 )
 
 watch([fabricName, description, selectedTagNames], () => {
+  if (isSyncingFromProps) return
+
   emit('change', {
     name: fabricName.value,
     description: description.value,
     tags: selectedTags.value,
   })
 })
-
 
 watch(searchTerm, () => {
   open.value = true
@@ -164,7 +208,32 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="w-full space-y-6">
+  <div v-if="isLoading" class="w-full space-y-6">
+    <div class="space-y-2">
+      <Skeleton class="h-4 w-28" />
+      <Skeleton class="h-10 w-full rounded-xl" />
+    </div>
+
+    <div class="space-y-2">
+      <Skeleton class="h-4 w-24" />
+      <Skeleton class="h-28 w-full rounded-xl" />
+    </div>
+
+    <div class="space-y-2">
+      <Skeleton class="h-4 w-16" />
+      <div class="flex gap-2 p-3 border border-input rounded-xl">
+        <Skeleton class="h-6 w-16 rounded-md" />
+        <Skeleton class="h-6 w-20 rounded-md" />
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-3 pt-4">
+      <Skeleton class="h-10 w-24 rounded-xl" />
+      <Skeleton class="h-10 w-28 rounded-xl" />
+    </div>
+  </div>
+
+  <div v-else class="w-full space-y-6">
     <!-- 1. Fabric Name -->
     <div class="space-y-2">
       <Label for="fabric-name" class="text-md font-semibold font-inter text-foreground">

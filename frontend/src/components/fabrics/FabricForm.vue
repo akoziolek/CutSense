@@ -151,7 +151,7 @@ const handleSubmit = (event?: Event) => {
   event?.preventDefault()
   emit('submit', {
     name: fabricName.value.trim(),
-    description: description.value.trim() || undefined,
+    description: description.value || undefined,
     tags: selectedTags.value,
   })
 }

@@ -6,9 +6,7 @@ import { useRoute } from 'vue-router'
 import { useEditFabricFormGuard } from '@/composables/useEditFormGuard'
 import { onMounted, ref, watch, computed } from 'vue'
 import { api, ApiError } from '@/api/client'
-import FabricForm, {
-  type FabricFormPayload,
-} from '@/components/fabrics/FabricForm.vue'
+import FabricForm, { type FabricFormPayload } from '@/components/fabrics/FabricForm.vue'
 import type { FabricTag } from '@/types/fabric'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { RotateCcw } from 'lucide-vue-next'
@@ -133,7 +131,7 @@ const handleSubmit = async (payload: FabricFormPayload) => {
       method: 'PATCH',
       body: JSON.stringify({
         name: payload.name,
-        description: payload.description,
+        description: payload.description ? payload.description.trim() : null,
         tagIds: payload.tags.map((t) => t.id),
       }),
     })

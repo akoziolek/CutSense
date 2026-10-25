@@ -55,6 +55,7 @@ const emit = defineEmits<{
   (e: 'deleteSelected'): void
   (e: 'cancel'): void
   (e: 'imageLoaded', image: HTMLImageElement): void
+  (e: 'update:canvasOffset', offset: { x: number; y: number }): void
 }>()
 
 
@@ -104,6 +105,7 @@ defineExpose({
         @select-edge="(idx, ev) => emit('selectEdge', idx, ev)"
         @start-drag-point="(idx, ev) => emit('startDragPoint', idx, ev)"
         @image-loaded="(img) => emit('imageLoaded', img)"
+        @update:canvas-offset="(offset) => emit('update:canvasOffset', offset)"
       >
         <template #toolbar>
           <SpatialFloatingToolbar

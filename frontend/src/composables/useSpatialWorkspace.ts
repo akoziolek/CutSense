@@ -1,4 +1,4 @@
-import { ref, computed, watch, nextTick, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted, type Ref } from 'vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
 
 interface SpatialWorkspaceExposed {
@@ -31,7 +31,9 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   )
   // postgis format
   const points = ref<Point2D[]>(
-    initialPoints && initialPoints.length >= 3 ? initialPoints : backupShape,
+    initialPoints && initialPoints.length >= 3
+      ? JSON.parse(JSON.stringify(initialPoints))
+      : JSON.parse(JSON.stringify(backupShape)),
   )
   const originalPoints = ref<Point2D[]>(JSON.parse(JSON.stringify(points.value)))
 
@@ -160,7 +162,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     if ((e.key === 'Delete' || e.key === 'Backspace') && !isInput) {
       e.preventDefault()
       deleteSelected()
-    }
+    } 
   }
 
   const isInteractiveDragging = computed(
@@ -286,12 +288,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     }
   }
 
-  const handleKeyUp = (e: KeyboardEvent) => {
-    if (e.code === 'Space') {
-      isSpacePressed.value = false
-    }
-  }
-
   const resetCanvasPosition = () => {
     canvasOffset.value = { x: 0, y: 0 }
   }
@@ -307,14 +303,12 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
 
   onMounted(() => {
     window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('keyup', handleKeyUp)
     window.addEventListener('mousemove', handleGlobalMouseMove)
     window.addEventListener('mouseup', handleGlobalMouseUp)
   })
 
   onUnmounted(() => {
     window.removeEventListener('keydown', handleKeyDown)
-    window.removeEventListener('keyup', handleKeyUp)
     window.removeEventListener('mousemove', handleGlobalMouseMove)
     window.removeEventListener('mouseup', handleGlobalMouseUp)
   })

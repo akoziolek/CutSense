@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
-import { defineEmits } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -46,6 +45,7 @@ const emit = defineEmits<{
   (e: 'imageLoaded', image: HTMLImageElement): void
   (e: 'clickImage', point: Point2D, event: MouseEvent): void
   (e: 'update:zoomLevel', zoom: number): void
+  (e: 'update:canvasOffset', offset: { x: number; y: number }): void
   (e: 'canvasDragStart', event: MouseEvent): void
 }>()
 
@@ -60,9 +60,22 @@ const cursorClass = computed(() => {
 
 const handleWheel = (e: WheelEvent) => {
   e.preventDefault()
-  const zoomDelta = e.deltaY < 0 ? 0.085 : -0.085
-  const newZoom = Math.min(Math.max(0.5, props.zoomLevel + zoomDelta), 3.5)
-  emit('update:zoomLevel', Number(newZoom.toFixed(2)))
+
+  // pinch zoom
+  if (e.ctrlKey) {
+    const zoomDelta = e.deltaY < 0 ? 0.085 : -0.085
+    const newZoom = Math.min(Math.max(0.5, props.zoomLevel + zoomDelta), 3.5)
+    emit('update:zoomLevel', Number(newZoom.toFixed(2)))
+    return
+  }
+  // moving img
+  const newOffsetX = props.canvasOffset.x - e.deltaX
+  const newOffsetY = props.canvasOffset.y - e.deltaY
+
+  emit('update:canvasOffset', {
+    x: Number(newOffsetX.toFixed(1)),
+    y: Number(newOffsetY.toFixed(1)),
+  })
 }
 
 const handleMouseDown = (e: MouseEvent) => {

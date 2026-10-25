@@ -68,7 +68,7 @@ const loadSavedConfig = () => {
   if (wizardStore.config.points && wizardStore.config.points.length >= 3) {
     const savedPoints = JSON.parse(JSON.stringify(wizardStore.config.points))
     points.value = savedPoints
-    updateOriginalPoints(savedPoints) 
+    updateOriginalPoints(savedPoints)
   }
   if (wizardStore.config.pxPerCm) {
     pxPerCm.value = wizardStore.config.pxPerCm
@@ -84,7 +84,6 @@ const loadSavedConfig = () => {
     isSyncing = false
   }, 50)
 }
-
 
 const detectFabricBoundary = async () => {
   const picture = wizardStore.file
@@ -246,6 +245,7 @@ onMounted(() => {
           ref="workspaceRef"
           v-model:active-tool="activeTool"
           v-model:zoom-level="zoomLevel"
+          v-model:canvas-offset="canvasOffset"
           :image-url="wizardStore.previewUrl"
           :points="points"
           :edges="edges"
@@ -255,7 +255,6 @@ onMounted(() => {
           :selected-point-index="selectedPointIndex"
           :can-delete="canDelete"
           :rotation="imageRotation"
-          :canvas-offset="canvasOffset"
           :is-move-mode="isMoveMode"
           :is-dragging-canvas="isDraggingCanvas"
           :is-interactive-dragging="isInteractiveDragging"

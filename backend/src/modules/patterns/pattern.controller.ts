@@ -55,7 +55,7 @@ export class PatternController {
   })
   async getPatterns(
     @Query() query: ListPatternsQueryDto,
-    @OptionalCurrentUser() user?: { id: number },
+    @OptionalUser() user?: AuthUser,
   ): Promise<PatternListResponseDto> {
     return this.patternsService.getPatterns(query, user?.id);
   }
@@ -112,8 +112,4 @@ export class PatternController {
     return this.patternsService.createPattern(dto, user.id);
   }
 
-}
-
-function OptionalCurrentUser(): (target: PatternController, propertyKey: "getPatterns", parameterIndex: 1) => void {
-  throw new Error('Function not implemented.');
 }

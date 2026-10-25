@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
 
+const MIN_LABEL_SPACING_PX = 40
+
 const props = withDefaults(
   defineProps<{
     imageUrl?: string | null
@@ -52,10 +54,55 @@ const emit = defineEmits<{
 const imgRef = ref<HTMLImageElement | null>(null)
 const svgRef = ref<SVGSVGElement | null>(null)
 
+const imageDimensions = ref({ width: 0, height: 0 })
+
+const handleImageLoad = (e: Event) => {
+  const imgElement = e.target as HTMLImageElement
+  if (imgElement) {
+    imageDimensions.value = {
+      width: imgElement.clientWidth || imgElement.naturalWidth,
+      height: imgElement.clientHeight || imgElement.naturalHeight,
+    }
+  }
+  emit('imageLoaded', imgElement)
+}
+
 const cursorClass = computed(() => {
   if (props.isDraggingCanvas || props.isInteractiveDragging) return 'cursor-grabbing'
   if (props.isMoveMode) return 'cursor-grab'
   return 'cursor-default'
+})
+
+const visibleEdgeIndices = computed<Set<number>>(() => {
+  const visible = new Set<number>()
+  if (!props.showLabels) return visible
+
+  const w = imageDimensions.value.width * props.zoomLevel
+  const h = imageDimensions.value.height * props.zoomLevel
+  const drawn: { x: number; y: number }[] = []
+
+  const sorted = [...props.edges].sort((a, b) => {
+    if (a.index === props.selectedEdgeIndex) return -1
+    if (b.index === props.selectedEdgeIndex) return 1
+    const lenA = Math.hypot((a.p2.pctX - a.p1.pctX) * w, (a.p2.pctY - a.p1.pctY) * h)
+    const lenB = Math.hypot((b.p2.pctX - b.p1.pctX) * w, (b.p2.pctY - b.p1.pctY) * h)
+    return lenB - lenA
+  })
+
+  for (const edge of sorted) {
+    const x = ((edge.p1.pctX + edge.p2.pctX) / 200) * w
+    const y = ((edge.p1.pctY + edge.p2.pctY) / 200) * h
+
+    const isSelected = edge.index === props.selectedEdgeIndex
+    const isFree = !drawn.some((p) => Math.hypot(p.x - x, p.y - y) < MIN_LABEL_SPACING_PX)
+
+    if (isSelected || isFree) {
+      visible.add(edge.index)
+      drawn.push({ x, y })
+    }
+  }
+
+  return visible
 })
 
 const handleWheel = (e: WheelEvent) => {
@@ -125,11 +172,6 @@ const handleCanvasClick = (e: MouseEvent) => {
   if (point) {
     emit('clickImage', point, e)
   }
-}
-
-const handleImageLoad = (e: Event) => {
-  const imgElement = e.target as HTMLImageElement
-  emit('imageLoaded', imgElement)
 }
 
 defineExpose({
@@ -261,7 +303,7 @@ defineExpose({
 
           <template v-for="edge in edges" :key="'label-' + edge.index">
             <div
-              v-if="showLabels || selectedEdgeIndex === edge.index"
+              v-if="visibleEdgeIndices.has(edge.index)"
               class="absolute z-40 font-inter font-semibold text-[9px] px-1.5 py-0.5 rounded-full shadow-md border whitespace-nowrap transition-all select-none opacity-95"
               :class="[
                 selectedEdgeIndex === edge.index

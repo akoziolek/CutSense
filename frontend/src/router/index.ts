@@ -24,6 +24,7 @@ const FabricsPage = () => import('../views/fabrics/FabricsView.vue')
 const FabricPhotoConfigPage = () => import('../views/fabrics/new/FabricConfigView.vue')
 const UploadImagePage = () => import('../views/fabrics/new/FabricUploadView.vue')
 const FabricDescritptionPage = () => import('../views/fabrics/new/FabricDescriptionView.vue')
+const FabricEditPage = () => import('../views/fabrics/FabricEdit.vue')
 
 const routes = [
   { path: '/', name: 'Landing', component: LandingPage },
@@ -42,8 +43,15 @@ const routes = [
   { path: '/fabrics', name: 'Fabrics', component: FabricsPage, meta: { requiresAuth: true } },
   {
     path: '/fabrics/:id',
-    name: 'fabric-details',
+    name: 'FabricDetails',
     component: FabricPage,
+    props: true,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/fabrics/:id/edit',
+    name: 'FabricEdit',
+    component: FabricEditPage,
     props: true,
     meta: { requiresAuth: true },
   },

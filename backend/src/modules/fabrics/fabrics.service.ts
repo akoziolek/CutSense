@@ -15,6 +15,7 @@ import { validate } from 'class-validator';
 import { AnalyzeFabricDto } from './dto/analyze-fabric.dto.js';
 import { AnalyzeFabricEngineResponseDto } from './dto/analyze-fabric-engine-response.dto.js';
 import { FabricBoundaryMapper } from './fabric-boundary.mapper.js';
+import { EditFabricDto } from './dto/edit-fabric.dto.js';
 
 @Injectable()
 export class FabricService {
@@ -186,6 +187,81 @@ export class FabricService {
       },
       pictureUrl,
     );
+  }
+
+  async updateFabric(
+    fabricId: number,
+    editFabricDto: EditFabricDto,
+    currentUserId: number,
+  ): Promise<FabricResponseDto> {
+    const { tagIds, ...fabricFields } = editFabricDto;
+    const selectedTagIds =
+      tagIds === undefined ? undefined : [...new Set(tagIds)];
+
+    if (
+      Object.keys(fabricFields).length === 0 &&
+      selectedTagIds === undefined
+    ) {
+      throw new RequestValidationException(
+        'At least one fabric field or tag must be provided.',
+      );
+    }
+
+    if (selectedTagIds) {
+      const selectedTags = selectedTagIds.length
+        ? await this.db.query.tagsForFabrics.findMany({
+            where: inArray(tagsForFabrics.id, selectedTagIds),
+            columns: { id: true },
+          })
+        : [];
+
+      if (selectedTags.length !== selectedTagIds.length) {
+        throw new RequestValidationException(
+          'One or more selected fabric tags do not exist.',
+        );
+      }
+    }
+
+    await this.db.transaction(async (tx) => {
+      if (Object.keys(fabricFields).length > 0) {
+        const [updatedFabric] = await tx
+          .update(fabrics)
+          .set(fabricFields)
+          .where(
+            and(eq(fabrics.id, fabricId), eq(fabrics.userId, currentUserId)),
+          )
+          .returning();
+
+        if (!updatedFabric) {
+          throw new ResourceNotFoundException('Fabric', fabricId);
+        }
+      } else {
+        const [ownedFabric] = await tx
+          .select({ id: fabrics.id })
+          .from(fabrics)
+          .where(
+            and(eq(fabrics.id, fabricId), eq(fabrics.userId, currentUserId)),
+          );
+
+        if (!ownedFabric) {
+          throw new ResourceNotFoundException('Fabric', fabricId);
+        }
+      }
+
+      if (selectedTagIds !== undefined) {
+        await tx.delete(fabricTags).where(eq(fabricTags.fabricId, fabricId));
+      }
+      if (selectedTagIds && selectedTagIds.length > 0) {
+        await tx.insert(fabricTags).values(
+          selectedTagIds.map((tagId) => ({
+            fabricId: fabricId,
+            tagId,
+          })),
+        );
+      }
+    });
+
+    return this.getFabricById(fabricId, currentUserId);
   }
 
   async getFabricById(

@@ -11,6 +11,7 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
+  Patch,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -33,6 +34,8 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { SessionGuard } from '../../auth/guards/session.guard.js';
 import { CreateFabricDto } from './dto/create-fabric.dto.js';
 import { AnalyzeFabricDto } from './dto/analyze-fabric.dto.js';
+import { EditFabricDto } from './dto/edit-fabric.dto.js';
+import { FabricTagDto } from './dto/fabric-tags.dto.js';
 
 @Controller('fabrics')
 @ApiTags('Fabrics')
@@ -48,22 +51,13 @@ export class FabricController {
   })
   @ApiOkResponse({
     description: 'The available fabric tags were returned successfully.',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'number', example: 1 },
-          name: { type: 'string', example: 'cotton' },
-        },
-        required: ['id', 'name'],
-      },
-    },
+    type: FabricTagDto,
+    isArray: true
   })
   @ApiUnauthorizedResponse({
     description: 'A valid session cookie is required.',
   })
-  async getFabricTags(): Promise<{ id: number; name: string }[]> {
+  async getFabricTags(): Promise<FabricTagDto[]> {
     return this.fabricService.getFabricTags();
   }
 
@@ -174,6 +168,30 @@ export class FabricController {
     @CurrentUser() user: { id: number },
   ): Promise<FabricResponseDto> {
     return this.fabricService.createFabric(createFabricDto, picture, user.id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update an existing fabric',
+    description:
+      'Updates the supplied fabric fields and optionally replaces its tags. The fabric must belong to the current user.',
+  })
+  @ApiBody({ type: EditFabricDto })
+  @ApiOkResponse({
+    description: 'The fabric has been successfully updated.',
+    type: FabricResponseDto,
+  })
+  @ApiNotFoundResponse({ description: 'Fabric not found.' })
+  @ApiBadRequestResponse({ description: 'Invalid payload or ID parameter.' })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  async editFabric(
+    @Param('id', ParseIntPipe) fabricId: number,
+    @Body() editFabricDto: EditFabricDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<FabricResponseDto> {
+    return this.fabricService.updateFabric(fabricId, editFabricDto, user.id);
   }
 
   @Get(':id')

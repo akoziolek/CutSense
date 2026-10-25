@@ -3,7 +3,6 @@ import type { Point2D, PolygonEdge } from '@/types/geometry'
 
 interface SpatialWorkspaceExposed {
   imgRef: HTMLImageElement | null | undefined
-  svgRef: SVGSVGElement | null | undefined
   getPointFromEvent: (e: MouseEvent) => Point2D | null
 }
 
@@ -18,13 +17,8 @@ interface useSpatialWorkspaceOptions {
 
 export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   const defaultPxPerCm = 10
-  const {
-    workspaceRef,
-    initialPxPerCm,
-    initialPoints,
-    onThreadAngleChange,
-    currentThreadAngle,
-  } = options
+  const { workspaceRef, initialPxPerCm, initialPoints, onThreadAngleChange, currentThreadAngle } =
+    options
 
   const backupShape = [
     { pctX: 20, pctY: 20 },
@@ -33,7 +27,9 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     { pctX: 20, pctY: 80 },
   ]
   // how many px per 1 cm
-  const pxPerCm = ref<number>(initialPxPerCm && initialPxPerCm > 0 ? initialPxPerCm : defaultPxPerCm)
+  const pxPerCm = ref<number>(
+    initialPxPerCm && initialPxPerCm > 0 ? initialPxPerCm : defaultPxPerCm,
+  )
   // postgis format
   const points = ref<Point2D[]>(
     initialPoints && initialPoints.length >= 3 ? initialPoints : backupShape,
@@ -125,7 +121,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
 
     selectedPointIndex.value = null
     selectedEdgeIndex.value = null
-    updateEdgeDistances()
   }
 
   // delete with Delete / Backspace
@@ -152,12 +147,16 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     return { p1, p2 }
   })
 
-  const getImagePixelDistance = (p1: Point2D, p2: Point2D): number => {
-    const img = workspaceRef.value?.imgRef
-    if (!img) return 0
+  const imageDimensions = ref({ width: 0, height: 0 })
+  const setImageDimensions = (width: number, height: number) => {
+    imageDimensions.value = { width, height }
+  }
 
-    const width = img.clientWidth || img.naturalWidth || 100
-    const height = img.clientHeight || img.naturalHeight || 100
+  const getImagePixelDistance = (p1: Point2D, p2: Point2D): number => {
+    const width = imageDimensions.value.width
+    const height = imageDimensions.value.height
+
+    if (width <= 0 || height <= 0) return 0
 
     const dx = ((p2.pctX - p1.pctX) / 100) * width
     const dy = ((p2.pctY - p1.pctY) / 100) * height
@@ -180,7 +179,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
 
     if (pixelDist > 0) {
       pxPerCm.value = pixelDist / customCm
-      updateEdgeDistances()
     }
   }
 
@@ -190,20 +188,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   })
 
   const selectedLineDistance = computed(() => selectedEdge.value?.distanceCm || null)
-
-  const updateEdgeDistances = () => {
-    nextTick(() => {
-      points.value = [...points.value]
-    })
-  }
-
-  watch(
-    () => [workspaceRef.value?.svgRef, pxPerCm.value],
-    () => {
-      updateEdgeDistances()
-    },
-    { immediate: true, deep: true },
-  )
 
   const handleEdgeMouseDown = (edgeIndex: number, e: MouseEvent) => {
     e.stopPropagation()
@@ -273,7 +257,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
       const point = workspaceRef.value.getPointFromEvent(e)
       if (point) {
         points.value[draggingPointIndex.value] = point
-        updateEdgeDistances()
       }
     }
   }
@@ -297,7 +280,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
       creatingEdgeIndex.value = null
       previewPoint.value = null
       justDragged = true
-      updateEdgeDistances()
       setTimeout(() => (justDragged = false), 100)
     }
 
@@ -319,8 +301,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     if (onThreadAngleChange) {
       onThreadAngleChange(newAngle)
     }
-
-    updateEdgeDistances()
   }
 
   const handleKeyUp = (e: KeyboardEvent) => {
@@ -347,11 +327,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     window.addEventListener('keyup', handleKeyUp)
     window.addEventListener('mousemove', handleGlobalMouseMove)
     window.addEventListener('mouseup', handleGlobalMouseUp)
-
-    nextTick(() => {
-      setTimeout(() => updateEdgeDistances(), 100)
-      setTimeout(() => updateEdgeDistances(), 300)
-    })
   })
 
   onUnmounted(() => {
@@ -383,12 +358,12 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     handleEdgeMouseDown,
     handleRotate,
     handleCalibrateLine,
-    updateEdgeDistances,
     startCanvasDrag,
     startDragPoint,
     resetCanvasPosition,
     deleteSelected,
     resetAll,
     updateOriginalPoints,
+    setImageDimensions
   }
 }

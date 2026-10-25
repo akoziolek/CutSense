@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Button } from '@/components/ui/button'
-import { ImageOff, Hand, Ruler, Eye, EyeOff, Trash2 } from 'lucide-vue-next'
+import { ImageOff } from 'lucide-vue-next'
 import type { Point2D, PolygonEdge } from '@/types/geometry.ts'
 import SpatialCanvas from '../spatial/SpatialCanvas.vue'
+import SpatialFloatingToolbar from './SpatialFloatingToolbar.vue'
 
 const spatialCanvasRef = ref<InstanceType<typeof SpatialCanvas> | null>(null)
 const imgRef = computed<HTMLImageElement | null | undefined>(() => spatialCanvasRef.value?.imgRef)
@@ -178,67 +179,15 @@ defineExpose({
         @start-drag-point="(idx, ev) => emit('startDragPoint', idx, ev)"
         @image-loaded="emit('imageLoaded')"
       >
-        <!-- FLOATING TOOLBAR -->
         <template #toolbar>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            class="h-7 w-7 rounded-lg cursor-pointer"
-            :class="activeTool === 'select' && !isMoveMode ? 'bg-brand-green text-foreground' : ''"
-            title="Ruler tool (Drag line to add point)"
-            @click="emit('update:activeTool', 'select')"
-          >
-            <Ruler class="h-3.5 w-3.5" />
-            <span class="sr-only">Ruler tool</span>
-          </Button>
-
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            class="h-7 w-7 rounded-lg cursor-pointer"
-            :class="isMoveMode ? 'bg-brand-green text-foreground' : ''"
-            title="Pan tool (Drag image or select line)"
-            @click="emit('update:activeTool', 'pan')"
-          >
-            <Hand class="h-3.5 w-3.5" />
-            <span class="sr-only">Pan tool</span>
-          </Button>
-
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            class="h-7 w-7 rounded-lg cursor-pointer"
-            :class="showLabels ? 'bg-brand-green text-foreground' : ''"
-            :title="showLabels ? 'Hide length labels' : 'Show length labels'"
-            @click="showLabels = !showLabels"
-          >
-            <Eye v-if="showLabels" class="h-3.5 w-3.5" />
-            <EyeOff v-else class="h-3.5 w-3.5" />
-            <span class="sr-only">Toggle labels</span>
-          </Button>
-
-          <div class="w-px h-4 bg-border mx-0.5" />
-
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            class="h-7 w-7 rounded-lg transition-colors cursor-pointer"
-            :class="
-              canDelete
-                ? 'text-destructive hover:bg-destructive/15 hover:text-destructive'
-                : 'text-muted-foreground/30 cursor-not-allowed'
-            "
-            :disabled="!canDelete"
-            title="Delete selected point or edge (Delete / Backspace)"
-            @click="emit('deleteSelected')"
-          >
-            <Trash2 class="h-3.5 w-3.5" />
-            <span class="sr-only">Delete selected</span>
-          </Button>
+          <SpatialFloatingToolbar
+          :active-tool="props.activeTool"
+          v-model:show-labels="showLabels"
+          :is-move-mode="props.isMoveMode"
+          :can-delete="props.canDelete"
+          @update:active-tool="(tool) => emit('update:activeTool', tool)"
+          @delete-selected="emit('deleteSelected')"
+        />
         </template>
       </SpatialCanvas>
     </template>

@@ -53,7 +53,7 @@ defineExpose({
   <div class="relative w-full h-full flex items-center justify-center overflow-hidden z-20">
     <div
       v-if="$slots.toolbar && imageUrl"
-      class="absolute top-1 right-1 z-50 flex items-center gap-1 bg-background/95 backdrop-blur-md p-1 rounded-md border border-border shadow-md"
+      class="absolute top-1 right-1 z-50"
     >
       <slot name="toolbar" />
     </div>

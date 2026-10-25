@@ -8,7 +8,7 @@ import { useAddFabricFormGuard } from '@/composables/fabrics/useAddFabricFormGua
 import PageHeader from '@/components/common/PageHeader.vue'
 import StepCounter from '@/components/forms/StepCounter.vue'
 import FabricConfigSidebar from '@/components/fabrics/FabricConfigSidebar.vue'
-import SpatialWorkspace from '@/components/fabrics/SpatialWorkspace.vue'
+import SpatialWorkspace from '@/components/spatial/SpatialWorkspace.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import DiscardNewFabricModal from '@/components/forms/DiscardChangesModal.vue'

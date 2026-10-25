@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
 import { defineEmits } from 'vue'
 
@@ -17,6 +17,9 @@ const props = withDefaults(
     selectedEdgeIndex?: number | null
     previewPoint?: Point2D | null
     previewNeighbors?: { p1: Point2D; p2: Point2D } | null
+    isMoveMode?: boolean
+    isDraggingCanvas?: boolean
+    isInteractiveDragging?: boolean
   }>(),
   {
     imageUrl: null,
@@ -30,6 +33,9 @@ const props = withDefaults(
     selectedEdgeIndex: null,
     previewPoint: null,
     previewNeighbors: null,
+    isMoveMode: false,
+    isDraggingCanvas: false,
+    isInteractiveDragging: false,
   },
 )
 
@@ -37,24 +43,98 @@ const emit = defineEmits<{
   (e: 'selectPoint', index: number): void
   (e: 'startDragPoint', index: number, event: MouseEvent): void
   (e: 'selectEdge', index: number, event: MouseEvent): void
-  (e: 'imageLoaded'): void 
+  (e: 'imageLoaded', image: HTMLImageElement): void
+  (e: 'clickImage', point: Point2D, event: MouseEvent): void
+  (e: 'update:zoomLevel', zoom: number): void
+  (e: 'canvasDragStart', event: MouseEvent): void
 }>()
 
 const imgRef = ref<HTMLImageElement | null>(null)
 const svgRef = ref<SVGSVGElement | null>(null)
 
+const cursorClass = computed(() => {
+  if (props.isDraggingCanvas || props.isInteractiveDragging) return 'cursor-grabbing'
+  if (props.isMoveMode) return 'cursor-grab'
+  return 'cursor-default'
+})
+
+const handleWheel = (e: WheelEvent) => {
+  e.preventDefault()
+  const zoomDelta = e.deltaY < 0 ? 0.085 : -0.085
+  const newZoom = Math.min(Math.max(0.5, props.zoomLevel + zoomDelta), 3.5)
+  emit('update:zoomLevel', Number(newZoom.toFixed(2)))
+}
+
+const handleMouseDown = (e: MouseEvent) => {
+  if (e.button === 1 || props.isMoveMode) {
+    emit('canvasDragStart', e)
+  }
+}
+
+const getPointFromEvent = (e: MouseEvent): Point2D | null => {
+  // Stop if image or SVG elements are not ready in DOM
+  if (!imgRef.value || !svgRef.value) return null
+
+  // Get the transformation matrix from SVG to screen pixels
+  const ctm = svgRef.value.getScreenCTM()
+  if (!ctm) return null
+
+  // Get current mouse position in screen pixels
+  const pt = svgRef.value.createSVGPoint()
+  pt.x = e.clientX
+  pt.y = e.clientY
+
+  // Convert screen pixels back to image position (undoes zoom, pan, and rotation)
+  const localPt = pt.matrixTransform(ctm.inverse())
+
+  // Return position in % (0-100), keeping it safely inside image bounds
+  return {
+    pctX: Math.max(0, Math.min(100, Number(localPt.x.toFixed(2)))),
+    pctY: Math.max(0, Math.min(100, Number(localPt.y.toFixed(2)))),
+  }
+}
+
+const handleCanvasClick = (e: MouseEvent) => {
+  if (props.isMoveMode || props.isDraggingCanvas || !imgRef.value) return
+
+  // check if clisk is outside the image boundary
+  const imgRect = imgRef.value.getBoundingClientRect()
+  if (
+    e.clientX < imgRect.left ||
+    e.clientX > imgRect.right ||
+    e.clientY < imgRect.top ||
+    e.clientY > imgRect.bottom
+  ) {
+    return
+  }
+
+  const point = getPointFromEvent(e)
+  if (point) {
+    emit('clickImage', point, e)
+  }
+}
+
+const handleImageLoad = (e: Event) => {
+  const imgElement = e.target as HTMLImageElement
+  emit('imageLoaded', imgElement)
+}
+
 defineExpose({
   imgRef,
   svgRef,
+  getPointFromEvent,
 })
 </script>
 
 <template>
-  <div class="relative w-full h-full flex items-center justify-center overflow-hidden z-20">
-    <div
-      v-if="$slots.toolbar && imageUrl"
-      class="absolute top-1 right-1 z-50"
-    >
+  <div
+    class="relative w-full h-full flex items-center justify-center overflow-hidden z-20"
+    :class="cursorClass"
+    @click="handleCanvasClick"
+    @wheel.prevent="handleWheel"
+    @mousedown="handleMouseDown"
+  >
+    <div v-if="$slots.toolbar && imageUrl" class="absolute top-1 right-1 z-50">
       <slot name="toolbar" />
     </div>
     <!-- translate, scale applied on all layers  -->
@@ -75,7 +155,7 @@ defineExpose({
           alt="Workspace canvas"
           draggable="false"
           class="max-h-[460px] w-auto max-w-full object-contain rounded-md shadow-md block pointer-events-none select-none z-10"
-          @load="emit('imageLoaded')"
+          @load="handleImageLoad"
         />
 
         <!-- LAYER 2 - SHAPE -->

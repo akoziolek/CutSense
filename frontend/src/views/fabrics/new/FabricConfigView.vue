@@ -24,7 +24,7 @@ const { isCancelModalOpen, handleCancel, confirmExit } = useAddFabricFormGuard()
 const isErrorModalOpen = ref(false)
 const isAnalyzing = ref(false)
 const analysisError = ref('')
-
+let isSyncing = false
 
 const {
   points,
@@ -60,8 +60,6 @@ const {
   initialPoints: wizardStore.config.points,
   currentThreadAngle: ref(wizardStore.config.threadAngle),
 })
-
-let isSyncing = false
 
 const loadSavedConfig = () => {
   if (!wizardStore.isHydrated) return
@@ -144,6 +142,49 @@ const initializeBoundary = async () => {
   await detectFabricBoundary()
 }
 
+const handleImageLoaded = (image?: HTMLImageElement) => {
+  if (!image) return
+
+  const realWidth = image.naturalWidth || image.clientWidth
+  const realHeight = image.naturalHeight || image.clientHeight
+
+  setImageDimensions(realWidth, realHeight)
+
+  void wizardStore
+    .updateConfig({ imageWidth: image.clientWidth, imageHeight: image.clientHeight })
+    .catch((error: unknown) => {
+      console.error('Failed to persist fabric image dimensions:', error)
+    })
+}
+
+const handleSubmit = async () => {
+  if (!wizardStore.file) {
+    toast.error('Fabric photo is not ready. Please try again.')
+    return
+  }
+
+  try {
+    await wizardStore.updateConfig(
+      {
+        points: JSON.parse(JSON.stringify(points.value)),
+        pxPerCm: pxPerCm.value,
+        threadAngle: threadAngle.value,
+        rotation: imageRotation.value,
+      },
+      true,
+    )
+  } catch {
+    toast.error('Could not save fabric configuration. Please try again.')
+    return
+  }
+
+  await router.push({ name: 'FabricDescription' })
+}
+
+const handleConfirm = () => {
+  isErrorModalOpen.value = false
+}
+
 watch(
   () => wizardStore.isHydrated,
   (hydrated) => {
@@ -172,59 +213,11 @@ watch(
   { deep: true },
 )
 
-const handleSubmit = async () => {
-  const image = workspaceRef.value?.imgRef
-  if (!image || !wizardStore.file) {
-    toast.error('Fabric photo is not ready. Please try again.')
-    return
-  }
-
-  try {
-    await wizardStore.updateConfig(
-      {
-        points: JSON.parse(JSON.stringify(points.value)),
-        pxPerCm: pxPerCm.value,
-        threadAngle: threadAngle.value,
-        rotation: imageRotation.value,
-        imageWidth: image.clientWidth,
-        imageHeight: image.clientHeight,
-      },
-      true,
-    )
-  } catch {
-    toast.error('Could not save fabric configuration. Please try again.')
-    return
-  }
-
-  await router.push({ name: 'FabricDescription' })
-}
-
-
-const handleConfirm = () => {
-  isErrorModalOpen.value = false
-}
-
 onMounted(() => {
   if (wizardStore.isHydrated) {
     void initializeBoundary()
   }
 })
-
-const handleImageLoaded = () => {
-  const image = workspaceRef.value?.imgRef
-  if (!image) return
-
-  const realWidth = image.naturalWidth || image.clientWidth
-  const realHeight = image.naturalHeight || image.clientHeight
-
-  setImageDimensions(realWidth, realHeight)
-
-  void wizardStore
-    .updateConfig({ imageWidth: image.clientWidth, imageHeight: image.clientHeight })
-    .catch((error: unknown) => {
-      console.error('Failed to persist fabric image dimensions:', error)
-    })
-}
 </script>
 
 <template>

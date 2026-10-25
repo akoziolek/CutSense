@@ -2,7 +2,6 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted, type Ref } from
 import type { Point2D, PolygonEdge } from '@/types/geometry'
 
 interface SpatialWorkspaceExposed {
-  imgRef: HTMLImageElement | null | undefined
   getPointFromEvent: (e: MouseEvent) => Point2D | null
 }
 
@@ -55,23 +54,37 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   const creatingEdgeIndex = ref<number | null>(null)
   const previewPoint = ref<Point2D | null>(null)
   const draggingPointIndex = ref<number | null>(null)
-  let justDragged = false
 
   const isMoveMode = computed(() => isSpacePressed.value || activeTool.value === 'pan')
 
   const canDelete = computed(() => {
     const numPoints = points.value.length
-
-    if (selectedPointIndex.value !== null) {
-      return numPoints > 3
-    }
-
-    if (selectedEdgeIndex.value !== null) {
-      return numPoints >= 5
-    }
-
+    if (selectedPointIndex.value !== null) return numPoints > 3
+    if (selectedEdgeIndex.value !== null) return numPoints >= 5
     return false
   })
+
+  const imageDimensions = ref({ width: 0, height: 0 })
+  const setImageDimensions = (width: number, height: number) => {
+    imageDimensions.value = { width, height }
+  }
+
+  const getImagePixelDistance = (p1: Point2D, p2: Point2D): number => {
+    const { width, height } = imageDimensions.value
+    if (width <= 0 || height <= 0) return 0
+
+    const dx = ((p2.pctX - p1.pctX) / 100) * width
+    const dy = ((p2.pctY - p1.pctY) / 100) * height
+
+    // Pythagoras
+    return Math.hypot(dx, dy)
+  }
+
+  const calculateEdgeDistance = (p1: Point2D, p2: Point2D): string => {
+    if (pxPerCm.value <= 0) return '0.0'
+    const pixelDist = getImagePixelDistance(p1, p2)
+    return (pixelDist / pxPerCm.value).toFixed(1)
+  }
 
   const edges = computed<PolygonEdge[]>(() => {
     const n = points.value.length
@@ -92,6 +105,24 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     }
     return result
   })
+
+  const selectedEdge = computed(() => {
+    if (selectedEdgeIndex.value === null) return null
+    return edges.value.find((e) => e.index === selectedEdgeIndex.value) || null
+  })
+
+  const selectedLineDistance = computed(() => selectedEdge.value?.distanceCm || null)
+
+  const handleCalibrateLine = (customCm: number) => {
+    if (!selectedEdge.value || customCm <= 0) return
+
+    const edge = selectedEdge.value
+    const pixelDist = getImagePixelDistance(edge.p1, edge.p2)
+
+    if (pixelDist > 0) {
+      pxPerCm.value = pixelDist / customCm
+    }
+  }
 
   const deleteSelected = () => {
     if (!canDelete.value) return
@@ -146,48 +177,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     if (!p1 || !p2) return null
     return { p1, p2 }
   })
-
-  const imageDimensions = ref({ width: 0, height: 0 })
-  const setImageDimensions = (width: number, height: number) => {
-    imageDimensions.value = { width, height }
-  }
-
-  const getImagePixelDistance = (p1: Point2D, p2: Point2D): number => {
-    const width = imageDimensions.value.width
-    const height = imageDimensions.value.height
-
-    if (width <= 0 || height <= 0) return 0
-
-    const dx = ((p2.pctX - p1.pctX) / 100) * width
-    const dy = ((p2.pctY - p1.pctY) / 100) * height
-
-    // Pythagoras
-    return Math.hypot(dx, dy)
-  }
-
-  const calculateEdgeDistance = (p1: Point2D, p2: Point2D): string => {
-    if (pxPerCm.value <= 0) return '0.0'
-    const pixelDist = getImagePixelDistance(p1, p2)
-    return (pixelDist / pxPerCm.value).toFixed(1)
-  }
-
-  const handleCalibrateLine = (customCm: number) => {
-    if (!selectedEdge.value || customCm <= 0) return
-
-    const edge = selectedEdge.value
-    const pixelDist = getImagePixelDistance(edge.p1, edge.p2)
-
-    if (pixelDist > 0) {
-      pxPerCm.value = pixelDist / customCm
-    }
-  }
-
-  const selectedEdge = computed(() => {
-    if (selectedEdgeIndex.value === null) return null
-    return edges.value.find((e) => e.index === selectedEdgeIndex.value) || null
-  })
-
-  const selectedLineDistance = computed(() => selectedEdge.value?.distanceCm || null)
 
   const handleEdgeMouseDown = (edgeIndex: number, e: MouseEvent) => {
     e.stopPropagation()
@@ -266,8 +255,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     // moving view
     if (isDraggingCanvas.value) {
       isDraggingCanvas.value = false
-      justDragged = true
-      setTimeout(() => (justDragged = false), 100)
     }
 
     // inserting new point
@@ -279,15 +266,11 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
 
       creatingEdgeIndex.value = null
       previewPoint.value = null
-      justDragged = true
-      setTimeout(() => (justDragged = false), 100)
     }
 
     // finish moving a point
     if (draggingPointIndex.value !== null) {
-      justDragged = true
       draggingPointIndex.value = null
-      setTimeout(() => (justDragged = false), 100)
     }
   }
 
@@ -364,6 +347,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     deleteSelected,
     resetAll,
     updateOriginalPoints,
-    setImageDimensions
+    setImageDimensions,
   }
 }

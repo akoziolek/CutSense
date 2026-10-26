@@ -8,17 +8,10 @@ import ErrorState from '@/components/common/ErrorState.vue'
 import FloatingButton from '@/components/common/FloatingButton.vue'
 import SortMenu from '@/components/common/SortMenu.vue'
 import ResourceCard from '@/components/common/ResourceCard.vue'
+import ListPagination from '@/components/common/ListPagination.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination'
 import { api, ApiError } from '@/api/client'
 import type { FabricListResponse, FabricSort } from '@/types/fabric'
 import { formatCardDate } from '@/utils/formatCardDate'

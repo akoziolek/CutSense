@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { toast } from 'vue-sonner'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, ListFilter, Plus, RotateCcw, Search, Shirt } from 'lucide-vue-next'
 import GridLayout from '@/components/layouts/GridLayout.vue'
@@ -13,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/api/client'
-import type { FabricListResponse, FabricSort } from '@/types/fabric'
+import type { FabricListItem, FabricListResponse, FabricSort } from '@/types/fabric'
 import { formatCardDate } from '@/utils/formatCardDate'
 
 const PAGE_SIZE = 12
@@ -103,6 +104,30 @@ const fetchFabrics = async (activeSignal = { active: true }) => {
       showSkeleton.value = false
       clearSkeletonTimer()
     }
+  }
+}
+
+const pendingFavourites = new Set<number>()
+
+const toggleFavourite = async (fabric: FabricListItem) => {
+  if (pendingFavourites.has(fabric.id)) return
+
+  const next = !fabric.isFavourite
+  fabric.isFavourite = next
+  pendingFavourites.add(fabric.id)
+
+  try {
+    await api(`/fabrics/${fabric.id}/favourite`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isFavourite: next }),
+    })
+  } catch (e) {
+    fabric.isFavourite = !next 
+    toast.error(next ? 'Could not add to favourites' : 'Could not remove from favourites', {
+      description: e instanceof ApiError ? e.body.message : 'Please try again.',
+    })
+  } finally {
+    pendingFavourites.delete(fabric.id)
   }
 }
 
@@ -210,6 +235,8 @@ watch(
               :meta="`${formatCardDate(fabric.createdAt)} • ${fabric.area.toFixed(1)} m²`"
               :image-url="fabric.pictureUrl"
               :is-favourite="fabric.isFavourite"
+              toggleable
+              @toggle-favourite="toggleFavourite(fabric)"
             />
           </div>
 

@@ -18,6 +18,7 @@ import { FabricBoundaryMapper } from './fabric-boundary.mapper.js';
 import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';
 import { FabricSortOption, ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
+import { FabricFavouriteDto } from './dto/fabric-favourite.dto.js';
 
 @Injectable()
 export class FabricService {
@@ -353,4 +354,19 @@ export class FabricService {
       totalPages: Math.ceil(total / limit),
     };
   }
+
+  async setFavourite(
+    fabricId: number,
+    isFavourite: boolean,
+    currentUserId: number,
+  ): Promise<FabricFavouriteDto> {
+    const [updated] = await this.db
+      .update(fabrics)
+      .set({ isFavourite })
+      .where(and(eq(fabrics.id, fabricId), eq(fabrics.userId, currentUserId)))
+      .returning({ id: fabrics.id, isFavourite: fabrics.isFavourite});
+
+    if (!updated) throw new ResourceNotFoundException('Fabric', fabricId);
+    return updated;
+    }
 }

@@ -39,6 +39,8 @@ import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricTagDto } from './dto/fabric-tags.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';
 import { ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
+import { SetFavouriteDto } from './dto/set-favourite.dto.js';
+import { FabricFavouriteDto } from './dto/fabric-favourite.dto.js';
 
 @Controller('fabrics')
 @ApiTags('Fabrics')
@@ -213,6 +215,15 @@ export class FabricController {
     @CurrentUser() user: { id: number },
   ): Promise<FabricResponseDto> {
     return this.fabricService.updateFabric(fabricId, editFabricDto, user.id);
+  }
+
+  @Patch(':id/favourite')
+  async setFavourite(
+    @Param('id', ParseIntPipe) fabricId: number,
+    @Body() dto: SetFavouriteDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<FabricFavouriteDto> {
+    return this.fabricService.setFavourite(fabricId, dto.isFavourite, user.id);
   }
 
   @Get(':id')

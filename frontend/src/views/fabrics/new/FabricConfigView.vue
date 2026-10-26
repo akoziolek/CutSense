@@ -150,7 +150,7 @@ const handleImageLoaded = (image?: HTMLImageElement) => {
   setImageDimensions(realWidth, realHeight)
 
   void wizardStore
-    .updateConfig({ imageWidth: image.clientWidth, imageHeight: image.clientHeight })
+    .updateConfig({ imageWidth: realWidth, imageHeight: realHeight })
     .catch((error: unknown) => {
       console.error('Failed to persist fabric image dimensions:', error)
     })

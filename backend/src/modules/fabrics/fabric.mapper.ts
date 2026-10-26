@@ -57,21 +57,4 @@ export class FabricMapper {
       createdAt: fabric.createdAt.toISOString(),
     });
   }
-
-  static toListItemDto(
-    fabric: Pick<
-      typeof fabrics.$inferSelect,
-      'id' | 'name' | 'pictureS3Key' | 'isFavourite' | 'area' | 'createdAt'
-    >,
-    pictureUrl?: string,
-  ): FabricListItemDto {
-    return Object.assign(new FabricListItemDto(), {
-      id: fabric.id,
-      name: fabric.name,
-      pictureUrl,
-      isFavourite: fabric.isFavourite,
-      area: fabric.area,
-      createdAt: fabric.createdAt.toISOString(),
-    });
-  }
 }

@@ -8,7 +8,7 @@ import { useAddFabricFormGuard } from '@/composables/fabrics/useAddFabricFormGua
 import PageHeader from '@/components/common/PageHeader.vue'
 import StepCounter from '@/components/forms/StepCounter.vue'
 import FabricConfigSidebar from '@/components/fabrics/FabricConfigSidebar.vue'
-import SpatialWorkspace from '@/components/fabrics/SpatialWorkspace.vue'
+import SpatialWorkspace from '@/components/spatial/SpatialWorkspace.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import DiscardNewFabricModal from '@/components/forms/DiscardChangesModal.vue'
@@ -24,7 +24,7 @@ const { isCancelModalOpen, handleCancel, confirmExit } = useAddFabricFormGuard()
 const isErrorModalOpen = ref(false)
 const isAnalyzing = ref(false)
 const analysisError = ref('')
-
+let isSyncing = false
 
 const {
   points,
@@ -47,13 +47,13 @@ const {
   handleEdgeMouseDown,
   handleRotate,
   handleCalibrateLine,
-  updateEdgeDistances,
   startCanvasDrag,
   startDragPoint,
   resetCanvasPosition,
   deleteSelected,
   resetAll,
   updateOriginalPoints,
+  setImageDimensions,
 } = useSpatialWorkspace({
   workspaceRef,
   initialPxPerCm: wizardStore.config.pxPerCm,
@@ -61,14 +61,14 @@ const {
   currentThreadAngle: ref(wizardStore.config.threadAngle),
 })
 
-let isSyncing = false
-
 const loadSavedConfig = () => {
   if (!wizardStore.isHydrated) return
   isSyncing = true
 
   if (wizardStore.config.points && wizardStore.config.points.length >= 3) {
-    points.value = JSON.parse(JSON.stringify(wizardStore.config.points))
+    const savedPoints = JSON.parse(JSON.stringify(wizardStore.config.points))
+    points.value = savedPoints
+    updateOriginalPoints(savedPoints)
   }
   if (wizardStore.config.pxPerCm) {
     pxPerCm.value = wizardStore.config.pxPerCm
@@ -80,66 +80,9 @@ const loadSavedConfig = () => {
     imageRotation.value = wizardStore.config.rotation
   }
 
-  updateEdgeDistances()
   setTimeout(() => {
     isSyncing = false
   }, 50)
-}
-
-watch(
-  () => wizardStore.isHydrated,
-  (hydrated) => {
-    if (hydrated) {
-      loadSavedConfig()
-    }
-  },
-  { immediate: true },
-)
-
-watch(
-  [points, pxPerCm, threadAngle, imageRotation],
-  () => {
-    if (!wizardStore.isHydrated || isSyncing) return
-
-    void wizardStore
-      .updateConfig({
-        points: JSON.parse(JSON.stringify(points.value)),
-        pxPerCm: pxPerCm.value,
-        threadAngle: threadAngle.value,
-        rotation: imageRotation.value,
-      })
-      .catch((error: unknown) => {
-        console.error('Failed to persist fabric configuration:', error)
-      })
-  },
-  { deep: true },
-)
-
-const handleSubmit = async () => {
-  const image = workspaceRef.value?.imgRef
-  if (!image || !wizardStore.file) {
-    toast.error('Fabric photo is not ready. Please try again.')
-    return
-  }
-
-  try {
-    await wizardStore.updateConfig(
-      {
-        points: JSON.parse(JSON.stringify(points.value)),
-        pxPerCm: pxPerCm.value,
-        threadAngle: threadAngle.value,
-        rotation: imageRotation.value,
-        imageWidth: image.clientWidth,
-        imageHeight: image.clientHeight,
-      },
-      true,
-    )
-  } catch {
-    toast.error('Could not save fabric configuration. Please try again.')
-    return
-  }
-
-  await router.push({ name: 'FabricDescription' })
 }
 
 const detectFabricBoundary = async () => {
@@ -189,25 +132,91 @@ const detectFabricBoundary = async () => {
   }
 }
 
-const handleConfirm = () => {
-  isErrorModalOpen.value = false
+const initializeBoundary = async () => {
+  if (!wizardStore.isHydrated) return
+  if (wizardStore.config.points && wizardStore.config.points.length >= 3) {
+    loadSavedConfig()
+    return
+  }
+  await detectFabricBoundary()
 }
 
-onMounted(() => {
-  void detectFabricBoundary()
-})
-
-const handleImageLoaded = () => {
-  updateEdgeDistances()
-  const image = workspaceRef.value?.imgRef
+const handleImageLoaded = (image?: HTMLImageElement) => {
   if (!image) return
 
+  const realWidth = image.naturalWidth || image.clientWidth
+  const realHeight = image.naturalHeight || image.clientHeight
+
+  setImageDimensions(realWidth, realHeight)
+
   void wizardStore
-    .updateConfig({ imageWidth: image.clientWidth, imageHeight: image.clientHeight })
+    .updateConfig({ imageWidth: realWidth, imageHeight: realHeight })
     .catch((error: unknown) => {
       console.error('Failed to persist fabric image dimensions:', error)
     })
 }
+
+const handleSubmit = async () => {
+  if (!wizardStore.file) {
+    toast.error('Fabric photo is not ready. Please try again.')
+    return
+  }
+
+  try {
+    await wizardStore.updateConfig(
+      {
+        points: JSON.parse(JSON.stringify(points.value)),
+        pxPerCm: pxPerCm.value,
+        threadAngle: threadAngle.value,
+        rotation: imageRotation.value,
+      },
+      true,
+    )
+  } catch {
+    toast.error('Could not save fabric configuration. Please try again.')
+    return
+  }
+
+  await router.push({ name: 'FabricDescription' })
+}
+
+const handleConfirm = () => {
+  isErrorModalOpen.value = false
+}
+
+watch(
+  () => wizardStore.isHydrated,
+  (hydrated) => {
+    if (hydrated) {
+      initializeBoundary()
+    }
+  },
+  { immediate: true },
+)
+
+watch(
+  [points, pxPerCm, threadAngle, imageRotation, isInteractiveDragging],
+  () => {
+    if (!wizardStore.isHydrated || isSyncing || isInteractiveDragging.value) return
+    void wizardStore
+      .updateConfig({
+        points: JSON.parse(JSON.stringify(points.value)),
+        pxPerCm: pxPerCm.value,
+        threadAngle: threadAngle.value,
+        rotation: imageRotation.value,
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to persist fabric configuration:', error)
+      })
+  },
+  { deep: true },
+)
+
+onMounted(() => {
+  if (wizardStore.isHydrated) {
+    void initializeBoundary()
+  }
+})
 </script>
 
 <template>
@@ -236,6 +245,7 @@ const handleImageLoaded = () => {
           ref="workspaceRef"
           v-model:active-tool="activeTool"
           v-model:zoom-level="zoomLevel"
+          v-model:canvas-offset="canvasOffset"
           :image-url="wizardStore.previewUrl"
           :points="points"
           :edges="edges"
@@ -245,7 +255,6 @@ const handleImageLoaded = () => {
           :selected-point-index="selectedPointIndex"
           :can-delete="canDelete"
           :rotation="imageRotation"
-          :canvas-offset="canvasOffset"
           :is-move-mode="isMoveMode"
           :is-dragging-canvas="isDraggingCanvas"
           :is-interactive-dragging="isInteractiveDragging"
@@ -268,7 +277,6 @@ const handleImageLoaded = () => {
           v-model:threadAngle="threadAngle"
           :selected-line-distance="selectedLineDistance"
           :has-selected-line="selectedEdgeIndex !== null"
-          @update:zoomLevel="updateEdgeDistances"
           @calibrateLine="handleCalibrateLine"
           @rotate="handleRotate"
           @resetLines="resetAll"

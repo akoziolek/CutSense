@@ -9,7 +9,10 @@ defineProps<{
   meta: string
   imageUrl?: string
   isFavourite: boolean
+  toggleable?: boolean
 }>()
+
+const emit = defineEmits<{ (e: 'toggleFavourite'): void }>()
 </script>
 
 <template>
@@ -29,7 +32,18 @@ defineProps<{
           <slot name="placeholder"><ImageOff class="size-8" /></slot>
         </div>
 
+        <button
+          v-if="toggleable"
+          type="button"
+          class="absolute right-2 top-2 rounded-md bg-background p-1 shadow-sm transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          :aria-label="isFavourite ? 'Remove from favourites' : 'Add to favourites'"
+          :aria-pressed="isFavourite"
+          @click.prevent.stop="emit('toggleFavourite')"
+        >
+          <Heart class="size-6" :class="{ 'fill-current': isFavourite }" />
+        </button>
         <span
+          v-else
           class="absolute right-2 top-2 rounded-md bg-background p-1 shadow-sm"
           :aria-label="isFavourite ? 'Favourite' : 'Not favourite'"
         >

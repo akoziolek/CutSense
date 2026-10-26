@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { FabricTagDto } from './fabric-tags.dto.js';
+import { PointDto } from './create-fabric.dto.js';
 
 export class FabricResponseDto {
   @ApiProperty({ description: 'Unique identifier of the fabric', example: 1 })
@@ -34,6 +35,18 @@ export class FabricResponseDto {
 
   @ApiProperty({ description: 'Fabric area', example: 4.32 })
   area!: number;
+
+  @ApiProperty({
+    description: 'Fabric boundary points in Cartesian coordinates',
+    type: [PointDto],
+    example: [
+      { x: -250, y: 125 },
+      { x: 250, y: 125 },
+      { x: 250, y: 625 },
+      { x: -250, y: 625 },
+    ],
+  })
+  boundary!: PointDto[];
 
   @ApiProperty({
     description: 'Identifier of the user who owns the fabric',

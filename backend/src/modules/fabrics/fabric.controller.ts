@@ -198,7 +198,7 @@ export class FabricController {
   @ApiOperation({
     summary: 'Get a fabric by ID',
     description:
-      'Returns a fabric owned by the current user, including the names of its tags.',
+      'Returns a fabric owned by the current user, including its boundary points and tags.',
   })
   @ApiParam({
     name: 'id',

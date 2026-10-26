@@ -38,8 +38,11 @@ describe('Fabrics endpoint (integration)', () => {
       description: 'Medium-weight cotton',
       pictureS3Key: 'https://example.com/fabric.jpg',
       isFavourite: true,
+      area: 4.32,
       userId: 1,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
+      boundaryGeoJson:
+        '{"type":"Polygon","coordinates":[[[-250,125],[250,125],[250,625],[-250,625],[-250,125]]]}',
       tags: [{ tag: { name: 'cotton' } }, { tag: { name: 'canvas' } }],
     });
 
@@ -222,8 +225,17 @@ describe('Fabrics endpoint (integration)', () => {
           pictureS3Key: 'users/1/fabrics/uploaded.png',
           pictureUrl: 'https://example.com/signed.jpg',
           area: 3600,
+          boundary: [
+            { x: -250, y: 125 },
+            { x: 250, y: 125 },
+            { x: 250, y: 625 },
+            { x: -250, y: 625 },
+          ],
           userId: 1,
-          tags: ['cotton', 'linen'],
+          tags: [
+            { id: 2, name: 'cotton' },
+            { id: 5, name: 'linen' },
+          ],
         });
       });
 
@@ -260,9 +272,16 @@ describe('Fabrics endpoint (integration)', () => {
         pictureS3Key: 'https://example.com/fabric.jpg',
         pictureUrl: 'https://example.com/signed.jpg',
         isFavourite: true,
+        area: 4.32,
         userId: 1,
         createdAt: '2025-01-15T10:30:00.000Z',
-        tags: ['cotton', 'canvas'],
+        boundary: [
+          { x: -250, y: 125 },
+          { x: 250, y: 125 },
+          { x: 250, y: 625 },
+          { x: -250, y: 625 },
+        ],
+        tags: [{ name: 'cotton' }, { name: 'canvas' }],
       });
 
     expect(findFirst).toHaveBeenCalledOnce();

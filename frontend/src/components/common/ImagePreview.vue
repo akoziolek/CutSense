@@ -46,7 +46,7 @@ const resetZoom = () => {
         <img
           :src="src"
           :alt="alt"
-          class="w-full h-full object-cover block select-none"
+          class="w-full h-full object-cover block select-none transition-transform duration-300 group-hover:scale-105"
         />
         <div
           class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-30"

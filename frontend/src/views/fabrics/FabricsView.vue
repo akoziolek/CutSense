@@ -212,10 +212,10 @@ watch(
             <ResourceCard
               v-for="fabric in data.items"
               :key="fabric.id"
-              :to="{ name: 'fabric-details', params: { id: fabric.id } }"
+              :to="{ name: 'FabricDetails', params: { id: fabric.id } }"
               :title="fabric.name"
               :meta="`${formatCardDate(fabric.createdAt)} • ${fabric.area.toFixed(1)} m²`"
-              :image-url="fabric.pictureURL"
+              :image-url="fabric.pictureUrl"
               :is-favourite="fabric.isFavourite"
             />
           </div>

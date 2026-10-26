@@ -151,6 +151,8 @@ export class FabricService {
             description: createFabricDto.description,
             pictureS3Key,
             boundary: geometry,
+            imageWidthCm: createFabricDto.imageWidthCm,
+            imageHeightCm: createFabricDto.imageHeightCm,
             area: sql<number>`ST_Area(${geometry})`,
             userId: currentUserId,
           })
@@ -183,6 +185,7 @@ export class FabricService {
     return FabricMapper.toResponseDto(
       {
         ...fabric,
+        boundary: points,
         tags: selectedTags.map((tag) => ({ tag })),
       },
       pictureUrl,
@@ -270,6 +273,13 @@ export class FabricService {
   ): Promise<FabricResponseDto> {
     const fabric = await this.db.query.fabrics.findFirst({
       where: and(eq(fabrics.id, fabricId), eq(fabrics.userId, currentUserId)),
+      columns: { boundary: false },
+      extras: {
+        boundaryGeoJson:
+          sql<string>`ST_AsGeoJSON(${fabrics.boundary})::json`.as(
+            'boundary_geo_json',
+          ),
+      },
       with: {
         tags: {
           with: {
@@ -287,6 +297,12 @@ export class FabricService {
       ? await this.storageService.generatePresignedUrl(fabric.pictureS3Key)
       : undefined;
 
-    return FabricMapper.toResponseDto(fabric, pictureUrl);
+    return FabricMapper.toResponseDto(
+      {
+        ...fabric,
+        boundary: FabricMapper.boundaryFromGeoJson(fabric.boundaryGeoJson),
+      },
+      pictureUrl,
+    );
   }
 }

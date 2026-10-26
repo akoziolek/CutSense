@@ -102,7 +102,6 @@ def analyze_fabric_shape(image_bytes: bytes) -> ShapeAnalysisResult:
     normalized_points = _normalize_points_to_pct(simplified_pts, width=sw, height=sh)
 
     return {
-        "status": "success",
         "imageWidth": img_w,
         "imageHeight": img_h,
         "points": normalized_points,

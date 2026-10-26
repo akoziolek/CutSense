@@ -6,6 +6,7 @@ import LoginModal from '@/components/auth/LoginModal.vue'
 import { api, ApiError } from '@/api/client'
 import { login, useAuth } from '@/composables/useAuth'
 import { consumeReturnTo } from '@/utils/returnTo'
+import { clearReturnTo } from '@/utils/returnTo'
 
 const route = useRoute()
 const router = useRouter()

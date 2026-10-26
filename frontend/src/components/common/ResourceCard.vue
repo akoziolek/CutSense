@@ -15,7 +15,7 @@ defineProps<{
 <template>
   <RouterLink :to="to" class="group block rounded-xl focus-visible:outline-none">
     <Card
-      class="gap-2 px-3 py-3 bg-card border-muted shadow-md transition-shadow group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring"
+      class="gap-2 px-4 py-4 bg-card border-muted shadow-md transition-shadow group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring"
     >
       <div class="relative aspect-square overflow-hidden rounded-md bg-muted">
         <img
@@ -33,7 +33,7 @@ defineProps<{
           class="absolute right-2 top-2 rounded-md bg-background p-1 shadow-sm"
           :aria-label="isFavourite ? 'Favourite' : 'Not favourite'"
         >
-          <Heart class="size-4" :class="{ 'fill-current': isFavourite }" />
+          <Heart class="size-6" :class="{ 'fill-current': isFavourite }" />
         </span>
       </div>
 

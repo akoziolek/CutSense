@@ -181,6 +181,8 @@ describe('FabricService', () => {
         pictureS3Key: 'users/3/fabrics/uploaded.jpg',
         isFavourite: false,
         area: 3600,
+        imageWidthCm: 50,
+        imageHeightCm: 25,
         userId: 3,
         createdAt: new Date('2025-01-15T10:30:00.000Z'),
       },
@@ -190,6 +192,8 @@ describe('FabricService', () => {
       service.createFabric(
         {
           name: 'Cotton canvas',
+          imageWidthCm: 50,
+          imageHeightCm: 25,
           boundary: [
             { x: -250, y: 125 },
             { x: 250, y: 125 },
@@ -220,6 +224,8 @@ describe('FabricService', () => {
       area: 3600,
       userId: 3,
       createdAt: '2025-01-15T10:30:00.000Z',
+      imageWidthCm: 50,
+      imageHeightCm: 25,
       boundary: [
         { x: -250, y: 125 },
         { x: 250, y: 125 },
@@ -240,6 +246,8 @@ describe('FabricService', () => {
       name: 'Cotton canvas',
       pictureS3Key: 'users/3/fabrics/uploaded.jpg',
       userId: 3,
+      imageWidthCm: 50,
+      imageHeightCm: 25,
     });
     expect(insertedFabric.boundary).toBeDefined();
     expect(insertedFabric.area).toBeDefined();
@@ -256,6 +264,8 @@ describe('FabricService', () => {
       service.createFabric(
         {
           name: 'Cotton canvas',
+          imageWidthCm: 50,
+          imageHeightCm: 25,
           boundary: [
             { x: -250, y: 125 },
             { x: 250, y: 125 },
@@ -288,6 +298,8 @@ describe('FabricService', () => {
       pictureS3Key: 'users/3/fabrics/fabric.jpg',
       isFavourite: true,
       area: 4.32,
+      imageWidthCm: 50,
+      imageHeightCm: 25,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
       boundaryGeoJson:
@@ -306,6 +318,8 @@ describe('FabricService', () => {
       pictureUrl: 'https://example.com/signed.jpg',
       isFavourite: true,
       area: 4.32,
+      imageWidthCm: 50,
+      imageHeightCm: 25,
       userId: 3,
       createdAt: '2025-01-15T10:30:00.000Z',
       boundary: [

@@ -37,7 +37,7 @@ export class FabricResponseDto {
   area!: number;
 
   @ApiProperty({
-    description: 'Fabric boundary points in Cartesian coordinates',
+    description: 'Fabric boundary points in calibrated Cartesian centimeters',
     type: [PointDto],
     example: [
       { x: -250, y: 125 },
@@ -47,6 +47,20 @@ export class FabricResponseDto {
     ],
   })
   boundary!: PointDto[];
+
+  @ApiPropertyOptional({
+    description:
+      'Image width in calibrated boundary units; omitted for fabrics created before image dimensions were stored.',
+    example: 60,
+  })
+  imageWidthCm?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Image height in calibrated boundary units; omitted for fabrics created before image dimensions were stored.',
+    example: 40,
+  })
+  imageHeightCm?: number;
 
   @ApiProperty({
     description: 'Identifier of the user who owns the fabric',

@@ -151,6 +151,8 @@ export class FabricService {
             description: createFabricDto.description,
             pictureS3Key,
             boundary: geometry,
+            imageWidthCm: createFabricDto.imageWidthCm,
+            imageHeightCm: createFabricDto.imageHeightCm,
             area: sql<number>`ST_Area(${geometry})`,
             userId: currentUserId,
           })

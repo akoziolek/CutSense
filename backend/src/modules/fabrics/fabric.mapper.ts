@@ -8,6 +8,8 @@ interface FabricWithTags {
   pictureS3Key?: string | null;
   isFavourite: boolean;
   area: number;
+  imageWidthCm?: number | null;
+  imageHeightCm?: number | null;
   userId: number;
   createdAt: Date;
   tags: {
@@ -68,6 +70,8 @@ export class FabricMapper {
       pictureUrl,
       isFavourite: fabric.isFavourite,
       area: fabric.area,
+      imageWidthCm: fabric.imageWidthCm ?? undefined,
+      imageHeightCm: fabric.imageHeightCm ?? undefined,
       userId: fabric.userId,
       createdAt: fabric.createdAt.toISOString(),
       tags: fabric.tags.map((item) => ({

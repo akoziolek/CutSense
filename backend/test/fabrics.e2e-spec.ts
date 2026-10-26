@@ -22,12 +22,10 @@ describe('Fabrics endpoint (integration)', () => {
   let sessionCookie: string;
 
   beforeEach(async () => {
-    findManyTags = vi
-      .fn()
-      .mockResolvedValue([
-        { id: 2, name: 'cotton' },
-        { id: 5, name: 'linen' },
-      ]);
+    findManyTags = vi.fn().mockResolvedValue([
+      { id: 2, name: 'cotton' },
+      { id: 5, name: 'linen' },
+    ]);
     insertReturning = vi.fn();
     insertValues = vi.fn(() => ({ returning: insertReturning }));
     insert = vi.fn(() => ({ values: insertValues }));
@@ -39,6 +37,8 @@ describe('Fabrics endpoint (integration)', () => {
       pictureS3Key: 'https://example.com/fabric.jpg',
       isFavourite: true,
       area: 4.32,
+      imageWidthCm: 50,
+      imageHeightCm: 25,
       userId: 1,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
       boundaryGeoJson:
@@ -166,8 +166,8 @@ describe('Fabrics endpoint (integration)', () => {
           'base64',
         ),
         {
-        filename: 'fabric.png',
-        contentType: 'image/png',
+          filename: 'fabric.png',
+          contentType: 'image/png',
         },
       )
       .expect(201)
@@ -188,6 +188,8 @@ describe('Fabrics endpoint (integration)', () => {
         pictureS3Key: 'users/1/fabrics/uploaded.png',
         isFavourite: false,
         area: 3600,
+        imageWidthCm: 50,
+        imageHeightCm: 25,
         userId: 1,
         createdAt: new Date('2025-01-15T10:30:00.000Z'),
       },
@@ -198,6 +200,8 @@ describe('Fabrics endpoint (integration)', () => {
       .set('Cookie', `session=${sessionCookie}`)
       .field('name', 'Cotton canvas')
       .field('description', 'Medium-weight cotton')
+      .field('imageWidthCm', '50')
+      .field('imageHeightCm', '25')
       .field('tagIds', JSON.stringify([2, 5]))
       .field(
         'boundary',
@@ -225,6 +229,8 @@ describe('Fabrics endpoint (integration)', () => {
           pictureS3Key: 'users/1/fabrics/uploaded.png',
           pictureUrl: 'https://example.com/signed.jpg',
           area: 3600,
+          imageWidthCm: 50,
+          imageHeightCm: 25,
           boundary: [
             { x: -250, y: 125 },
             { x: 250, y: 125 },
@@ -273,6 +279,8 @@ describe('Fabrics endpoint (integration)', () => {
         pictureUrl: 'https://example.com/signed.jpg',
         isFavourite: true,
         area: 4.32,
+        imageWidthCm: 50,
+        imageHeightCm: 25,
         userId: 1,
         createdAt: '2025-01-15T10:30:00.000Z',
         boundary: [

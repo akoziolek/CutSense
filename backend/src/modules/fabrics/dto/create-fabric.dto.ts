@@ -18,14 +18,24 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 const COORD_LIMIT = 1_000_000;
 
 export class PointDto {
-  @ApiProperty({ example: -250, minimum: -COORD_LIMIT, maximum: COORD_LIMIT })
+  @ApiProperty({
+    description: 'X coordinate in calibrated centimeters.',
+    example: -250,
+    minimum: -COORD_LIMIT,
+    maximum: COORD_LIMIT,
+  })
   @Type(() => Number)
   @IsNumber({ allowNaN: false, allowInfinity: false })
   @Min(-COORD_LIMIT)
   @Max(COORD_LIMIT)
   x!: number;
 
-  @ApiProperty({ example: 125, minimum: -COORD_LIMIT, maximum: COORD_LIMIT })
+  @ApiProperty({
+    description: 'Y coordinate in calibrated centimeters.',
+    example: 125,
+    minimum: -COORD_LIMIT,
+    maximum: COORD_LIMIT,
+  })
   @Type(() => Number)
   @IsNumber({ allowNaN: false, allowInfinity: false })
   @Min(-COORD_LIMIT)
@@ -42,7 +52,7 @@ export class CreateFabricDto {
 
   @ApiProperty({
     description:
-      'JSON-encoded array of boundary points with x and y coordinates. Provide at least three points; the boundary is closed automatically.',
+      'JSON-encoded array of boundary points in calibrated centimeters. Provide at least three points; the boundary is closed automatically.',
     type: String,
     example:
       '[{"x":-250,"y":125},{"x":250,"y":125},{"x":250,"y":625},{"x":-250,"y":625}]',
@@ -61,6 +71,24 @@ export class CreateFabricDto {
   @ValidateNested({ each: true })
   @Type(() => PointDto)
   boundary!: PointDto[];
+
+  @ApiProperty({
+    description: 'Image width in the same calibrated units as the boundary.',
+    example: 60,
+  })
+  @Type(() => Number)
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @IsPositive()
+  imageWidthCm!: number;
+
+  @ApiProperty({
+    description: 'Image height in the same calibrated units as the boundary.',
+    example: 40,
+  })
+  @Type(() => Number)
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @IsPositive()
+  imageHeightCm!: number;
 
   @ApiPropertyOptional({
     description: 'Description of the fabric',

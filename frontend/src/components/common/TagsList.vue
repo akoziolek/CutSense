@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Badge } from '@/components/ui/badge'
 import { Tag } from 'lucide-vue-next'
+import type { FabricTag } from '@/types/fabric'
 
 defineProps<{
-  tags: string[]
+  tags: FabricTag[]
 }>()
 </script>
 
@@ -13,11 +14,11 @@ defineProps<{
     <div v-if="tags && tags.length > 0" class="flex flex-wrap gap-2">
       <Badge
         v-for="tag in tags"
-        :key="tag"
+        :key="tag.id"
         variant="secondary"
         class="rounded-md px-2.5 py-0.5 text-xs font-inter bg-brand-grey hover:shadow-xs border-muted text-foreground"
       >
-        {{ tag }}
+        {{ tag.name }}
       </Badge>
     </div>
     <div v-else class="bg-white text-xs sm:text-sm border border-muted rounded-md p-3 text-center">

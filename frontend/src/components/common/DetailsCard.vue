@@ -3,6 +3,7 @@ import { type Component } from 'vue'
 import { Card, CardContent } from '@/components/ui/card'
 import TagsList from '../common/TagsList.vue'
 import { FileText } from 'lucide-vue-next'
+import type { FabricTag } from '@/types/fabric'
 
 export interface MetaItem {
   icon?: Component
@@ -13,7 +14,7 @@ export interface MetaItem {
 withDefaults(
   defineProps<{
     metaItems?: MetaItem[]
-    tags?: string[]
+    tags?: FabricTag[]
     description?: string
   }>(),
   {
@@ -51,9 +52,9 @@ withDefaults(
           <h3 class="font-semibold font-inter text-base text-foreground tracking-tight">
             Description
           </h3>
-          <p v-if="description" class="text-sm text-muted-foreground leading-relaxed">
+          <div v-if="description" class="text-sm text-muted-foreground leading-relaxed whitespace-pre-line break-words">
             {{ description }}
-          </p>
+          </div>
           <div
             v-else
             class="bg-white text-xs sm:text-sm border border-muted rounded-md p-3 text-center"

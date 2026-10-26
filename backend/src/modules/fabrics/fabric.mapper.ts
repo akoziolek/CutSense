@@ -1,11 +1,21 @@
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
-import { fabrics } from '../../db/schema/schema.js';
-import { FabricListItemDto } from './dto/fabric-list.dto.js';
-import { FabricService } from './fabrics.service.js';
 
-type FabricWithTags = typeof fabrics.$inferSelect & {
-  tags: { tag: { name: string } }[];
-};
+interface FabricWithTags {
+  id: number;
+  name: string;
+  description?: string | null;
+  pictureS3Key?: string | null;
+  isFavourite: boolean;
+  area: number;
+  userId: number;
+  createdAt: Date;
+  tags: {
+    tag: {
+      id: number;
+      name: string;
+    };
+  }[];
+}
 
 export class FabricMapper {
   static toResponseDto(
@@ -22,7 +32,27 @@ export class FabricMapper {
       area: fabric.area,
       userId: fabric.userId,
       createdAt: fabric.createdAt.toISOString(),
-      tags: fabric.tags.map((item) => item.tag.name),
+      tags: fabric.tags.map((item) => ({
+        id: item.tag.id,
+        name: item.tag.name,
+      })),
+    });
+  }
+
+  static toListItemDto(
+    fabric: Pick<
+      typeof fabrics.$inferSelect,
+      'id' | 'name' | 'pictureS3Key' | 'isFavourite' | 'area' | 'createdAt'
+    >,
+    pictureUrl?: string,
+  ): FabricListItemDto {
+    return Object.assign(new FabricListItemDto(), {
+      id: fabric.id,
+      name: fabric.name,
+      pictureUrl,
+      isFavourite: fabric.isFavourite,
+      area: fabric.area,
+      createdAt: fabric.createdAt.toISOString(),
     });
   }
 

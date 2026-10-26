@@ -1,3 +1,7 @@
+export interface FabricTag {
+  id: number
+  name: string
+}
 export interface FabricListItem {
     id: number
     name: string

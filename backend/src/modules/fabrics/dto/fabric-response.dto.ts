@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { FabricTagDto } from './fabric-tags.dto.js';
 
 export class FabricResponseDto {
   @ApiProperty({ description: 'Unique identifier of the fabric', example: 1 })
@@ -47,9 +48,9 @@ export class FabricResponseDto {
   createdAt!: string;
 
   @ApiProperty({
-    description: 'Names of the tags',
-    example: ['cotton'],
-    type: [String],
+    description: 'Tags associated with the fabric',
+    example: [{ id: 1, name: 'cotton' }],
+    type: [FabricTagDto],
   })
-  tags!: string[];
+  tags!: FabricTagDto[];
 }

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { get, set, del } from 'idb-keyval'
-import { computed } from 'vue'
+import type { FabricTag } from '@/types/fabric'
 
 export interface Point2D {
   pctX: number
@@ -21,7 +21,7 @@ export interface FabricConfig {
 export interface FabricDetails {
   name: string
   description: string
-  tags: string[]
+  tags: FabricTag[]
 }
 
 const STORAGE_FILE_KEY = 'adding_fabric_file'
@@ -89,10 +89,8 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
       tags: partialDetails.tags ? [...partialDetails.tags] : [...details.value.tags],
     }
 
-    const snapshot = {
-      ...details.value,
-      tags: [...details.value.tags],
-    }
+    const snapshot = JSON.parse(JSON.stringify(details.value)) as FabricDetails
+
     const write = detailsWriteQueue.then(() => set(STORAGE_DETAILS_KEY, snapshot))
     detailsWriteQueue = write.catch((error: unknown) => {
       console.error('Error saving fabric details to IndexedDB:', error)
@@ -100,10 +98,7 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     return write
   }
 
-  function updateConfig(
-    partialConfig: Partial<FabricConfig>,
-    confirmConfiguration = false,
-  ) {
+  function updateConfig(partialConfig: Partial<FabricConfig>, confirmConfiguration = false) {
     config.value = {
       ...config.value,
       ...partialConfig,
@@ -181,11 +176,7 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
 
     try {
       await Promise.all([detailsWriteQueue, configWriteQueue])
-      await Promise.all([
-        del(STORAGE_FILE_KEY),
-        del(STORAGE_CONFIG_KEY),
-        del(STORAGE_DETAILS_KEY),
-      ])
+      await Promise.all([del(STORAGE_FILE_KEY), del(STORAGE_CONFIG_KEY), del(STORAGE_DETAILS_KEY)])
     } catch (error) {
       console.error('Error clearing IndexedDB:', error)
     }

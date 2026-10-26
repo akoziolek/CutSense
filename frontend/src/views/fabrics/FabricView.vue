@@ -10,13 +10,15 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { CalendarDays, RulerDimensionLine, ArrowLeft, RotateCcw } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
+import DetailsActions from '@/components/common/DetailsActions.vue'
+import type { FabricTag } from '@/types/fabric'
 
 interface Fabric {
   id: number
   name: string
   description?: string
-  pictureURL?: string
-  tags: string[]
+  pictureUrl?: string
+  tags: FabricTag[]
   createdAt: string
   area: number
 }
@@ -102,7 +104,9 @@ watch(
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
       <PageHeader :title="fabric?.name ?? (isFetching ? '' : 'Fabric details')">
-        <!-- Place for icons -->
+        <template #actions>
+          <DetailsActions :edit-to="{ name: 'FabricEdit', params: { id: props.id }}" />  
+        </template>
       </PageHeader>
 
       <Transition
@@ -176,4 +180,3 @@ watch(
     </div>
   </GridLayout>
 </template>
-

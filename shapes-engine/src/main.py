@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.boundary_detection import analyze_fabric_shape
+from segmentation.boundary_detection import analyze_fabric_shape
 
 app = FastAPI()
 

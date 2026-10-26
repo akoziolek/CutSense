@@ -1,3 +1,5 @@
+import { fabrics } from '../../db/schema/schema.js';
+import { FabricListItemDto } from './dto/fabric-list.dto.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
 
 interface FabricWithTags {

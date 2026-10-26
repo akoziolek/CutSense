@@ -218,6 +218,21 @@ export class FabricController {
   }
 
   @Patch(':id/favourite')
+  @ApiOperation({
+  summary: 'Add or remove a fabric from favourites',
+  description: 'Sets the favourite flag of a fabric owned by the current user. Idempotent.',
+  })
+  @ApiParam({ 
+    name: 'id', type: Number, 
+    example: 1 
+  })
+  @ApiBody({ type: SetFavouriteDto })
+  @ApiOkResponse({ type: FabricFavouriteDto })
+  @ApiBadRequestResponse({ description: 'Invalid ID or body.' })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  @ApiNotFoundResponse({ 
+    description: 'The fabric does not exist or is not owned by the current user.' 
+  })
   async setFavourite(
     @Param('id', ParseIntPipe) fabricId: number,
     @Body() dto: SetFavouriteDto,

@@ -115,13 +115,16 @@ const handleWheel = (e: WheelEvent) => {
     emit('update:zoomLevel', Number(newZoom.toFixed(2)))
     return
   }
-  // moving img
-  const newOffsetX = props.canvasOffset.x - e.deltaX
-  const newOffsetY = props.canvasOffset.y - e.deltaY
+  const maxOffset = 200 * (props.zoomLevel - 0.5)
+  const rawOffsetX = props.canvasOffset.x - e.deltaX
+  const rawOffsetY = props.canvasOffset.y - e.deltaY
+
+  const clampedX = Math.min(Math.max(rawOffsetX, -maxOffset), maxOffset)
+  const clampedY = Math.min(Math.max(rawOffsetY, -maxOffset), maxOffset)
 
   emit('update:canvasOffset', {
-    x: Number(newOffsetX.toFixed(1)),
-    y: Number(newOffsetY.toFixed(1)),
+    x: Number(clampedX.toFixed(1)),
+    y: Number(clampedY.toFixed(1)),
   })
 }
 

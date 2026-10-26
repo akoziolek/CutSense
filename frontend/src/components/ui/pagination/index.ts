@@ -1,4 +1,4 @@
-export { default as Pagination } from "./Pagination.vue"
+export { default as Pagination } from "./pagination.vue"
 export { default as PaginationContent } from "./PaginationContent.vue"
 export { default as PaginationEllipsis } from "./PaginationEllipsis.vue"
 export { default as PaginationFirst } from "./PaginationFirst.vue"

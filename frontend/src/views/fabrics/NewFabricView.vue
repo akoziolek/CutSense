@@ -7,7 +7,7 @@ import { useNewFabricFormGuard } from '@/composables/fabrics/useNewFabricFormGua
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StepCounter from '@/components/forms/StepCounter.vue'
-import DiscardNewFabricModal from '@/components/forms/DiscardChangesModal.vue'
+import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 
 import StepUpload from '@/components/fabrics/new/StepUpload.vue'
@@ -99,6 +99,6 @@ const TITLES = ['Upload Fabric Photo', 'Fabric Configuration', 'Fabric Details']
       </template>
     </div>
 
-    <DiscardNewFabricModal v-model:open="isCancelModalOpen" @confirm="confirmExit" />
+    <DiscardChangesModal v-model:open="isCancelModalOpen" @confirm="confirmExit" />
   </GridLayout>
 </template>

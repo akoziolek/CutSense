@@ -1,191 +1,98 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { ArrowLeft, Check } from 'lucide-vue-next'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
-import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import MessageDialog from '@/components/common/MessageDialog.vue'
-import StepSource from '@/components/patterns/new/StepSource.vue'
-import StepScale from '@/components/patterns/new/StepScale.vue'
-import StepPieces from '@/components/patterns/new/StepPieces.vue'
-import StepDetails from '@/components/patterns/new/StepDetails.vue'
-import { Button } from '@/components/ui/button'
-import { useNewPattern } from '@/composables/patterns/useNewPattern'
-import { api, ApiError } from '@/api/client'
+import StepCounter from '@/components/forms/StepCounter.vue'
+import { Skeleton } from '@/components/ui/skeleton'
+
+import StepUpload from '@/components/patterns/new/StepUpload.vue'
+import { usePatternAddingStore } from '@/stores/addingPatternStore'
+import { useNewPatternFormGuard } from '@/composables/patterns/useNewPatternFormGuard'
+import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
 
 const TITLES = ['Pattern source', 'Pattern configuration', 'Detected pieces', 'Pattern details']
 
+const route = useRoute()
 const router = useRouter()
+const patternStore = usePatternAddingStore()
+const isInitializing = ref(true)
 
-const step = ref(1)
-const loadError = ref('')
-const cancelOpen = ref(false)
-const savedOpen = ref(false)
-const savedName = ref('')
+const { isCancelModalOpen, handleCancel, confirmExit } = useNewPatternFormGuard()
 
-const { draft, hasData, generatePieces, reset, toPayload } = useNewPattern()
-
-const saving = ref(false)
-const saveError = ref('')
-const savedId = ref<number | null>(null)
-
-const canNext = computed(() => {
-  switch (step.value) {
-    case 1:
-      return draft.photos.length > 0
-    case 3:
-      return draft.pieces.length > 0
-    case 4:
-      return !!draft.details.name.trim() && !!draft.details.size && !!draft.details.visibility
-    default:
-      return true
+onMounted(async () => {
+  if (!patternStore.isHydrated) {
+    await patternStore.initFromIndexedDB()
   }
+  isInitializing.value = false
 })
 
-async function next() {
-  if (!canNext.value || saving.value) return
-  if (step.value === 2) generatePieces()
-  if (step.value < 4) {
-    step.value++
-    return
-  }
-  await save()
-}
+const validStep = computed(() => {
+  if (isInitializing.value) return 1
+  const requestedStep = Number(route.query.step) || 1
 
-async function save() {
-  saving.value = true
-  saveError.value = ''
-  try {
-    const created = await api<{ id: number }>('/patterns', {
-      method: 'POST',
-      body: JSON.stringify(toPayload()),
+  if (requestedStep >= 2 && !patternStore.hasPhotos) {
+    return 1
+  }
+
+  return Math.min(Math.max(requestedStep, 1), 4)
+})
+
+const step = computed({
+  get: () => validStep.value,
+  set(nextStep: number) {
+    void router.push({
+      query: {
+        ...route.query,
+        step: nextStep > 1 ? nextStep : undefined,
+      },
     })
-    savedName.value = draft.details.name.trim()
-    savedId.value = created.id
-    savedOpen.value = true
-  } catch (e) {
-    if (e instanceof ApiError) {
-      saveError.value =
-        e.body.errorCode === 'VALIDATION_ERROR' && Array.isArray(e.body.details)
-          ? e.body.details.join(' ')
-          : e.body.message
-    } else {
-      saveError.value = 'Could not save the pattern. Please try again.'
+  },
+})
+
+watch(
+  [() => route.query.step, validStep, isInitializing],
+  () => {
+    if (isInitializing.value) return
+    const requestedStep = Number(route.query.step) || 1
+
+    if (requestedStep !== validStep.value) {
+      void router.replace({
+        query: {
+          ...route.query,
+          step: validStep.value > 1 ? validStep.value : undefined,
+        },
+      })
     }
-  } finally {
-    saving.value = false
-  }
-}
-
-function askCancel() {
-  if (hasData.value) cancelOpen.value = true
-  else leave()
-}
-
-function back() {
-  if (step.value > 1) step.value--
-  else askCancel()
-}
-
-function leave() {
-  cancelOpen.value = false
-  reset()
-  router.push('/patterns')
-}
-
-function onSavedClosed(open: boolean) {
-  if (open) return
-  savedOpen.value = false
-  const id = savedId.value
-  reset()
-  router.push(id ? `/patterns/${id}` : '/patterns')
-}
-
-// closing the tab or the browser interrupts the process, nothing is saved
-const warnBeforeUnload = (e: BeforeUnloadEvent) => {
-  if (hasData.value) e.preventDefault()
-}
-onMounted(() => window.addEventListener('beforeunload', warnBeforeUnload))
-onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnload))
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
   <GridLayout>
     <div class="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-12 sm:py-10 lg:px-14">
-      <div class="flex items-center gap-3">
-        <Button
-          variant="outline"
-          size="icon"
-          class="h-8 w-8 shrink-0"
-          aria-label="Back"
-          @click="back"
-        >
-          <ArrowLeft class="w-4 h-4" />
-        </Button>
-        <PageHeader :title="TITLES[step - 1]" class="flex-1">
+      <div v-if="isInitializing" class="space-y-4">
+        <Skeleton class="h-10 w-64" />
+        <Skeleton class="h-96 w-full rounded-2xl" />
+      </div>
+
+      <template v-else>
+        <PageHeader :title="TITLES[step - 1]" :show-back="step > 1" @back="step = step - 1">
           <template #actions>
-            <span class="text-xs text-muted-foreground">Step {{ step }} of 4</span>
+            <StepCounter :current-step="step" :total-steps="4" />
           </template>
         </PageHeader>
-      </div>
 
-      <p v-if="step === 2" class="text-sm text-muted-foreground">
-        Scale your fabric pattern to the grid. Use a known reference object, like a credit card, as
-        a scale.
-      </p>
+        <StepUpload v-if="step === 1" @next="step = 2" @cancel="handleCancel" />
 
-      <StepSource v-if="step === 1" @error="loadError = $event" />
-      <StepScale v-else-if="step === 2" />
-      <StepPieces v-else-if="step === 3" />
-      <StepDetails v-else />
-
-      <div class="flex justify-end gap-2 pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          class="h-9 rounded-lg text-xs sm:text-sm font-semibold border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
-          @click="askCancel"
-        >
-          Cancel
-        </Button>
-        <Button
-          type="button"
-          :disabled="!canNext || saving"
-          class="h-9 rounded-lg text-xs sm:text-sm font-semibold inline-flex items-center gap-1.5 bg-zinc-950 text-white hover:bg-zinc-800 disabled:bg-zinc-300 disabled:opacity-100 disabled:cursor-not-allowed"
-          @click="next"
-        >
-          {{ step === 4 ? 'Save' : 'Next' }}
-          <Check class="w-3.5 h-3.5 stroke-[2.5]" />
-        </Button>
-      </div>
+        <div v-else class="p-8 text-center border border-dashed rounded-xl text-muted-foreground">
+          Step {{ step }} placeholder
+        </div>
+      </template>
     </div>
 
-    <ConfirmDialog
-      v-model:open="cancelOpen"
-      title="Discard unsaved changes?"
-      description="Exiting now will cause all entered data to be lost."
-      confirm-label="Discard"
-      cancel-label="Keep editing"
-      @confirm="leave"
-    />
-    <MessageDialog
-      :open="!!loadError"
-      title="Unable to load image"
-      :description="loadError"
-      @update:open="(open) => !open && (loadError = '')"
-    />
-    <MessageDialog
-      :open="savedOpen"
-      title="Pattern saved"
-      :description="`${savedName} was added to your library.`"
-      @update:open="onSavedClosed"
-    />
-    <MessageDialog
-      :open="!!saveError"
-      title="Unable to save pattern"
-      :description="saveError"
-      @update:open="(open) => !open && (saveError = '')"
-    />
+    <DiscardChangesModal v-model:open="isCancelModalOpen" @confirm="confirmExit" />
   </GridLayout>
 </template>

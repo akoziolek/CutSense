@@ -1,24 +1,20 @@
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
-import { patternPieces, patternTags, patterns, tagsForPatterns, } from '../../db/schema/schema.js';
+import {
+  patternPieces,
+  patternTags,
+  patterns,
+  tagsForPatterns,
+} from '../../db/schema/schema.js';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
+import { PatternTagDto } from './dto/pattern-tags.dto.js';
 import type { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
 import { rotateAndAnchor } from './geometry.js';
 import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';
-
-const toWkt = (points: { x: number; y: number }[]): string => {
-  const ring = [...points];
-  const first = ring[0];
-  const last = ring[ring.length - 1];
-  if (first.x !== last.x || first.y !== last.y) ring.push(first);
-  return `POLYGON((${ring.map((p) => `${p.x} ${p.y}`).join(', ')}))`;
-};
-
-const ringOf = (geojson: string): [number, number][] =>
-  (JSON.parse(geojson) as { coordinates: [number, number][][] }).coordinates[0];
+import { PatternsMapper } from './patterns.mapper.js';
 
 @Injectable()
 export class PatternsService {
@@ -39,7 +35,7 @@ export class PatternsService {
             tag: true,
           },
         },
-                user: {
+        user: {
           columns: { id: true, nickname: true, name: true },
         },
         pieces: {
@@ -48,43 +44,31 @@ export class PatternsService {
             geojson: sql<string>`ST_AsGeoJSON(${piece.boundary})`.as('geojson'),
           }),
           orderBy: (piece, { asc }) => [asc(piece.id)],
+        },
       },
-    },
-  });
+    });
 
     if (!pattern) {
       throw new ResourceNotFoundException(`Pattern`, patternId);
     }
     if (pattern.visibility === 'PRIVATE' && pattern.userId !== currentUserId) {
       if (currentUserId === null) {
-        throw new AuthenticationRequiredException('Sign in to view this pattern.');
+        throw new AuthenticationRequiredException(
+          'Sign in to view this pattern.',
+        );
       }
-      throw new AccessDeniedException('This pattern is private and belongs to another user.');
+      throw new AccessDeniedException(
+        'This pattern is private and belongs to another user.',
+      );
     }
 
-    return {
-      id: pattern.id,
-      name: pattern.name,
-      description: pattern.description ?? undefined,
-      size: pattern.size,
-      visibility: pattern.visibility,
-      starCount: pattern.starCount,
-      starAverage: pattern.starAverage,
-      userId: pattern.userId,
-      createdAt: pattern.createdAt.toISOString(),
-      tags: pattern.tags.map((item) => item.tag.name),
-      author: {
-        id: pattern.user.id,
-        nickname: pattern.user.nickname ?? pattern.user.name,
-      },
-      pieces: pattern.pieces.map((piece) => ({
-        id: piece.id,
-        points: ringOf(piece.geojson),
-      })),
-    };
+    return PatternsMapper.toResponseDto(pattern);
   }
 
-    async createPattern(dto: CreatePatternDto, userId: number): Promise<{ id: number }> {
+  async createPattern(
+    dto: CreatePatternDto,
+    userId: number,
+  ): Promise<{ id: number }> {
     const tagNames = [...new Set(dto.tags.map((t) => t.trim().toLowerCase()))];
 
     // one transaction: if anything fails, nothing is saved
@@ -96,7 +80,9 @@ export class PatternsService {
             .where(inArray(tagsForPatterns.name, tagNames))
         : [];
 
-      const unknown = tagNames.filter((n) => !tagRows.some((r) => r.name === n));
+      const unknown = tagNames.filter(
+        (n) => !tagRows.some((r) => r.name === n),
+      );
       if (unknown.length) {
         throw new BadRequestException([`Unknown tags: ${unknown.join(', ')}`]);
       }
@@ -121,7 +107,7 @@ export class PatternsService {
       await tx.insert(patternPieces).values(
         dto.pieces.map((piece) => ({
           patternId: created.id,
-          boundary: sql`ST_GeomFromText(${toWkt(rotateAndAnchor(piece.points, piece.grainline))}, 0)`,
+          boundary: sql`ST_GeomFromText(${PatternsMapper.pieceBoundaryToWkt(rotateAndAnchor(piece.points, piece.grainline))}, 0)`,
           normalCount: piece.normal,
           mirroredCount: piece.mirrored,
         })),
@@ -129,5 +115,14 @@ export class PatternsService {
 
       return { id: created.id };
     });
+  }
+
+  async getPatternTags(): Promise<PatternTagDto[]> {
+    const tags = await this.db.query.tagsForPatterns.findMany({
+      columns: { id: true, name: true },
+      orderBy: (tag, { asc }) => [asc(tag.name)],
+    });
+
+    return PatternsMapper.toTagDtos(tags);
   }
 }

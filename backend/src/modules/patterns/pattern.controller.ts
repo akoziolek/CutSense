@@ -28,6 +28,7 @@ import { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { OptionalSessionGuard } from '../../auth/guards/optional-session.guard.js';
 import { OptionalUser } from '../../common/decorators/optional-user.decorator.js';
 import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
+import { PatternTagDto } from './dto/pattern-tags.dto.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')
@@ -86,4 +87,21 @@ export class PatternController {
     return this.patternsService.createPattern(dto, user.id);
   }
 
+  
+    @Get('tags')
+    @ApiOperation({
+      summary: 'Get available pattern tags',
+      description: 'Returns the IDs and names of all tags available for patterns.',
+    })
+    @ApiOkResponse({
+      description: 'The available pattern tags were returned successfully.',
+      type: PatternTagDto,
+      isArray: true,
+    })
+    @ApiUnauthorizedResponse({
+      description: 'A valid session cookie is required.',
+    })
+    async getFabricTags(): Promise<PatternTagDto[]> {
+      return this.patternsService.getPatternTags();
+    }
 }

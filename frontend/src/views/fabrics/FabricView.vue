@@ -8,12 +8,13 @@ import DetailsCard, { type MetaItem } from '@/components/common/DetailsCard.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { CalendarDays, RulerDimensionLine, ArrowLeft, RotateCcw } from 'lucide-vue-next'
+import { CalendarDays, RulerDimensionLine, ArrowLeft, RotateCcw, Heart } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import DetailsActions from '@/components/common/DetailsActions.vue'
 import type { FabricTag } from '@/types/fabric'
 import type { PolygonEdge } from '@/types/geometry'
 import { toImagePercentBoundary, type CartesianPoint } from '@/utils/fabricBoundary'
+import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 
 interface Fabric {
   id: number
@@ -26,6 +27,7 @@ interface Fabric {
   boundary: CartesianPoint[]
   imageWidthCm?: number
   imageHeightCm?: number
+  isFavourite: boolean
 }
 
 const props = defineProps<{ id: string }>()
@@ -130,6 +132,8 @@ const fetchFabric = async (id: string, activeSignal = { active: true }) => {
   }
 }
 
+const { toggle: toggleFavourite, pending } = useFavouriteToggle()
+
 watch(
   () => props.id,
   (id, _, onCleanup) => {
@@ -149,7 +153,21 @@ watch(
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
       <PageHeader :title="fabric?.name ?? (isFetching ? '' : 'Fabric details')">
         <template #actions>
-          <DetailsActions :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" />
+          <div class="flex items-center gap-2">
+            <Button
+              v-if="fabric"
+              variant="outline"
+              size="icon"
+              class="cursor-pointer hover:bg-brand-pink"
+              :aria-label="fabric.isFavourite ? 'Remove from favourites' : 'Add to favourites'"
+              :aria-pressed="fabric.isFavourite"
+              :disabled="pending.has(fabric.id)"
+              @click="toggleFavourite(fabric)"
+            >
+              <Heart class="size-6" :class="{ 'fill-current': fabric.isFavourite } " />
+            </Button>
+            <DetailsActions :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" />
+          </div>
         </template>
       </PageHeader>
 
@@ -219,7 +237,7 @@ watch(
               </div>
             </div>
             <p
-              v-if="fabric.boundary.length > 0 && normalizedPoints.length === 0"
+              v-if="fabric.boundary?.length > 0 && normalizedPoints?.length === 0"
               class="mt-2 text-sm text-muted-foreground"
             >
               Boundary preview is unavailable because calibrated image dimensions are missing.

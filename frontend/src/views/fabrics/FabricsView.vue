@@ -122,7 +122,7 @@ watch(
 
 <template>
   <GridLayout>
-    <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
+    <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-10">
       <PageHeader>
         <span>Fabrics</span>
         <span v-if="data" class="ml-3 text-sm font-semibold">({{ data.total }} found)</span>
@@ -205,10 +205,10 @@ watch(
             <ResourceCard
               v-for="fabric in data.items"
               :key="fabric.id"
-              :to="{ name: 'fabric-details', params: { id: fabric.id } }"
+              :to="{ name: 'FabricDetails', params: { id: fabric.id } }"
               :title="fabric.name"
               :meta="`${formatCardDate(fabric.createdAt)} • ${fabric.area.toFixed(1)} m²`"
-              :image-url="fabric.pictureURL"
+              :image-url="fabric.pictureUrl"
               :is-favourite="fabric.isFavourite"
             />
           </div>

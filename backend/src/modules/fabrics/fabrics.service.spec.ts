@@ -187,6 +187,8 @@ describe('FabricService', () => {
         pictureS3Key: 'users/3/fabrics/uploaded.jpg',
         isFavourite: false,
         area: 3600,
+        imageWidthCm: 50,
+        imageHeightCm: 25,
         userId: 3,
         createdAt: new Date('2025-01-15T10:30:00.000Z'),
       },
@@ -196,6 +198,8 @@ describe('FabricService', () => {
       service.createFabric(
         {
           name: 'Cotton canvas',
+          imageWidthCm: 50,
+          imageHeightCm: 25,
           boundary: [
             { x: -250, y: 125 },
             { x: 250, y: 125 },
@@ -226,6 +230,14 @@ describe('FabricService', () => {
       area: 3600,
       userId: 3,
       createdAt: '2025-01-15T10:30:00.000Z',
+      imageWidthCm: 50,
+      imageHeightCm: 25,
+      boundary: [
+        { x: -250, y: 125 },
+        { x: 250, y: 125 },
+        { x: 250, y: 625 },
+        { x: -250, y: 625 },
+      ],
       tags: [],
     });
 
@@ -240,6 +252,8 @@ describe('FabricService', () => {
       name: 'Cotton canvas',
       pictureS3Key: 'users/3/fabrics/uploaded.jpg',
       userId: 3,
+      imageWidthCm: 50,
+      imageHeightCm: 25,
     });
     expect(insertedFabric.boundary).toBeDefined();
     expect(insertedFabric.area).toBeDefined();
@@ -256,6 +270,8 @@ describe('FabricService', () => {
       service.createFabric(
         {
           name: 'Cotton canvas',
+          imageWidthCm: 50,
+          imageHeightCm: 25,
           boundary: [
             { x: -250, y: 125 },
             { x: 250, y: 125 },
@@ -288,8 +304,12 @@ describe('FabricService', () => {
       pictureS3Key: 'users/3/fabrics/fabric.jpg',
       isFavourite: true,
       area: 4.32,
+      imageWidthCm: 50,
+      imageHeightCm: 25,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
+      boundaryGeoJson:
+        '{"type":"Polygon","coordinates":[[[-250,125],[250,125],[250,625],[-250,625],[-250,125]]]}',
       tags: [
         { tag: { id: 2, name: 'cotton' } },
         { tag: { id: 5, name: 'canvas' } },
@@ -304,8 +324,16 @@ describe('FabricService', () => {
       pictureUrl: 'https://example.com/signed.jpg',
       isFavourite: true,
       area: 4.32,
+      imageWidthCm: 50,
+      imageHeightCm: 25,
       userId: 3,
       createdAt: '2025-01-15T10:30:00.000Z',
+      boundary: [
+        { x: -250, y: 125 },
+        { x: 250, y: 125 },
+        { x: 250, y: 625 },
+        { x: -250, y: 625 },
+      ],
       tags: [
         { id: 2, name: 'cotton' },
         { id: 5, name: 'canvas' },
@@ -315,6 +343,8 @@ describe('FabricService', () => {
     expect(findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.anything(),
+        columns: { boundary: false },
+        extras: { boundaryGeoJson: expect.anything() },
         with: { tags: { with: { tag: true } } },
       }),
     );
@@ -333,6 +363,8 @@ describe('FabricService', () => {
       area: 2.1,
       userId: 3,
       createdAt: new Date('2025-02-01T00:00:00.000Z'),
+      boundaryGeoJson:
+        '{"type":"Polygon","coordinates":[[[-250,125],[250,125],[250,625],[-250,625],[-250,125]]]}',
       tags: [],
     });
 
@@ -400,6 +432,8 @@ describe('FabricService', () => {
       area: 4.32,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
+      boundaryGeoJson:
+        '{"type":"Polygon","coordinates":[[[-250,125],[250,125],[250,625],[-250,625],[-250,125]]]}',
       tags: [
         { tag: { id: 2, name: 'cotton' } },
         { tag: { id: 5, name: 'linen' } },
@@ -456,6 +490,8 @@ describe('FabricService', () => {
       area: 4.32,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
+      boundaryGeoJson:
+        '{"type":"Polygon","coordinates":[[[-250,125],[250,125],[250,625],[-250,625],[-250,125]]]}',
       tags: [{ tag: { id: 2, name: 'cotton' } }],
     });
 
@@ -487,6 +523,8 @@ describe('FabricService', () => {
       area: 4.32,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
+      boundaryGeoJson:
+        '{"type":"Polygon","coordinates":[[[-250,125],[250,125],[250,625],[-250,625],[-250,125]]]}',
       tags: [],
     });
 

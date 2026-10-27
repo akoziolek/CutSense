@@ -13,8 +13,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/api/client'
-import type { FabricListResponse, FabricSort } from '@/types/fabric'
+import type { FabricListItem, FabricListResponse, FabricSort } from '@/types/fabric'
 import { formatCardDate } from '@/utils/formatCardDate'
+import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: FabricSort = 'date_desc'
@@ -105,6 +106,9 @@ const fetchFabrics = async (activeSignal = { active: true }) => {
     }
   }
 }
+
+const pendingFavourites = new Set<number>()
+const { toggle: toggleFavourite } = useFavouriteToggle()
 
 watch(
   [page, sort],
@@ -207,9 +211,11 @@ watch(
               :key="fabric.id"
               :to="{ name: 'FabricDetails', params: { id: fabric.id } }"
               :title="fabric.name"
-              :meta="`${formatCardDate(fabric.createdAt)} • ${fabric.area.toFixed(1)} m²`"
+              :meta="`${formatCardDate(fabric.createdAt)} • ${(fabric.area/10000).toFixed(2)} m²`"
               :image-url="fabric.pictureUrl"
               :is-favourite="fabric.isFavourite"
+              toggleable
+              @toggle-favourite="toggleFavourite(fabric)"
             />
           </div>
 

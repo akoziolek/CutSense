@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import { useNewPattern } from '@/composables/useNewPattern'
+import { useNewPattern } from '@/composables/patterns/useNewPattern'
 
 const GRID_W = 125 // cm
 const GRID_H = 100 // cm
@@ -50,7 +50,11 @@ const gridStyle = {
       <div class="flex min-w-0 flex-col items-center gap-4 md:flex-row md:items-stretch md:gap-6">
         <div class="flex w-full flex-row items-center gap-2 md:w-auto md:flex-col">
           <span class="rounded-md border border-muted bg-card px-3 py-1 text-xs">[CM]</span>
-          <Button variant="outline" class="h-8 gap-1.5 text-xs" @click="setWidth(photo.widthCm + STEP)">
+          <Button
+            variant="outline"
+            class="h-8 gap-1.5 text-xs"
+            @click="setWidth(photo.widthCm + STEP)"
+          >
             <ZoomIn class="h-3.5 w-3.5" /> Scale up
           </Button>
           <input
@@ -62,14 +66,20 @@ const gridStyle = {
             aria-label="Photo width in centimeters"
             @input="setWidth(Number(($event.target as HTMLInputElement).value))"
           />
-          <Button variant="outline" class="h-8 gap-1.5 text-xs" @click="setWidth(photo.widthCm - STEP)">
+          <Button
+            variant="outline"
+            class="h-8 gap-1.5 text-xs"
+            @click="setWidth(photo.widthCm - STEP)"
+          >
             <ZoomOut class="h-3.5 w-3.5" /> Scale down
           </Button>
         </div>
 
         <div class="w-full min-w-0 max-w-[520px]">
           <div class="flex gap-2">
-            <div class="flex flex-col-reverse justify-between text-xs tabular-nums text-muted-foreground">
+            <div
+              class="flex flex-col-reverse justify-between text-xs tabular-nums text-muted-foreground"
+            >
               <span v-for="n in [0, 25, 50, 75, 100]" :key="n">{{ n }}</span>
             </div>
             <div
@@ -111,7 +121,10 @@ const gridStyle = {
       </Button>
     </div>
 
-    <ul v-if="draft.photos.length > 1" class="flex flex-wrap justify-center gap-2 border-t border-muted pt-3">
+    <ul
+      v-if="draft.photos.length > 1"
+      class="flex flex-wrap justify-center gap-2 border-t border-muted pt-3"
+    >
       <li v-for="(p, i) in draft.photos" :key="p.id">
         <button
           type="button"

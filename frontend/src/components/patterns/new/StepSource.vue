@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Images, X } from 'lucide-vue-next'
-import { useNewPattern } from '@/composables/useNewPattern'
+import { useNewPattern } from '@/composables/patterns/useNewPattern'
 
 const emit = defineEmits<{ (e: 'error', message: string): void }>()
 const { draft, addPhotos, removePhoto } = useNewPattern()

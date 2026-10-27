@@ -11,7 +11,7 @@ import StepScale from '@/components/patterns/new/StepScale.vue'
 import StepPieces from '@/components/patterns/new/StepPieces.vue'
 import StepDetails from '@/components/patterns/new/StepDetails.vue'
 import { Button } from '@/components/ui/button'
-import { useNewPattern } from '@/composables/useNewPattern'
+import { useNewPattern } from '@/composables/patterns/useNewPattern'
 import { api, ApiError } from '@/api/client'
 
 const TITLES = ['Pattern source', 'Pattern configuration', 'Detected pieces', 'Pattern details']
@@ -52,7 +52,6 @@ async function next() {
   }
   await save()
 }
-
 
 async function save() {
   saving.value = true
@@ -113,7 +112,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
 
 <template>
   <GridLayout>
-      <div class="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-12 sm:py-10 lg:px-14">
+    <div class="mx-auto w-full max-w-screen-2xl space-y-6 px-4 py-6 sm:px-12 sm:py-10 lg:px-14">
       <div class="flex items-center gap-3">
         <Button
           variant="outline"
@@ -132,8 +131,8 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
       </div>
 
       <p v-if="step === 2" class="text-sm text-muted-foreground">
-        Scale your fabric pattern to the grid. Use a known reference object, like a credit card, as a
-        scale.
+        Scale your fabric pattern to the grid. Use a known reference object, like a credit card, as
+        a scale.
       </p>
 
       <StepSource v-if="step === 1" @error="loadError = $event" />

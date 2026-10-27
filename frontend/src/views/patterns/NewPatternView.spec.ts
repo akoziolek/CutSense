@@ -3,7 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent, h } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, api } from '@/api/client'
-import { useNewPattern } from '@/composables/useNewPattern'
+import { useNewPattern } from '@/composables/patterns/useNewPattern.ts'
 import NewPatternView from './NewPatternView.vue'
 
 vi.mock('@/api/client', async (importOriginal) => {
@@ -35,7 +35,11 @@ const DialogStub = defineComponent({
       props.open
         ? h('div', { 'data-dialog': props.title }, [
             h('p', props.description),
-            h('button', { 'data-close': props.title, onClick: () => emit('update:open', false) }, 'close'),
+            h(
+              'button',
+              { 'data-close': props.title, onClick: () => emit('update:open', false) },
+              'close',
+            ),
             h('button', { 'data-confirm': props.title, onClick: () => emit('confirm') }, 'confirm'),
           ])
         : null
@@ -51,7 +55,12 @@ const mountView = () =>
           props: { title: String },
           setup: (props) => () => h('h1', props.title),
         }),
-        Button: defineComponent({ setup: (_, { slots }) => () => h('button', slots.default?.()) }),
+        Button: defineComponent({
+          setup:
+            (_, { slots }) =>
+            () =>
+              h('button', slots.default?.()),
+        }),
         StepSource: stub('step-source'),
         StepScale: stub('step-scale'),
         StepPieces: stub('step-pieces'),
@@ -137,10 +146,7 @@ describe('NewPatternView', () => {
     await action(wrapper, 'Save').trigger('click')
     await flushPromises()
 
-    expect(apiMock).toHaveBeenCalledWith(
-      '/patterns',
-      expect.objectContaining({ method: 'POST' }),
-    )
+    expect(apiMock).toHaveBeenCalledWith('/patterns', expect.objectContaining({ method: 'POST' }))
     const body = JSON.parse((apiMock.mock.calls[0]![1] as RequestInit).body as string)
     expect(body).toMatchObject({ name: 'Shirt', size: 'M', visibility: 'PUBLIC' })
     expect(body.pieces).toHaveLength(1)

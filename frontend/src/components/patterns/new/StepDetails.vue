@@ -3,7 +3,13 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { Search, X } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { DESC_MAX, NAME_MAX, SIZES, TAG_OPTIONS, useNewPattern } from '@/composables/useNewPattern'
+import {
+  DESC_MAX,
+  NAME_MAX,
+  SIZES,
+  TAG_OPTIONS,
+  useNewPattern,
+} from '@/composables/patterns/useNewPattern'
 
 const { draft } = useNewPattern()
 
@@ -165,11 +171,21 @@ const fieldClass =
       </legend>
       <div class="flex gap-5 text-xs">
         <label class="flex items-center gap-1.5">
-          <input v-model="draft.details.visibility" type="radio" value="PUBLIC" class="accent-foreground" />
+          <input
+            v-model="draft.details.visibility"
+            type="radio"
+            value="PUBLIC"
+            class="accent-foreground"
+          />
           Public
         </label>
         <label class="flex items-center gap-1.5">
-          <input v-model="draft.details.visibility" type="radio" value="PRIVATE" class="accent-foreground" />
+          <input
+            v-model="draft.details.visibility"
+            type="radio"
+            value="PRIVATE"
+            class="accent-foreground"
+          />
           Private
         </label>
       </div>

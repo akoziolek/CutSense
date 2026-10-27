@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Info, Trash2 } from 'lucide-vue-next'
 import GrainlineDial from './GrainlineDial.vue'
-import { useNewPattern } from '@/composables/useNewPattern'
+import { useNewPattern } from '@/composables/patterns/useNewPattern.ts'
 
 const { draft, removePiece } = useNewPattern()
 
@@ -18,7 +18,7 @@ const clamp = (value: string, min: number, max: number) => {
 
 <template>
   <div class="mx-auto w-full max-w-xl space-y-5">
-      <article
+    <article
       v-for="(piece, index) in draft.pieces"
       :key="piece.id"
       class="flex flex-col items-stretch overflow-hidden rounded-md border border-muted bg-card shadow-md sm:flex-row"
@@ -84,7 +84,8 @@ const clamp = (value: string, min: number, max: number) => {
                   class="invisible absolute left-5 top-0 z-10 w-64 rounded-md border border-border bg-popover p-2 text-[11px] font-normal text-foreground shadow-md group-focus-within:visible group-hover:visible"
                 >
                   Defines the direction in which the pattern should be placed on the fabric. Pattern
-                  pieces will be automatically aligned based on this angle during layout and nesting.
+                  pieces will be automatically aligned based on this angle during layout and
+                  nesting.
                 </span>
               </span>
             </h4>
@@ -97,7 +98,9 @@ const clamp = (value: string, min: number, max: number) => {
                   :value="piece.grainline"
                   :class="numberClass"
                   aria-label="Grainline angle in degrees"
-                  @change="piece.grainline = clamp(($event.target as HTMLInputElement).value, 0, 359)"
+                  @change="
+                    piece.grainline = clamp(($event.target as HTMLInputElement).value, 0, 359)
+                  "
                 />
                 <span class="text-xs">°</span>
               </div>

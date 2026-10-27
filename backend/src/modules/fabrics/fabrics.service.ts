@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { eq, and, inArray, sql } from 'drizzle-orm';
+import { eq, and, inArray, sql, asc, desc, count, type SQL } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import { fabrics, fabricTags, tagsForFabrics } from '../../db/schema/schema.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
@@ -16,6 +16,8 @@ import { AnalyzeFabricDto } from './dto/analyze-fabric.dto.js';
 import { AnalyzeFabricEngineResponseDto } from './dto/analyze-fabric-engine-response.dto.js';
 import { FabricBoundaryMapper } from './fabric-boundary.mapper.js';
 import { EditFabricDto } from './dto/edit-fabric.dto.js';
+import { FabricListResponseDto } from './dto/fabric-list.dto.js';
+import { FabricSortOption, ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
 
 @Injectable()
 export class FabricService {
@@ -304,5 +306,67 @@ export class FabricService {
       },
       pictureUrl,
     );
+  }
+
+  private getOrderBy(sort: FabricSortOption): SQL[] {
+    const nameLower = sql`lower(${fabrics.name})`;
+    switch (sort) {
+      case FabricSortOption.NAME_ASC:
+        return [asc(nameLower), asc(fabrics.id)];
+      case FabricSortOption.NAME_DESC:
+        return [desc(nameLower), desc(fabrics.id)];
+      case FabricSortOption.DATE_ASC:
+        return [asc(fabrics.createdAt), asc(fabrics.id)];
+      case FabricSortOption.AREA_ASC:
+        return [asc(fabrics.area), asc(fabrics.id)];
+      case FabricSortOption.AREA_DESC:
+        return [desc(fabrics.area), desc(fabrics.id)];
+      case FabricSortOption.DATE_DESC:
+      default:
+        return [desc(fabrics.createdAt), desc(fabrics.id)];
+    }
+  }
+
+  async getFabrics(
+    query: ListFabricsQueryDto,
+    currentUserId: number,
+  ): Promise<FabricListResponseDto> {
+    const { page, limit, sort } = query;
+    const where = eq(fabrics.userId, currentUserId);
+
+    const [rows, [{ total }]] = await Promise.all([
+      this.db.query.fabrics.findMany({
+        where,
+        columns: {
+          id: true,
+          name: true,
+          pictureS3Key: true,
+          isFavourite: true,
+          area: true,
+          createdAt: true,
+        },
+        orderBy: this.getOrderBy(sort),
+        limit,
+        offset: (page - 1) * limit,
+      }),
+      this.db.select({ total: count() }).from(fabrics).where(where),
+    ]);
+
+    const items = await Promise.all(
+      rows.map(async (fabric) => {
+        const pictureUrl = fabric.pictureS3Key
+          ? await this.storageService.generatePresignedUrl(fabric.pictureS3Key)
+          : undefined;
+        return FabricMapper.toListItemDto(fabric, pictureUrl);
+      }),
+    );
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 }

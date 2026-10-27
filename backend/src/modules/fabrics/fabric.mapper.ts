@@ -1,3 +1,5 @@
+import { fabrics } from '../../db/schema/schema.js';
+import { FabricListItemDto } from './dto/fabric-list.dto.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
 import { PointDto } from './dto/create-fabric.dto.js';
 
@@ -93,5 +95,22 @@ export class FabricMapper {
       boundary.pop();
     }
     return boundary;
+  }
+
+  static toListItemDto(
+    fabric: Pick<
+      typeof fabrics.$inferSelect,
+      'id' | 'name' | 'pictureS3Key' | 'isFavourite' | 'area' | 'createdAt'
+    >,
+    pictureUrl?: string,
+  ): FabricListItemDto {
+    return Object.assign(new FabricListItemDto(), {
+      id: fabric.id,
+      name: fabric.name,
+      pictureUrl,
+      isFavourite: fabric.isFavourite,
+      area: fabric.area,
+      createdAt: fabric.createdAt.toISOString(),
+    });
   }
 }

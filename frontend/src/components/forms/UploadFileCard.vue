@@ -97,6 +97,7 @@ const processFiles = (incomingFiles: FileList | File[]) => {
   if (validFiles.length === 0) return
 
   if (props.multiple) {
+    const isInitialUpload = files.value.length === 0
     const combined = [...files.value, ...validFiles]
     if (combined.length > props.maxFiles) {
       toast.error('Too many files', {
@@ -106,7 +107,9 @@ const processFiles = (incomingFiles: FileList | File[]) => {
     } else {
       updateModel(combined)
     }
-    activeIndex.value = Math.min(files.value.length + validFiles.length - 1, props.maxFiles - 1)
+    if (isInitialUpload) {
+      activeIndex.value = 0
+    }
   } else {
     const firstFile = validFiles[0]
     if (!firstFile) return

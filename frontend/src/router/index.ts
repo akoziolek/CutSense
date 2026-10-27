@@ -6,7 +6,7 @@ const LandingPage = () => import('../views/LandingPage.vue')
 const ComingSoonPage = () => import('../views/ComingSoonPage.vue') // temporary, to change for correct ones later
 const FabricPage = () => import('../views/fabrics/FabricView.vue')
 const FabricsPage = () => import('../views/fabrics/FabricsView.vue')
-const FabricAddPage = () => import('../views/fabrics/AddFabricView.vue')
+const NewFabricPage = () => import('../views/fabrics/NewFabricView.vue')
 const FabricEditPage = () => import('../views/fabrics/FabricEdit.vue')
 
 const PatternPage = () => import('../views/patterns/PatternView.vue')
@@ -49,7 +49,7 @@ const routes = [
   {
     path: '/fabrics/new',
     name: 'AddFabric',
-    component: FabricAddPage,
+    component: NewFabricPage,
   },
   { path: '/account', name: 'Account', component: ComingSoonPage },
 

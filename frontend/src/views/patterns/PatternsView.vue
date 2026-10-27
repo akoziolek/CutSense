@@ -5,6 +5,7 @@ import { ArrowLeft, ListFilter, RotateCcw, Scissors, Search } from 'lucide-vue-n
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
+import FloatingButton from '@/components/common/FloatingButton.vue'
 import SortMenu from '@/components/common/SortMenu.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -187,11 +188,14 @@ watch(
           key="empty"
           class="flex flex-col items-center justify-center gap-2 py-20 text-center"
         >
-          <Scissors class="size-8 text-muted-foreground" />
-          <h2 class="text-sm font-bold font-inter">No patterns yet</h2>
+          <Scissors class="size-12 text-muted-foreground" />
+          <h2 class="text-lg font-bold font-inter">No patterns yet</h2>
           <p class="max-w-xs text-xs text-muted-foreground">
             Bring your designs to life. Upload a PDF or image file to add it to your library.
           </p>
+          <Button as-child size="sm" class="mt-2 rounded-lg">
+            <RouterLink :to="{ name: 'pattern-new' }">Add your first pattern</RouterLink>
+          </Button>
         </div>
 
         <!-- list -->
@@ -219,5 +223,7 @@ watch(
         </div>
       </Transition>
     </div>
+
+    <FloatingButton :to="{ name: 'pattern-new' }" />
   </GridLayout>
 </template>

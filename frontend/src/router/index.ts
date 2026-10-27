@@ -13,54 +13,52 @@ const PatternPage = () => import('../views/patterns/PatternView.vue')
 const NewPatternPage = () => import('../views/patterns/NewPatternView.vue')
 
 const routes = [
-  { path: '/', name: 'Landing', component: LandingPage },
+  { path: '/', name: 'Landing', component: LandingPage, meta: { isPublic: true } },
 
   // public pages (guests can browse public patterns)
-  { path: '/patterns', name: 'Patterns', component: ComingSoonPage },
+  { path: '/patterns', name: 'Patterns', component: ComingSoonPage, meta: { isPublic: true } },
   {
     path: '/patterns/new',
     name: 'pattern-new',
     component: NewPatternPage,
-    meta: { requiresAuth: true },
   },
-  { path: '/patterns/:id', name: 'pattern-details', component: PatternPage, props: true },
-
-  // pages that need a logged-in user
-  { path: '/home', name: 'Home', component: ComingSoonPage, meta: { requiresAuth: true } },
   {
-    path: '/optimizations',
-    name: 'Optimizations',
-    component: ComingSoonPage,
-    meta: { requiresAuth: true },
+    path: '/patterns/:id',
+    name: 'pattern-details',
+    component: PatternPage,
+    props: true,
+    meta: { isPublic: true },
   },
-  { path: '/fabrics', name: 'Fabrics', component: FabricsPage, meta: { requiresAuth: true } },
+
+  // pages that are private unless explicitly marked public above
+  { path: '/home', name: 'Home', component: ComingSoonPage },
+  { path: '/optimizations', name: 'Optimizations', component: ComingSoonPage },
+  { path: '/fabrics', name: 'Fabrics', component: FabricsPage },
   {
     path: '/fabrics/:id',
     name: 'FabricDetails',
     component: FabricPage,
     props: true,
-    meta: { requiresAuth: true },
   },
   {
     path: '/fabrics/:id/edit',
     name: 'FabricEdit',
     component: FabricEditPage,
     props: true,
-    meta: { requiresAuth: true },
   },
   {
     path: '/fabrics/new',
     name: 'AddFabric',
     component: FabricAddPage,
-    meta: { requiresAuth: true },
   },
-  { path: '/account', name: 'Account', component: ComingSoonPage, meta: { requiresAuth: true } },
+  { path: '/account', name: 'Account', component: ComingSoonPage },
 
   // needs to stay last, so that it does not override other routes
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../views/NotFoundPage.vue'),
+    meta: { isPublic: true },
   },
 ]
 
@@ -73,7 +71,7 @@ router.beforeEach(async (to) => {
   const { state, loadUser } = useAuth()
   await loadUser()
 
-  if (to.meta.requiresAuth && !state.user) {
+  if (!to.meta.isPublic && !state.user) {
     return { name: 'Landing', query: { login: '1', redirect: to.fullPath } }
   }
 

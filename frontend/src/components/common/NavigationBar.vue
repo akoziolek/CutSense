@@ -29,7 +29,7 @@ function isActive(path: string) {
 async function onLogout() {
   isMenuOpen.value = false
   await logout()
-  if (route.meta.requiresAuth) router.replace({ name: 'Landing' })
+  if (!route.meta.isPublic) router.replace({ name: 'Landing' })
 }
 
 const guestLinks = [{ name: 'Patterns', path: '/patterns' }]

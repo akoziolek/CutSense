@@ -15,7 +15,7 @@ defineProps<{
 <template>
   <RouterLink :to="to" class="group block rounded-xl focus-visible:outline-none">
     <Card
-      class="gap-2 px-4 py-4 bg-card border-muted shadow-md transition-shadow group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring"
+      class="gap-2 px-4 py-4 bg-[var(--card-fabrics)] border-muted shadow-md transition-shadow group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring"
     >
       <div class="relative aspect-square overflow-hidden rounded-md bg-muted">
         <img

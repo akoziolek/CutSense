@@ -384,6 +384,8 @@ if (fs.existsSync(filePath)) {
           description: template.description,
           pictureS3Key: pictureS3Key,
           boundary: sql`ST_GeomFromText(${irregularFabricPolygon(index, template.width, template.length)}, 0)`,
+          imageWidthCm: template.width,
+          imageHeightCm: template.length,
           area: template.area,
           userId,
         };

@@ -9,15 +9,15 @@ const emit = defineEmits<{
   (e: 'cancel'): void
 }>()
 
-const wizardStore = useFabricAddingStore()
+const fabricStore = useFabricAddingStore()
 
 const selectedFile = computed({
-  get: () => wizardStore.file,
+  get: () => fabricStore.file,
   set: (newFile) => {
     if (newFile) {
-      void wizardStore.setFile(newFile)
+      void fabricStore.setFile(newFile)
     } else {
-      wizardStore.file = null
+      fabricStore.file = null
     }
   },
 })

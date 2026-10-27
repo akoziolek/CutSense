@@ -10,7 +10,7 @@ const emit = defineEmits<{
   (e: 'cancel'): void
 }>()
 
-const wizardStore = useFabricAddingStore()
+const fabricStore = useFabricAddingStore()
 const router = useRouter()
 
 const isSubmitting = ref(false)
@@ -18,7 +18,7 @@ const submitError = ref('')
 
 const saveDetails = async (payload: Partial<FabricFormPayload>) => {
   try {
-    await wizardStore.updateDetails({
+    await fabricStore.updateDetails({
       name: payload.name,
       description: payload.description,
       tags: payload.tags,
@@ -32,14 +32,14 @@ const handleSubmit = async (payload: FabricFormPayload) => {
   submitError.value = ''
   if (isSubmitting.value) return
 
-  const { file, config } = wizardStore
+  const { file, config } = fabricStore
 
-  if (!file || !wizardStore.isShapeConfigured) {
+  if (!file || !fabricStore.isShapeConfigured) {
     submitError.value = 'Fabric photo configuration is missing. Return to the previous step.'
     return
   }
 
-  await wizardStore.updateDetails({
+  await fabricStore.updateDetails({
     name: payload.name,
     description: payload.description,
     tags: payload.tags,
@@ -67,7 +67,7 @@ const handleSubmit = async (payload: FabricFormPayload) => {
       method: 'POST',
       body: formData,
     })
-    await wizardStore.resetWizard()
+    await fabricStore.resetWizard()
     await router.push({ name: 'FabricDetails', params: { id: createdFabric.id } })
   } catch (error) {
     console.error('Failed to create fabric:', error)
@@ -82,9 +82,9 @@ const handleSubmit = async (payload: FabricFormPayload) => {
 <template>
   <div class="max-w-3xl bg-background rounded-2xl px-8 py-2 space-y-6 mx-auto sm:mx-5">
     <FabricForm
-      :name="wizardStore.details.name"
-      :description="wizardStore.details.description"
-      :tags="wizardStore.details.tags"
+      :name="fabricStore.details.name"
+      :description="fabricStore.details.description"
+      :tags="fabricStore.details.tags"
       :is-submitting="isSubmitting"
       :submit-error="submitError"
       @submit="handleSubmit"

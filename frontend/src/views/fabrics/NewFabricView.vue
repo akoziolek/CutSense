@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
-import { useAddFabricFormGuard } from '@/composables/fabrics/useAddFabricFormGuard'
+import { useNewFabricFormGuard } from '@/composables/fabrics/useNewFabricFormGuard'
 
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -16,14 +16,14 @@ import StepDetails from '@/components/fabrics/new/StepDetails.vue'
 
 const route = useRoute()
 const router = useRouter()
-const wizardStore = useFabricAddingStore()
+const fabricStore = useFabricAddingStore()
 const isInitializing = ref(true)
 
-const { isCancelModalOpen, handleCancel, confirmExit } = useAddFabricFormGuard()
+const { isCancelModalOpen, handleCancel, confirmExit } = useNewFabricFormGuard()
 
 onMounted(async () => {
-  if (!wizardStore.isHydrated) {
-    await wizardStore.initFromIndexedDB()
+  if (!fabricStore.isHydrated) {
+    await fabricStore.initFromIndexedDB()
   }
   isInitializing.value = false
 })
@@ -32,10 +32,10 @@ const validStep = computed(() => {
   if (isInitializing.value) return 1
   const requestedStep = Number(route.query.step) || 1
 
-  if (requestedStep >= 2 && !wizardStore.file) {
+  if (requestedStep >= 2 && !fabricStore.file) {
     return 1
   }
-  if (requestedStep >= 3 && !wizardStore.isShapeConfigured) {
+  if (requestedStep >= 3 && !fabricStore.isShapeConfigured) {
     return 2
   }
 
@@ -85,38 +85,20 @@ const TITLES = ['Upload Fabric Photo', 'Fabric Configuration', 'Fabric Details']
       </div>
 
       <template v-else>
-        <PageHeader
-          :title="TITLES[step - 1]"
-          :show-back="step > 1"
-          @back="step = step - 1"
-        >
+        <PageHeader :title="TITLES[step - 1]" :show-back="step > 1" @back="step = step - 1">
           <template #actions>
             <StepCounter :current-step="step" :total-steps="3" />
           </template>
         </PageHeader>
 
-        <StepUpload
-          v-if="step === 1"
-          @next="step = 2"
-          @cancel="handleCancel"
-        />
+        <StepUpload v-if="step === 1" @next="step = 2" @cancel="handleCancel" />
 
-        <StepConfig
-          v-else-if="step === 2"
-          @next="step = 3"
-          @cancel="handleCancel"
-        />
+        <StepConfig v-else-if="step === 2" @next="step = 3" @cancel="handleCancel" />
 
-        <StepDetails
-          v-else-if="step === 3"
-          @cancel="handleCancel"
-        />
+        <StepDetails v-else-if="step === 3" @cancel="handleCancel" />
       </template>
     </div>
 
-    <DiscardNewFabricModal
-      v-model:open="isCancelModalOpen"
-      @confirm="confirmExit"
-    />
+    <DiscardNewFabricModal v-model:open="isCancelModalOpen" @confirm="confirmExit" />
   </GridLayout>
 </template>

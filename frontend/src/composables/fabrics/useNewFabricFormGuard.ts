@@ -2,12 +2,9 @@ import { ref } from 'vue'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
 
-// steps of the form
-const FORM_ROUTE_NAMES = ['AddFabric', 'FabricPhotoConfig', 'FabricDescription']
-
-export function useAddFabricFormGuard() {
+export function useNewFabricFormGuard() {
   const router = useRouter()
-  const wizardStore = useFabricAddingStore()
+  const fabricStore = useFabricAddingStore()
 
   const isCancelModalOpen = ref(false)
   const isLeavingAllowed = ref(false)
@@ -22,17 +19,13 @@ export function useAddFabricFormGuard() {
     isLeavingAllowed.value = true
     isCancelModalOpen.value = false
     router.push(targetRoute.value)
-    await wizardStore.resetWizard()
+    await fabricStore.resetWizard()
   }
 
   onBeforeRouteLeave((to) => {
     if (isLeavingAllowed.value) return true
 
-    if (to.name && FORM_ROUTE_NAMES.includes(to.name as string)) {
-      return true
-    }
-
-    const isStoreEmpty = !wizardStore.file && !wizardStore.previewUrl
+    const isStoreEmpty = !fabricStore.file && !fabricStore.previewUrl
 
     if (isStoreEmpty) return true
 

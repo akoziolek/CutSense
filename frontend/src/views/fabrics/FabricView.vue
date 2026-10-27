@@ -8,13 +8,14 @@ import DetailsCard, { type MetaItem } from '@/components/common/DetailsCard.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { CalendarDays, RulerDimensionLine, ArrowLeft, RotateCcw, Heart } from 'lucide-vue-next'
+import { CalendarDays, RulerDimensionLine, ArrowLeft, RotateCcw } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import DetailsActions from '@/components/common/DetailsActions.vue'
 import type { FabricTag } from '@/types/fabric'
 import type { PolygonEdge } from '@/types/geometry'
 import { toImagePercentBoundary, type CartesianPoint } from '@/utils/fabricBoundary'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
+import FavouriteButton from '@/components/common/FavouriteButton.vue'
 
 interface Fabric {
   id: number
@@ -154,22 +155,18 @@ watch(
       <PageHeader :title="fabric?.name ?? (isFetching ? '' : 'Fabric details')">
         <template #actions>
           <div class="flex items-center gap-2">
-            <Button
+            <FavouriteButton
               v-if="fabric"
-              variant="outline"
-              size="icon"
-              class="cursor-pointer hover:bg-brand-pink"
-              :aria-label="fabric.isFavourite ? 'Remove from favourites' : 'Add to favourites'"
-              :aria-pressed="fabric.isFavourite"
+              :is-favourite="fabric.isFavourite"
               :disabled="pending.has(fabric.id)"
-              @click="toggleFavourite(fabric)"
-            >
-              <Heart class="size-6" :class="{ 'fill-current': fabric.isFavourite } " />
-            </Button>
+              @toggle="toggleFavourite(fabric)"
+            />
             <DetailsActions :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" />
           </div>
         </template>
       </PageHeader>
+
+
 
       <Transition
         mode="out-in"

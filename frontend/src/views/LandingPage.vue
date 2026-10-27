@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import GridLayout from '@/components/layouts/GridLayout.vue'
-import BannerTicker from '@/components/common/BannerTicker.vue'
+import BannerTicker from '@/components/landing/BannerTicker.vue'
 import StepsCarouselSection from '@/components/landing/StepsCarouselSection.vue'
 import Separator from '@/components/ui/separator/Separator.vue'
 import AboutSection from '@/components/landing/AboutSection.vue'

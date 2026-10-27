@@ -1,4 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { FabricTagDto } from './fabric-tags.dto.js';
+import { PointDto } from './create-fabric.dto.js';
 
 export class FabricResponseDto {
   @ApiProperty({ description: 'Unique identifier of the fabric', example: 1 })
@@ -35,6 +37,32 @@ export class FabricResponseDto {
   area!: number;
 
   @ApiProperty({
+    description: 'Fabric boundary points in calibrated Cartesian centimeters',
+    type: [PointDto],
+    example: [
+      { x: -250, y: 125 },
+      { x: 250, y: 125 },
+      { x: 250, y: 625 },
+      { x: -250, y: 625 },
+    ],
+  })
+  boundary!: PointDto[];
+
+  @ApiPropertyOptional({
+    description:
+      'Image width in calibrated boundary units; omitted for fabrics created before image dimensions were stored.',
+    example: 60,
+  })
+  imageWidthCm?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Image height in calibrated boundary units; omitted for fabrics created before image dimensions were stored.',
+    example: 40,
+  })
+  imageHeightCm?: number;
+
+  @ApiProperty({
     description: 'Identifier of the user who owns the fabric',
     example: 42,
   })
@@ -47,9 +75,9 @@ export class FabricResponseDto {
   createdAt!: string;
 
   @ApiProperty({
-    description: 'Names of the tags',
-    example: ['cotton'],
-    type: [String],
+    description: 'Tags associated with the fabric',
+    example: [{ id: 1, name: 'cotton' }],
+    type: [FabricTagDto],
   })
-  tags!: string[];
+  tags!: FabricTagDto[];
 }

@@ -3,6 +3,7 @@ import { defineComponent, h, type PropType } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, api } from '@/api/client'
 import type { MetaItem } from '@/components/common/DetailsCard.vue'
+import type { FabricTag } from '@/types/fabric'
 import FabricView from './FabricView.vue'
 
 vi.mock('@/api/client', async (importOriginal) => {
@@ -20,23 +21,32 @@ const PageHeaderStub = defineComponent({
 })
 
 const ImagePreviewStub = defineComponent({
-  props: { src: String, alt: String },
+  props: {
+    src: String,
+    alt: String,
+    points: { type: Array as PropType<{ pctX: number; pctY: number }[]>, default: () => [] },
+  },
   setup(props) {
-    return () => h('img', { src: props.src, alt: props.alt })
+    return () =>
+      h('img', {
+        src: props.src,
+        alt: props.alt,
+        'data-points': JSON.stringify(props.points),
+      })
   },
 })
 
 const DetailsCardStub = defineComponent({
   props: {
     description: String,
-    tags: { type: Array as PropType<string[]>, default: () => [] },
+    tags: { type: Array as PropType<FabricTag[]>, default: () => [] },
     metaItems: { type: Array as PropType<MetaItem[]>, default: () => [] },
   },
   setup(props) {
     return () =>
       h('section', [
         props.description ? h('p', props.description) : null,
-        ...props.tags.map((tag) => h('span', tag)),
+        ...props.tags.map((tag) => h('span', { key: tag.id }, tag.name)),
         ...props.metaItems.map((item) => h('p', `${item.label}: ${item.value}`)),
       ])
   },
@@ -97,9 +107,20 @@ const fabric = {
   name: 'Linen',
   description: 'Natural linen fabric',
   pictureUrl: 'https://example.com/linen.jpg',
-  tags: ['linen', 'natural'],
+  tags: [
+    { id: 1, name: 'linen' },
+    { id: 2, name: 'natural' },
+  ],
   createdAt: '2025-02-03T00:00:00.000Z',
   area: 12.5,
+  boundary: [
+    { x: 10, y: 40 },
+    { x: 50, y: 40 },
+    { x: 50, y: 20 },
+    { x: 10, y: 20 },
+  ],
+  imageWidthCm: 100,
+  imageHeightCm: 80,
 }
 
 afterEach(() => {
@@ -120,11 +141,18 @@ describe('FabricView', () => {
       src: fabric.pictureUrl,
       alt: fabric.name,
     })
+    expect(JSON.parse(wrapper.get('img').attributes('data-points') ?? '[]')).toEqual([
+      { pctX: 10, pctY: 50 },
+      { pctX: 50, pctY: 50 },
+      { pctX: 50, pctY: 75 },
+      { pctX: 10, pctY: 75 },
+    ])
+    expect(wrapper.findComponent(DetailsCardStub).props('tags')).toEqual(fabric.tags)
     expect(wrapper.text()).toContain(fabric.description)
     expect(wrapper.text()).toContain('linen')
     expect(wrapper.text()).toContain('natural')
     expect(wrapper.text()).toContain(`Added: ${new Date(fabric.createdAt).toLocaleDateString()}`)
-    expect(wrapper.text()).toContain('Area: 12.5 m²')
+    expect(wrapper.text()).toContain('Area: 12.50 m²')
   })
 
   it('shows a placeholder when the fabric has no image', async () => {

@@ -10,15 +10,22 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { CalendarDays, RulerDimensionLine, ArrowLeft, RotateCcw } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
+import DetailsActions from '@/components/common/DetailsActions.vue'
+import type { FabricTag } from '@/types/fabric'
+import type { PolygonEdge } from '@/types/geometry'
+import { toImagePercentBoundary, type CartesianPoint } from '@/utils/fabricBoundary'
 
 interface Fabric {
   id: number
   name: string
   description?: string
   pictureUrl?: string
-  tags: string[]
+  tags: FabricTag[]
   createdAt: string
   area: number
+  boundary: CartesianPoint[]
+  imageWidthCm?: number
+  imageHeightCm?: number
 }
 
 const props = defineProps<{ id: string }>()
@@ -37,6 +44,45 @@ const clearSkeletonTimer = () => {
   }
 }
 
+const normalizedPoints = computed(() => {
+  if (
+    !fabric.value ||
+    fabric.value.imageWidthCm === undefined ||
+    fabric.value.imageHeightCm === undefined
+  ) {
+    return []
+  }
+
+  return toImagePercentBoundary(
+    fabric.value.boundary,
+    fabric.value.imageWidthCm,
+    fabric.value.imageHeightCm,
+  )
+})
+
+const edges = computed<PolygonEdge[]>(() => {
+  const pts = normalizedPoints.value
+  if (pts.length < 2) return []
+  
+    const imageWidthCm = fabric.value?.imageWidthCm ?? 0
+    const imageHeightCm = fabric.value?.imageHeightCm ?? 0
+
+  return pts.map((p1, index) => {
+    const p2 = pts[(index + 1) % pts.length]!
+
+    const dx = ((p2.pctX - p1.pctX) / 100) * imageWidthCm
+    const dy = ((p2.pctY - p1.pctY) / 100) * imageHeightCm
+    const distanceCm = Math.hypot(dx, dy).toFixed(1).toString()
+
+    return {
+      index,
+      p1,
+      p2,
+      distanceCm,
+    }
+  })
+})
+
 const metaItems = computed<MetaItem[]>(() =>
   fabric.value
     ? [
@@ -48,7 +94,7 @@ const metaItems = computed<MetaItem[]>(() =>
         {
           icon: RulerDimensionLine,
           label: 'Area',
-          value: `${fabric.value.area} m²`,
+          value: `${fabric.value.area.toFixed(2)} m²`,
         },
       ]
     : [],
@@ -102,7 +148,9 @@ watch(
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
       <PageHeader :title="fabric?.name ?? (isFetching ? '' : 'Fabric details')">
-        <!-- Place for icons -->
+        <template #actions>
+          <DetailsActions :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" />
+        </template>
       </PageHeader>
 
       <Transition
@@ -154,14 +202,28 @@ watch(
           key="content"
           class="grid grid-cols-1 md:grid-cols-5 gap-8 items-start"
         >
-          <div class="w-full aspect-square max-h-[500px] md:col-span-2">
-            <ImagePreview v-if="fabric.pictureUrl" :src="fabric.pictureUrl" :alt="fabric.name" />
-            <div
-              v-else
-              class="flex h-full items-center justify-center rounded-md bg-muted text-muted-foreground"
-            >
-              No fabric image available
+          <div class="md:col-span-2">
+            <div class="w-full aspect-square max-h-[500px]">
+              <ImagePreview
+                v-if="fabric.pictureUrl"
+                :src="fabric.pictureUrl"
+                :alt="fabric.name"
+                :points="normalizedPoints"
+                :edges="edges"
+              />
+              <div
+                v-else
+                class="flex h-full items-center justify-center rounded-md bg-muted text-muted-foreground"
+              >
+                No fabric image available
+              </div>
             </div>
+            <p
+              v-if="fabric.boundary.length > 0 && normalizedPoints.length === 0"
+              class="mt-2 text-sm text-muted-foreground"
+            >
+              Boundary preview is unavailable because calibrated image dimensions are missing.
+            </p>
           </div>
 
           <div class="md:col-span-3">
@@ -176,4 +238,3 @@ watch(
     </div>
   </GridLayout>
 </template>
-

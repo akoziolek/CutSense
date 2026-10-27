@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+
+from segmentation.boundary_detection import analyze_fabric_shape
 
 app = FastAPI()
 
@@ -22,4 +24,15 @@ def read_root():
     return {"status": "ok", "message": "Python API works!!!"}
 
 
-print("hello")
+@app.post("/analyze-fabric-boundary")
+async def analyze_fabric_boundary(request: Request):
+    image_bytes = await request.body()
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="An image is required.")
+    if len(image_bytes) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Image must be 5 MB or smaller.")
+
+    try:
+        return analyze_fabric_shape(image_bytes)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error

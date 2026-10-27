@@ -11,4 +11,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 FROM base AS development
 COPY . .
 EXPOSE 8000
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "main:app", "--app-dir", "src", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -211,7 +211,7 @@ watch(
               :key="fabric.id"
               :to="{ name: 'FabricDetails', params: { id: fabric.id } }"
               :title="fabric.name"
-              :meta="`${formatCardDate(fabric.createdAt)} • ${fabric.area.toFixed(1)} m²`"
+              :meta="`${formatCardDate(fabric.createdAt)} • ${(fabric.area/10000).toFixed(2)} m²`"
               :image-url="fabric.pictureUrl"
               :is-favourite="fabric.isFavourite"
               toggleable

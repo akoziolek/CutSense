@@ -7,7 +7,7 @@ const ComingSoonPage = () => import('../views/ComingSoonPage.vue') // temporary,
 const FabricPage = () => import('../views/fabrics/FabricView.vue')
 const FabricsPage = () => import('../views/fabrics/FabricsView.vue')
 const NewFabricPage = () => import('../views/fabrics/NewFabricView.vue')
-const FabricEditPage = () => import('../views/fabrics/FabricEdit.vue')
+const FabricEditPage = () => import('../views/fabrics/FabricEditView.vue')
 
 const PatternPage = () => import('../views/patterns/PatternView.vue')
 const NewPatternPage = () => import('../views/patterns/NewPatternView.vue')

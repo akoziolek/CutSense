@@ -75,7 +75,7 @@ export class FabricController {
   @ApiOkResponse({
     description: 'The available fabric tags were returned successfully.',
     type: FabricTagDto,
-    isArray: true
+    isArray: true,
   })
   @ApiUnauthorizedResponse({
     description: 'A valid session cookie is required.',
@@ -139,7 +139,13 @@ export class FabricController {
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['name', 'picture', 'boundary'],
+      required: [
+        'name',
+        'picture',
+        'boundary',
+        'imageWidthCm',
+        'imageHeightCm',
+      ],
       properties: {
         name: { type: 'string', maxLength: 35, example: 'Cotton canvas' },
         description: { type: 'string', maxLength: 400 },
@@ -150,9 +156,20 @@ export class FabricController {
         },
         boundary: {
           type: 'string',
-          description: 'JSON-encoded array of { x, y } points.',
+          description:
+            'JSON-encoded array of { x, y } points in calibrated centimeters.',
           example:
             '[{"x":-250,"y":125},{"x":250,"y":125},{"x":250,"y":625},{"x":-250,"y":625}]',
+        },
+        imageWidthCm: {
+          type: 'number',
+          description: 'Image width in calibrated centimeters.',
+          example: 60,
+        },
+        imageHeightCm: {
+          type: 'number',
+          description: 'Image height in calibrated centimeters.',
+          example: 40,
         },
         picture: {
           type: 'string',
@@ -165,7 +182,7 @@ export class FabricController {
   @ApiOperation({
     summary: 'Add a fabric',
     description:
-      'Uploads a fabric photo to the current user’s S3 folder and creates a fabric using image-relative boundary points.',
+      'Uploads a fabric photo to the current user’s S3 folder and creates a fabric using boundary points in calibrated centimeters.',
   })
   @ApiCreatedResponse({
     description: 'The fabric was created successfully.',
@@ -245,7 +262,7 @@ export class FabricController {
   @ApiOperation({
     summary: 'Get a fabric by ID',
     description:
-      'Returns a fabric owned by the current user, including the names of its tags.',
+      'Returns a fabric owned by the current user, including its boundary points and tags.',
   })
   @ApiParam({
     name: 'id',

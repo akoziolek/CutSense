@@ -31,6 +31,7 @@
 
   --DustPink-50: #faf7f7ff;
   --DustPink-100: #f4ececff;
+  --DustPink-150: rgb(245, 243, 243);
   --DustPink-200: #ebddddff;
   --DustPink-300: #dcc5c5ff;
   --DustPink-400: #c7a2a2ff;
@@ -121,6 +122,7 @@
   --background: var(--Beige-50);
   --foreground: var(--Black-950);
   --card: var(--DustPink-50);
+  --card-fabrics: var(--DustPink-150);
   --card-foreground: var(--Black-950);
   --popover: var(--White-50);
   --popover-foreground: var(--Black-950);

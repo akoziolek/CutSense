@@ -5,7 +5,7 @@ export interface FabricTag {
 export interface FabricListItem {
     id: number
     name: string
-    pictureURL: string
+    pictureUrl: string
     isFavourite: boolean
     area: number
     createdAt: string

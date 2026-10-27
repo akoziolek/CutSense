@@ -52,6 +52,8 @@ const handleSubmit = async (payload: FabricFormPayload) => {
   const tagIds = payload.tags.map((tag) => tag.id)
 
   const boundary = toPostgisBoundary(config.points, config)
+  const imageWidthCm = config.imageWidth / config.pxPerCm
+  const imageHeightCm = config.imageHeight / config.pxPerCm
   const formData = new FormData()
   formData.append('picture', file)
   formData.append('name', payload.name)
@@ -59,6 +61,8 @@ const handleSubmit = async (payload: FabricFormPayload) => {
     formData.append('description', payload.description)
   }
   formData.append('boundary', JSON.stringify(boundary))
+  formData.append('imageWidthCm', String(imageWidthCm))
+  formData.append('imageHeightCm', String(imageHeightCm))
   formData.append('tagIds', JSON.stringify(tagIds))
 
   isSubmitting.value = true

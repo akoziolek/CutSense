@@ -1,26 +1,23 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
 import { useSpatialWorkspace } from '@/composables/useSpatialWorkspace'
-import { useAddFabricFormGuard } from '@/composables/fabrics/useAddFabricFormGuard'
-import PageHeader from '@/components/common/PageHeader.vue'
-import StepCounter from '@/components/forms/StepCounter.vue'
 import FabricConfigSidebar from '@/components/fabrics/FabricConfigSidebar.vue'
 import SpatialWorkspace from '@/components/spatial/SpatialWorkspace.vue'
-import GridLayout from '@/components/layouts/GridLayout.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
-import DiscardNewFabricModal from '@/components/forms/DiscardChangesModal.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/api/client'
 import BaseModal from '@/components/common/BaseModal.vue'
 
+const emit = defineEmits<{
+  (e: 'next'): void
+  (e: 'cancel'): void
+}>()
+
 const wizardStore = useFabricAddingStore()
-const router = useRouter()
 const workspaceRef = ref<InstanceType<typeof SpatialWorkspace> | null>(null)
 
-const { isCancelModalOpen, handleCancel, confirmExit } = useAddFabricFormGuard()
 const isErrorModalOpen = ref(false)
 const isAnalyzing = ref(false)
 const analysisError = ref('')
@@ -132,14 +129,6 @@ const detectFabricBoundary = async () => {
   }
 }
 
-const initializeBoundary = async () => {
-  if (!wizardStore.isHydrated) return
-  if (wizardStore.config.points && wizardStore.config.points.length >= 3) {
-    loadSavedConfig()
-    return
-  }
-  await detectFabricBoundary()
-}
 
 const handleImageLoaded = (image?: HTMLImageElement) => {
   if (!image) return
@@ -172,23 +161,32 @@ const handleSubmit = async () => {
       },
       true,
     )
+    emit('next')
   } catch {
     toast.error('Could not save fabric configuration. Please try again.')
-    return
   }
-
-  await router.push({ name: 'FabricDescription' })
 }
 
 const handleConfirm = () => {
   isErrorModalOpen.value = false
 }
 
+const initializeBoundary = async () => {
+  if (!wizardStore.isHydrated) return
+
+  if (wizardStore.config.points && wizardStore.config.points.length >= 3) {
+    loadSavedConfig()
+    return
+  }
+
+  await detectFabricBoundary()
+}
+
 watch(
   () => wizardStore.isHydrated,
   (hydrated) => {
     if (hydrated) {
-      initializeBoundary()
+      void initializeBoundary()
     }
   },
   { immediate: true },
@@ -220,85 +218,77 @@ onMounted(() => {
 </script>
 
 <template>
-  <GridLayout>
-    <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
-      <PageHeader title="Fabric configuration" :show-back="true">
-        <template #actions>
-          <StepCounter :current-step="2" :total-steps="3" />
-        </template>
-      </PageHeader>
-
-      <div v-if="isAnalyzing" role="status" aria-live="polite">
-        <p class="mb-3 text-sm text-muted-foreground">Detecting fabric outline from the photo...</p>
-        <div class="flex flex-col lg:flex-row items-start gap-6">
-          <Skeleton class="w-full h-[520px] rounded-md" />
-          <div class="w-full lg:w-80 space-y-4">
-            <Skeleton class="h-24 w-full" />
-            <Skeleton class="h-24 w-full" />
-            <Skeleton class="h-36 w-full" />
-          </div>
+  <div>
+    <div v-if="isAnalyzing" role="status" aria-live="polite">
+      <p class="mb-3 text-sm text-muted-foreground">Detecting fabric outline from the photo...</p>
+      <div class="flex flex-col lg:flex-row items-start gap-6">
+        <Skeleton class="w-full h-[520px] rounded-md" />
+        <div class="w-full lg:w-80 space-y-4">
+          <Skeleton class="h-24 w-full" />
+          <Skeleton class="h-24 w-full" />
+          <Skeleton class="h-36 w-full" />
         </div>
       </div>
+    </div>
 
-      <div v-else class="flex flex-col lg:flex-row items-start gap-6">
-        <SpatialWorkspace
-          ref="workspaceRef"
-          v-model:active-tool="activeTool"
-          v-model:zoom-level="zoomLevel"
-          v-model:canvas-offset="canvasOffset"
-          :image-url="wizardStore.previewUrl"
-          :points="points"
-          :edges="edges"
-          :preview-point="previewPoint"
-          :preview-neighbors="previewNeighbors"
-          :selected-edge-index="selectedEdgeIndex"
-          :selected-point-index="selectedPointIndex"
-          :can-delete="canDelete"
-          :rotation="imageRotation"
-          :is-move-mode="isMoveMode"
-          :is-dragging-canvas="isDraggingCanvas"
-          :is-interactive-dragging="isInteractiveDragging"
-          @select-edge="handleEdgeMouseDown"
-          @select-point="
-            (idx) => {
-              selectedPointIndex = idx
-              selectedEdgeIndex = null
-            }
-          "
-          @start-drag-point="startDragPoint"
-          @delete-selected="deleteSelected"
-          @image-loaded="handleImageLoaded"
-          @canvas-drag-start="startCanvasDrag"
-          @reset-canvas="resetCanvasPosition"
-        />
+    <div v-else class="flex flex-col lg:flex-row items-start gap-6">
+      <SpatialWorkspace
+        ref="workspaceRef"
+        v-model:active-tool="activeTool"
+        v-model:zoom-level="zoomLevel"
+        v-model:canvas-offset="canvasOffset"
+        :image-url="wizardStore.previewUrl"
+        :points="points"
+        :edges="edges"
+        :preview-point="previewPoint"
+        :preview-neighbors="previewNeighbors"
+        :selected-edge-index="selectedEdgeIndex"
+        :selected-point-index="selectedPointIndex"
+        :can-delete="canDelete"
+        :rotation="imageRotation"
+        :is-move-mode="isMoveMode"
+        :is-dragging-canvas="isDraggingCanvas"
+        :is-interactive-dragging="isInteractiveDragging"
+        @select-edge="handleEdgeMouseDown"
+        @select-point="
+          (idx) => {
+            selectedPointIndex = idx
+            selectedEdgeIndex = null
+          }
+        "
+        @start-drag-point="startDragPoint"
+        @delete-selected="deleteSelected"
+        @image-loaded="handleImageLoaded"
+        @canvas-drag-start="startCanvasDrag"
+        @reset-canvas="resetCanvasPosition"
+      />
 
-        <FabricConfigSidebar
-          v-model:zoomLevel="zoomLevel"
-          v-model:threadAngle="threadAngle"
-          :selected-line-distance="selectedLineDistance"
-          :has-selected-line="selectedEdgeIndex !== null"
-          @calibrateLine="handleCalibrateLine"
-          @rotate="handleRotate"
-          @resetLines="resetAll"
-        />
-      </div>
+      <FabricConfigSidebar
+        v-model:zoomLevel="zoomLevel"
+        v-model:threadAngle="threadAngle"
+        :selected-line-distance="selectedLineDistance"
+        :has-selected-line="selectedEdgeIndex !== null"
+        @calibrateLine="handleCalibrateLine"
+        @rotate="handleRotate"
+        @resetLines="resetAll"
+      />
     </div>
 
     <FormFloatingActions
       cancel-label="Cancel"
       next-label="Next"
       :disabled="isAnalyzing || pxPerCm <= 0"
-      @cancel="handleCancel"
+      @cancel="emit('cancel')"
       @next="handleSubmit"
     />
-    <DiscardNewFabricModal v-model:open="isCancelModalOpen" @confirm="confirmExit" />
+
     <BaseModal
       title="We couldn't process your image."
-      :description="`Try again later or use the default shape and adjust it manually`"
+      description="Try again later or use the default shape and adjust it manually"
       :open="isErrorModalOpen"
       confirmLabel="I understand"
       fullWidthButton
-      v-on:confirm="handleConfirm"
+      @confirm="handleConfirm"
     />
-  </GridLayout>
+  </div>
 </template>

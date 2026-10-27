@@ -3,16 +3,12 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, ApiError } from '@/api/client'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
-import { useAddFabricFormGuard } from '@/composables/fabrics/useAddFabricFormGuard'
 import { toPostgisBoundary } from '@/utils/fabricBoundary'
-
-import PageHeader from '@/components/common/PageHeader.vue'
-import StepCounter from '@/components/forms/StepCounter.vue'
-import GridLayout from '@/components/layouts/GridLayout.vue'
-import DiscardNewFabricModal from '@/components/forms/DiscardChangesModal.vue'
 import FabricForm, { type FabricFormPayload } from '@/components/fabrics/FabricForm.vue'
 
-const { isCancelModalOpen, handleCancel, confirmExit } = useAddFabricFormGuard()
+const emit = defineEmits<{
+  (e: 'cancel'): void
+}>()
 
 const wizardStore = useFabricAddingStore()
 const router = useRouter()
@@ -84,27 +80,16 @@ const handleSubmit = async (payload: FabricFormPayload) => {
 </script>
 
 <template>
-  <GridLayout>
-    <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
-      <PageHeader title="Fabric details" :show-back="true">
-        <template #actions>
-          <StepCounter :current-step="3" :total-steps="3" class="mt-2" />
-        </template>
-      </PageHeader>
-
-      <div class="max-w-3xl bg-background rounded-2xl px-8 py-2 space-y-6 mx-5">
-        <FabricForm
-          :name="wizardStore.details.name"
-          :description="wizardStore.details.description"
-          :tags="wizardStore.details.tags"
-          :is-submitting="isSubmitting"
-          :submit-error="submitError"
-          @submit="handleSubmit"
-          @cancel="handleCancel"
-          @change="saveDetails"
-        />
-      </div>
-    </div>
-    <DiscardNewFabricModal v-model:open="isCancelModalOpen" @confirm="confirmExit" />
-  </GridLayout>
+  <div class="max-w-3xl bg-background rounded-2xl px-8 py-2 space-y-6 mx-auto sm:mx-5">
+    <FabricForm
+      :name="wizardStore.details.name"
+      :description="wizardStore.details.description"
+      :tags="wizardStore.details.tags"
+      :is-submitting="isSubmitting"
+      :submit-error="submitError"
+      @submit="handleSubmit"
+      @cancel="emit('cancel')"
+      @change="saveDetails"
+    />
+  </div>
 </template>

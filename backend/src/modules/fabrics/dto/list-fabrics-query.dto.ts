@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { ArrayMaxSize, IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsNumber, IsOptional, IsPositive, Max, Min } from 'class-validator';
 
 export enum FabricSortOption {
   NAME_ASC = 'name_asc',
@@ -45,4 +45,41 @@ export class ListFabricsQueryDto {
   @IsOptional()
   @IsEnum(FabricSortOption)
   sort: FabricSortOption = FabricSortOption.DATE_DESC;
+
+  @IsOptional()
+  @IsDateString()
+  createdFrom?: string;
+
+  @IsOptional()
+  @IsDateString()
+  createdTo?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => (value === 'true' ? true : value === 'false' ? false : value))
+  @IsBoolean()
+  favourite?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined) return value;
+    const raw: unknown[] = Array.isArray(value) ? value : String(value).split(',');
+    return [...new Set(raw.map(Number))];
+  })
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsInt({ each: true })
+  @IsPositive({ each: true })
+  tagIds?: number[];
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(0)
+  areaMin?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(0)
+  areaMax?: number;
 }

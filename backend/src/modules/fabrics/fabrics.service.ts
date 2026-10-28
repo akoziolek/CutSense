@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { eq, and, inArray, sql, asc, desc, count, type SQL } from 'drizzle-orm';
+import { eq, and, inArray, sql, asc, desc, count, type SQL, gte, lte } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import { fabrics, fabricTags, tagsForFabrics } from '../../db/schema/schema.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
@@ -333,7 +333,7 @@ export class FabricService {
     currentUserId: number,
   ): Promise<FabricListResponseDto> {
     const { page, limit, sort } = query;
-    const where = eq(fabrics.userId, currentUserId);
+    const where = this.buildWhere(query, currentUserId);
 
     const [rows, [{ total }]] = await Promise.all([
       this.db.query.fabrics.findMany({
@@ -385,4 +385,34 @@ export class FabricService {
     if (!updated) throw new ResourceNotFoundException('Fabric', fabricId);
     return updated;
     }
+
+  private buildWhere(query: ListFabricsQueryDto, currentUserId: number): SQL {
+    const { createdFrom, createdTo, favourite, tagIds, areaMin, areaMax } = query;
+
+    if (createdFrom && createdTo && new Date(createdFrom) > new Date(createdTo)) {
+      throw new RequestValidationException('createdFrom must not be later than createdTo.');
+    }
+    if (areaMin !== undefined && areaMax !== undefined && areaMin > areaMax) {
+      throw new RequestValidationException('areaMin must not be greater than areaMax.');
+    }
+
+    const withAllTags = tagIds?.length
+      ? this.db
+          .select({ id: fabricTags.fabricId })
+          .from(fabricTags)
+          .where(inArray(fabricTags.tagId, tagIds))
+          .groupBy(fabricTags.fabricId)
+          .having(sql`count(distinct ${fabricTags.tagId}) = ${tagIds.length}`)
+      : undefined;
+
+    return and(
+      eq(fabrics.userId, currentUserId),
+      createdFrom ? gte(fabrics.createdAt, new Date(createdFrom)) : undefined,
+      createdTo ? lte(fabrics.createdAt, new Date(createdTo)) : undefined,
+      favourite === undefined ? undefined : eq(fabrics.isFavourite, favourite),
+      areaMin === undefined ? undefined : gte(fabrics.area, areaMin),
+      areaMax === undefined ? undefined : lte(fabrics.area, areaMax),
+      withAllTags ? inArray(fabrics.id, withAllTags) : undefined,
+    )!;
+  }
 }

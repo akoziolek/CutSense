@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { eq, and, inArray, sql, asc, desc, count, type SQL } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
@@ -385,4 +385,25 @@ export class FabricService {
     if (!updated) throw new ResourceNotFoundException('Fabric', fabricId);
     return updated;
     }
+
+    private readonly logger = new Logger(FabricService.name);
+
+async deleteFabric(fabricId: number, currentUserId: number): Promise<void> {
+  const [deleted] = await this.db
+    .delete(fabrics)
+    .where(and(eq(fabrics.id, fabricId), eq(fabrics.userId, currentUserId)))
+    .returning({ pictureS3Key: fabrics.pictureS3Key });
+
+  if (!deleted) throw new ResourceNotFoundException('Fabric', fabricId);
+
+  if (deleted.pictureS3Key) {
+    try {
+      await this.storageService.deleteFile(deleted.pictureS3Key);
+    } catch (error) {
+      this.logger.warn(
+        `Fabric ${fabricId} deleted, but its picture ${deleted.pictureS3Key} was not removed: ${String(error)}`,
+      );
+    }
+  }
+}
 }

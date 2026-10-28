@@ -13,6 +13,9 @@ import {
   FileTypeValidator,
   Patch,
   Query,
+  Delete,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -290,4 +293,14 @@ export class FabricController {
   ): Promise<FabricResponseDto> {
     return this.fabricService.getFabricById(fabricId, user.id);
   }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteFabric(
+    @Param('id', ParseIntPipe) fabricId: number,
+    @CurrentUser() user: { id: number },
+  ): Promise<void> {
+    return this.fabricService.deleteFabric(fabricId, user.id);
+  }
+  
 }

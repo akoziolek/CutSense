@@ -1,7 +1,7 @@
 import { ref, unref, type Ref } from 'vue'
 import { useRouter, onBeforeRouteLeave, type RouteLocationRaw } from 'vue-router'
 
-export function useEditFabricFormGuard(isDirty: Ref<boolean>, defaultTarget?: RouteLocationRaw) {
+export function useEditFormGuard(isDirty: Ref<boolean>, defaultTarget?: RouteLocationRaw) {
   const router = useRouter()
 
   const isCancelModalOpen = ref(false)
@@ -59,6 +59,6 @@ export function useEditFabricFormGuard(isDirty: Ref<boolean>, defaultTarget?: Ro
     isCancelModalOpen,
     handleCancel,
     confirmExit,
-    resetGuard
+    resetGuard,
   }
 }

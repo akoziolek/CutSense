@@ -11,6 +11,8 @@ import { ResourceNotFoundException } from '../../common/exceptions/resource-not-
 import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
 import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
 import { EditPatternDto } from './dto/edit-pattern.dto.js';
+import { PatternTagDto } from './dto/pattern-tag.dto.js';
+import { PatternsMapper } from './patterns.mapper.js';
 
 const ringOf = (geojson: string): [number, number][] =>
   (JSON.parse(geojson) as { coordinates: [number, number][][] }).coordinates[0];
@@ -157,5 +159,14 @@ export class PatternsService {
         points: ringOf(piece.geojson),
       })),
     };
+  }
+
+  async getPatternTags(): Promise<PatternTagDto[]> {
+    const tags = await this.db.query.tagsForPatterns.findMany({
+      columns: { id: true, name: true },
+      orderBy: (tag, { asc }) => [asc(tag.name)],
+    });
+
+    return PatternsMapper.toTagDtos(tags);
   }
 }

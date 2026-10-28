@@ -23,6 +23,7 @@ import { PatternsService } from './patterns.service.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { SessionGuard } from '../../auth/guards/session.guard.js';
 import { EditPatternDto } from './dto/edit-pattern.dto.js';
+import { PatternTagDto } from './dto/pattern-tag.dto.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')
@@ -30,6 +31,24 @@ import { EditPatternDto } from './dto/edit-pattern.dto.js';
 @ApiCookieAuth('session')
 export class PatternController {
   constructor(private readonly patternsService: PatternsService) {}
+
+  @Get('tags')
+  @ApiOperation({
+    summary: 'Get available pattern tags',
+    description:
+      'Returns the IDs and names of all tags available for patterns.',
+  })
+  @ApiOkResponse({
+    description: 'The available pattern tags were returned successfully.',
+    type: PatternTagDto,
+    isArray: true,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  async getFabricTags(): Promise<PatternTagDto[]> {
+    return this.patternsService.getPatternTags();
+  }
 
   @Patch(':id')
   @ApiOperation({

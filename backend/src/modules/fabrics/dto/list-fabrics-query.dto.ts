@@ -46,19 +46,31 @@ export class ListFabricsQueryDto {
   @IsEnum(FabricSortOption)
   sort: FabricSortOption = FabricSortOption.DATE_DESC;
 
+  @ApiPropertyOptional({ 
+    description: 'Only fabrics added at or after this moment (ISO 8601)', 
+    example: '2026-03-01T00:00:00.000Z' })
   @IsOptional()
   @IsDateString()
   createdFrom?: string;
 
+  @ApiPropertyOptional({ 
+    description: 'Only fabrics added at or before this moment (ISO 8601)', 
+    example: '2026-03-31T23:59:59.999Z' })
   @IsOptional()
   @IsDateString()
   createdTo?: string;
 
+  @ApiPropertyOptional({ 
+    description: 'true: favourites only, false: non-favourites only, omitted: all' })
   @IsOptional()
   @Transform(({ value }) => (value === 'true' ? true : value === 'false' ? false : value))
   @IsBoolean()
   favourite?: boolean;
 
+  @ApiPropertyOptional({ 
+    type: [Number], 
+    description: 'Fabric must have all of these tags. Comma-separated (1,2) or repeated (tagIds=1&tagIds=2).', 
+    example: '1,2' })
   @IsOptional()
   @Transform(({ value }) => {
     if (value === undefined) return value;
@@ -71,12 +83,18 @@ export class ListFabricsQueryDto {
   @IsPositive({ each: true })
   tagIds?: number[];
 
+  @ApiPropertyOptional({ 
+    description: 'Minimum area (same unit as returned in "area")', 
+    minimum: 0 })
   @IsOptional()
   @Type(() => Number)
   @IsNumber({ allowNaN: false, allowInfinity: false })
   @Min(0)
   areaMin?: number;
 
+  @ApiPropertyOptional({ 
+    description: 'Maximum area (same unit as returned in "area")', 
+    minimum: 0 })
   @IsOptional()
   @Type(() => Number)
   @IsNumber({ allowNaN: false, allowInfinity: false })

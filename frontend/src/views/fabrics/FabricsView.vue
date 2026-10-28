@@ -13,9 +13,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/api/client'
-import type { FabricListItem, FabricListResponse, FabricSort } from '@/types/fabric'
+import type { FabricListItem, FabricListResponse, FabricSort, FabricTag } from '@/types/fabric'
 import { formatCardDate } from '@/utils/formatCardDate'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
+import { SearchX } from 'lucide-vue-next' // add to the existing lucide import; drop ListFilter if unused
+import FabricFilterPopover from '@/components/fabrics/FabricFilterPopover.vue'
+import {
+  countActiveFilters, filtersFromQuery, filtersToApiParams, filtersToQuery, type FabricFilters,
+} from '@/utils/fabricFilters'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: FabricSort = 'date_desc'
@@ -39,6 +44,27 @@ const page = computed(() => {
   const n = Number(route.query.page)
   return Number.isInteger(n) && n >= 1 ? n : 1
 })
+
+const filters = computed(() => filtersFromQuery(route.query))
+const filtersKey = computed(() => JSON.stringify(filters.value))
+const hasActiveFilters = computed(() => countActiveFilters(filters.value) > 0)
+
+const applyFilters = (next: FabricFilters) =>
+  router.push({ query: { ...route.query, ...filtersToQuery(next), page: undefined } })
+
+const availableTags = ref<FabricTag[]>([])
+const tagsLoaded = ref(false)
+const tagsError = ref('')
+const loadTags = async () => {
+  if (tagsLoaded.value) return
+  tagsError.value = ''
+  try {
+    availableTags.value = await api<FabricTag[]>('/fabrics/tags')
+    tagsLoaded.value = true
+  } catch (e) {
+    tagsError.value = e instanceof ApiError ? e.body.message : 'Could not load tags. Reopen to retry.'
+  }
+}
 
 const sortModel = computed({
   get: () => sort.value,
@@ -83,6 +109,8 @@ const fetchFabrics = async (activeSignal = { active: true }) => {
       limit: String(PAGE_SIZE),
       sort: sort.value,
     })
+    for (const [key, value] of Object.entries(filtersToApiParams(filters.value))) params.set(key, value)
+
     const result = await api<FabricListResponse>(`/fabrics?${params}`)
     if (!activeSignal.active) return
 
@@ -111,7 +139,7 @@ const pendingFavourites = new Set<number>()
 const { toggle: toggleFavourite } = useFavouriteToggle()
 
 watch(
-  [page, sort],
+  [page, sort, filtersKey],
   (_, __, onCleanup) => {
     const activeSignal = { active: true }
     onCleanup(() => {
@@ -132,7 +160,6 @@ watch(
         <span v-if="data" class="ml-3 text-sm font-semibold">({{ data.total }} found)</span>
       </PageHeader>
 
-      <!--TODO replace Search and Filter - placeholders for now -->
       <div class="flex flex-wrap items-center gap-2">
         <div class="relative flex-1 min-w-48">
           <Search
@@ -140,10 +167,14 @@ watch(
           />
           <Input disabled placeholder="Search fabrics..." class="h-9 pl-9" />
         </div>
-        <Button variant="outline" size="sm" class="gap-2" disabled>
-          <ListFilter class="size-4" />
-          Filter
-        </Button>
+        <FabricFilterPopover
+          :model-value="filters"
+          :tags="availableTags"
+          :tags-error="tagsError"
+          :active="hasActiveFilters"
+          @apply="applyFilters"
+          @opened="loadTags"
+        />
         <SortMenu v-model="sortModel" :options="SORT_OPTIONS" />
       </div>
 
@@ -185,6 +216,18 @@ watch(
               </Button>
             </template>
           </ErrorState>
+        </div>
+
+        <!-- filters are active but nothing matches -->
+        <div
+          v-else-if="data && data.total === 0 && hasActiveFilters"
+          key="no-match"
+          class="flex flex-col items-center justify-center gap-2 py-20 text-center"
+        >
+          <SearchX class="size-8 text-muted-foreground" />
+          <p class="max-w-xs text-xs text-muted-foreground">
+            We couldn't find any fabrics matching your criteria.
+          </p>
         </div>
 
         <!-- empty: user has no fabrics yet -->

@@ -18,6 +18,7 @@ import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 import FavouriteButton from '@/components/common/FavouriteButton.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import MessageDIalog from '@/components/common/MessageDIalog.vue'
+import { useDeleteFabric } from '@/composables/fabrics/useDeleteFabric'
 
 interface Fabric {
   id: number
@@ -34,8 +35,6 @@ interface Fabric {
   optimizationCount: number
 }
 
-
-
 const props = defineProps<{ id: string }>()
 
 const fabric = ref<Fabric | null>(null)
@@ -44,19 +43,9 @@ const showSkeleton = ref(false)
 const error = ref('')
 
 const router = useRouter()
-const confirmOpen = ref(false)
-const successOpen = ref(false)
 
-
-const requestDelete = () => (confirmOpen.value = true)
-const confirmDelete = () => {
-  confirmOpen.value = false
-  successOpen.value = true
-}
-const closeSuccess = () => {
-  successOpen.value = false
-  router.push('/fabrics')
-}
+const { confirmOpen, successOpen, isDeleting, error: deleteError, request: requestDelete,
+  confirm: confirmDelete, closeSuccess } = useDeleteFabric(() => props.id)
 
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 

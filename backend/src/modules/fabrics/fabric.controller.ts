@@ -317,6 +317,14 @@ export class FabricController {
 
   @Post('bulk-delete')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+  summary: 'Delete several fabrics',
+  description: 'Permanently deletes the listed fabrics owned by the current user, with their optimizations and photos. IDs that do not exist or belong to someone else are skipped.',
+  })
+  @ApiBody({ type: BulkDeleteFabricsDto })
+  @ApiOkResponse({ type: BulkDeleteFabricsResponseDto })
+  @ApiBadRequestResponse({ description: 'ids must be 1–100 unique positive integers.' })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
   async deleteFabrics(
     @Body() dto: BulkDeleteFabricsDto,
     @CurrentUser() user: { id: number },

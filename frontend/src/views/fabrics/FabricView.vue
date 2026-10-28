@@ -17,7 +17,7 @@ import { toImagePercentBoundary, type CartesianPoint } from '@/utils/fabricBound
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 import FavouriteButton from '@/components/common/FavouriteButton.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import MessageDIalog from '@/components/common/MessageDIalog.vue'
+import MessageDIalog from '@/components/common/MessageDialog.vue'
 import { useDeleteFabric } from '@/composables/fabrics/useDeleteFabric'
 
 interface Fabric {

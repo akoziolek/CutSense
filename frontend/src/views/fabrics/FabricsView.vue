@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, ListFilter, Plus, RotateCcw, Search, Shirt } from 'lucide-vue-next'
+import { ArrowLeft, ListFilter, Plus, RotateCcw, Search, Shirt, CheckSquare, ListChecks, Trash2 } from 'lucide-vue-next'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
@@ -9,6 +9,8 @@ import FloatingButton from '@/components/common/FloatingButton.vue'
 import SortMenu from '@/components/common/SortMenu.vue'
 import ResourceCard from '@/components/common/ResourceCard.vue'
 import ListPagination from '@/components/common/ListPagination.vue'
+import MessageDialog from '@/components/common/MessageDialog.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -16,6 +18,7 @@ import { api, ApiError } from '@/api/client'
 import type { FabricListItem, FabricListResponse, FabricSort } from '@/types/fabric'
 import { formatCardDate } from '@/utils/formatCardDate'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
+import { useBulkDeleteFabrics } from '@/composables/fabrics/useBulkDeleteFabrics'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: FabricSort = 'date_desc'
@@ -107,8 +110,51 @@ const fetchFabrics = async (activeSignal = { active: true }) => {
   }
 }
 
+const selectionMode = ref(false)
+const selectedIds = ref<number[]>([])
+const selectedCount = computed(() => selectedIds.value.length)
+const isSelected = (id: number) => selectedIds.value.includes(id)
+
+const toggleSelect = (id: number) => {
+  selectedIds.value = isSelected(id)
+    ? selectedIds.value.filter((x) => x !== id)
+    : [...selectedIds.value, id]
+}
+const allOnPageSelected = computed(
+  () => !!data.value?.items.length && data.value.items.every((f) => isSelected(f.id)),
+)
+const toggleSelectAll = () => {
+  selectedIds.value = allOnPageSelected.value ? [] : (data.value?.items.map((f) => f.id) ?? [])
+}
+const stopSelecting = () => {
+  selectionMode.value = false
+  selectedIds.value = []
+}
+
+const bulk = useBulkDeleteFabrics(
+  () => selectedIds.value,
+  () => {
+    stopSelecting()
+    fetchFabrics()
+  },
+)
+
 const pendingFavourites = new Set<number>()
 const { toggle: toggleFavourite } = useFavouriteToggle()
+
+const handleKeyDown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && selectionMode.value) {
+    stopSelecting()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
+})
 
 watch(
   [page, sort],
@@ -144,6 +190,28 @@ watch(
           <ListFilter class="size-4" />
           Filter
         </Button>
+
+        <!-- Pasek aktywnego trybu selekcji (Delete + Cancel) -->
+        <template v-if="selectionMode">
+          <Button
+            variant="destructive"
+            size="sm"
+            class="gap-2"
+            :disabled="selectedCount === 0"
+            @click="bulk.confirmOpen.value = true"
+          >
+            <Trash2 class="size-4" />
+            Delete ({{ selectedCount }})
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            @click="stopSelecting"
+          >
+            Cancel
+          </Button>
+        </template>
+
         <SortMenu v-model="sortModel" :options="SORT_OPTIONS" />
       </div>
 
@@ -214,8 +282,15 @@ watch(
               :meta="`${formatCardDate(fabric.createdAt)} • ${(fabric.area/10000).toFixed(2)} m²`"
               :image-url="fabric.pictureUrl"
               :is-favourite="fabric.isFavourite"
+              :selectable="selectionMode"
+              :selected="isSelected(fabric.id)"
               toggleable
               @toggle-favourite="toggleFavourite(fabric)"
+              @toggle-select="toggleSelect(fabric.id)"
+              @long-press="() => {
+                if (!selectionMode) selectionMode = true;
+                if (!isSelected(fabric.id)) toggleSelect(fabric.id);
+              }"
             />
           </div>
 
@@ -231,5 +306,19 @@ watch(
     </div>
 
     <FloatingButton :to="{ name: 'AddFabric' }" />
+    <ConfirmDialog
+      v-model:open="bulk.confirmOpen.value"
+      :title="`Delete ${selectedCount} ${selectedCount === 1 ? 'fabric' : 'fabrics'}?`"
+      :description="`This action cannot be undone and will permanently remove all associated optimizations.`"
+      :loading="bulk.isDeleting.value"
+      :error="bulk.error.value"
+      @confirm="bulk.confirm"
+    />
+    <MessageDialog
+      :open="bulk.successOpen.value"
+      title="Fabrics deleted"
+      :description="`${bulk.deletedCount.value} ${bulk.deletedCount.value === 1 ? 'fabric was' : 'fabrics were'} deleted together with their optimizations.`"
+      @update:open="(open: boolean) => { if (!open) bulk.closeSuccess() }"
+    />
   </GridLayout>
 </template>

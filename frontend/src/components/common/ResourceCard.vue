@@ -1,24 +1,84 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { Heart, ImageOff } from 'lucide-vue-next'
 import { Card } from '@/components/ui/card'
 
-defineProps<{
+const props = defineProps<{
   to: RouteLocationRaw
   title: string
   meta: string
   imageUrl?: string
   isFavourite: boolean
   toggleable?: boolean
+  selectable?: boolean
+  selected?: boolean
 }>()
 
-const emit = defineEmits<{ (e: 'toggleFavourite'): void }>()
+const emit = defineEmits<{
+  (e: 'toggleFavourite'): void
+  (e: 'toggleSelect'): void
+  (e: 'longPress'): void
+}>()
+
+let pressTimer: ReturnType<typeof setTimeout> | null = null
+const isLongPress = ref(false)
+
+const startPress = () => {
+  isLongPress.value = false
+  pressTimer = setTimeout(() => {
+    isLongPress.value = true
+    emit('longPress')
+  }, 500) // 500ms przytrzymania
+}
+
+const cancelPress = () => {
+  if (pressTimer) {
+    clearTimeout(pressTimer)
+    pressTimer = null
+  }
+}
+
+const handleClick = (e: MouseEvent) => {
+  if (isLongPress.value) {
+    e.preventDefault()
+    isLongPress.value = false
+  }
+}
+
+const wrapperProps = computed(() =>
+  props.selectable
+    ? {
+        role: 'button',
+        tabindex: 0,
+        'aria-pressed': props.selected ?? false,
+        onClick: () => emit('toggleSelect'),
+        onKeydown: (e: KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            emit('toggleSelect')
+          }
+        },
+      }
+    : { to: props.to },
+)
 </script>
 
 <template>
-  <RouterLink :to="to" class="group block rounded-xl focus-visible:outline-none">
+  <component
+    :is="selectable ? 'div' : RouterLink"
+    v-bind="wrapperProps"
+    class="group block rounded-xl focus-visible:outline-none select-none"
+    :class="{ 'cursor-pointer': selectable }"
+    @pointerdown="startPress"
+    @pointerup="cancelPress"
+    @pointerleave="cancelPress"
+    @pointercancel="cancelPress"
+    @click="handleClick"
+  >
     <Card
-      class="gap-2 px-4 py-4 bg-[var(--card-fabrics)] border-muted shadow-md transition-shadow group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring"
+      class="relative gap-2 px-4 py-4 bg-[var(--card-fabrics)] border-muted shadow-md transition-all duration-200 group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring"
+      :class="{ 'border-2 !border-primary shadow-lg scale-[1.02]': selected }"
     >
       <div class="relative aspect-square overflow-hidden rounded-md bg-muted">
         <img
@@ -56,5 +116,5 @@ const emit = defineEmits<{ (e: 'toggleFavourite'): void }>()
         <p class="text-xs text-muted-foreground">{{ meta }}</p>
       </div>
     </Card>
-  </RouterLink>
+  </component>
 </template>

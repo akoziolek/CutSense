@@ -20,9 +20,12 @@ import PatternPiecesCarousel, {
   type PatternPiece,
 } from '@/components/patterns/PatternPiecesCarousel.vue'
 import type { NameTag } from '@/types/fabric'
+import DetailsActions from '@/components/common/DetailsActions.vue'
+import { useAuth } from '@/composables/useAuth'
 
 interface Pattern {
   id: number
+  userId: number
   name: string
   description?: string
   size: string
@@ -44,6 +47,7 @@ const error = ref('')
 const isForbidden = ref(false)
 
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
+const { state: auth } = useAuth()
 
 const clearSkeletonTimer = () => {
   if (skeletonTimer) {
@@ -128,7 +132,14 @@ watch(
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
       <PageHeader :title="pattern?.name ?? (isFetching ? '' : 'Pattern details')">
-        <!-- Place for icons -->
+        <template #actions>
+          <div class="flex items-center gap-2">
+            <DetailsActions
+              v-if="pattern && auth.user?.id === pattern.userId"
+              :edit-to="{ name: 'PatternEdit', params: { id: props.id } }"
+            />
+          </div>
+        </template>
       </PageHeader>
       <!-- TODO - move this to card section?? -->
       <p v-if="pattern" class="-mt-4 text-sm ml-4 text-muted-foreground">

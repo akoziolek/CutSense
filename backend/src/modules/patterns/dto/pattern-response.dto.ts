@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PatternTagDto } from './pattern-tag.dto.js';
 
 class PatternAuthorDto {
   @ApiProperty({ description: 'Unique identifier of the author', example: 42 })
@@ -74,11 +75,11 @@ export class PatternResponseDto {
   createdAt!: string;
 
   @ApiProperty({
-    description: 'Names of the tags',
-    example: ['summer', 'tops'],
-    type: [String],
+    description: 'Tags associated with the fabric',
+    example: [{ id: 1, name: 'summer' }],
+    type: [PatternTagDto],
   })
-  tags!: string[];
+  tags!: PatternTagDto[];
 
   @ApiProperty({ type: PatternAuthorDto })
   author!: PatternAuthorDto;

@@ -60,7 +60,10 @@ export class PatternsService {
       starAverage: pattern.starAverage,
       userId: pattern.userId,
       createdAt: pattern.createdAt.toISOString(),
-      tags: pattern.tags.map((item) => item.tag.name),
+      tags: pattern.tags.map((item) => ({
+        id: item.tag.id,
+        name: item.tag.name,
+      })),
       author: {
         id: pattern.user.id,
         nickname: pattern.user.nickname ?? pattern.user.name,

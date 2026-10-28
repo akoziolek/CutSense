@@ -4,7 +4,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
 import { useRoute } from 'vue-router'
 import { useEditFormGuard } from '@/composables/useEditFormGuard'
-import { onMounted, ref, watch, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { api, ApiError } from '@/api/client'
 import PatternForm, { type PatternFormPayload } from '@/components/patterns/PatternForm.vue'
 import { PatternSize, PatternVisibility, type NameTag } from '@/types/patterns'
@@ -12,6 +12,7 @@ import ErrorState from '@/components/common/ErrorState.vue'
 import { RotateCcw, ArrowLeft } from 'lucide-vue-next'
 import Button from '@/components/ui/button/Button.vue'
 import { useAuth } from '@/composables/useAuth'
+import { useFormDraft } from '@/composables/useFormDraft'
 
 interface Pattern {
   id: number
@@ -30,7 +31,8 @@ const patternId = computed(() => Number(route.params.id))
 const DRAFT_KEY = computed(() => `pattern_edit_draft_${patternId.value}`)
 
 const draftData = ref<Partial<PatternFormPayload>>({})
-const isDirty = ref(false)
+const { isDirty, loadDraft, saveDraft, clearDraft } = useFormDraft<PatternFormPayload>(DRAFT_KEY)
+
 const isSubmitting = ref(false)
 const submitError = ref('')
 
@@ -78,37 +80,18 @@ const fetchPattern = async (id: number, activeSignal = { active: true }) => {
         if (result.visibility === PatternVisibility.PUBLIC)
           error.value = 'You do not have access to edit this pattern.'
         else error.value = 'Could not load pattern. Try again'
-
         return
       }
 
       pattern.value = result
-      const savedDraft = localStorage.getItem(DRAFT_KEY.value)
-      if (savedDraft) {
-        try {
-          draftData.value = JSON.parse(savedDraft)
-          isDirty.value = true
-        } catch (e) {
-          console.error('Failed to parse draft from localStorage', e)
-          localStorage.removeItem(DRAFT_KEY.value)
-          draftData.value = {
-            name: result.name,
-            size: result.size,
-            description: result.description ?? '',
-            tags: result.tags ?? [],
-            visibility: result.visibility ?? PatternVisibility.PRIVATE,
-          }
-          isDirty.value = false
-        }
-      } else {
-        draftData.value = {
-          name: result.name,
-          size: result.size,
-          description: result.description ?? '',
-          tags: result.tags ?? [],
-          visibility: result.visibility ?? PatternVisibility.PRIVATE,
-        }
-        isDirty.value = false
+
+      const savedDraft = loadDraft()
+      draftData.value = savedDraft ?? {
+        name: result.name,
+        size: result.size,
+        description: result.description ?? '',
+        tags: result.tags ?? [],
+        visibility: result.visibility ?? PatternVisibility.PRIVATE,
       }
     }
   } catch (e) {
@@ -131,14 +114,8 @@ const fetchPattern = async (id: number, activeSignal = { active: true }) => {
 
 const handleFormChange = (payload: Partial<PatternFormPayload>) => {
   if (isCancelModalOpen.value) return
-  isDirty.value = true
   draftData.value = payload
-  localStorage.setItem(DRAFT_KEY.value, JSON.stringify(payload))
-}
-
-const clearDraft = () => {
-  isDirty.value = false
-  localStorage.removeItem(DRAFT_KEY.value)
+  saveDraft(payload)
 }
 
 const handleConfirmExit = () => {
@@ -163,7 +140,6 @@ const handleSubmit = async (payload: PatternFormPayload) => {
     })
 
     clearDraft()
-    isDirty.value = false
     confirmExit()
   } catch (e) {
     console.error('Failed to update pattern:', e)
@@ -188,19 +164,6 @@ watch(
   },
   { immediate: true },
 )
-
-onMounted(() => {
-  const savedDraft = localStorage.getItem(DRAFT_KEY.value)
-  if (savedDraft) {
-    try {
-      draftData.value = JSON.parse(savedDraft)
-      isDirty.value = true
-    } catch (e) {
-      console.error('Failed to parse draft from localStorage', e)
-      localStorage.removeItem(DRAFT_KEY.value)
-    }
-  }
-})
 </script>
 
 <template>

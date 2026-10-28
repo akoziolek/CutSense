@@ -8,7 +8,7 @@ import {
   tagsForPatterns,
 } from '../../db/schema/schema.js';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
-import { PatternTagDto } from './dto/pattern-tags.dto.js';
+import { PatternTagDto } from './dto/pattern-tag.dto.js';
 import type { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';

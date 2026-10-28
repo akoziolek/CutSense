@@ -7,7 +7,7 @@ import {
   Body,
   Post,
   HttpCode,
-  HttpStatus
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -28,13 +28,31 @@ import { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { OptionalSessionGuard } from '../../auth/guards/optional-session.guard.js';
 import { OptionalUser } from '../../common/decorators/optional-user.decorator.js';
 import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
-import { PatternTagDto } from './dto/pattern-tags.dto.js';
+import { PatternTagDto } from './dto/pattern-tag.dto.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')
 export class PatternController {
   constructor(private readonly patternsService: PatternsService) {}
-  
+
+  @Get('tags')
+  @ApiOperation({
+    summary: 'Get available pattern tags',
+    description:
+      'Returns the IDs and names of all tags available for patterns.',
+  })
+  @ApiOkResponse({
+    description: 'The available pattern tags were returned successfully.',
+    type: PatternTagDto,
+    isArray: true,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  async getFabricTags(): Promise<PatternTagDto[]> {
+    return this.patternsService.getPatternTags();
+  }
+
   @Get(':id')
   @UseGuards(OptionalSessionGuard)
   @ApiOperation({
@@ -75,33 +93,18 @@ export class PatternController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Create a pattern',
-    description: 'Creates a pattern with its pieces and tags for the current user.',
+    description:
+      'Creates a pattern with its pieces and tags for the current user.',
   })
-  @ApiCreatedResponse({ description: 'Returns the id of the new pattern.'})
-  @ApiBadRequestResponse({ description: 'Validation failed or unknown tag'})
-  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required'})
+  @ApiCreatedResponse({ description: 'Returns the id of the new pattern.' })
+  @ApiBadRequestResponse({ description: 'Validation failed or unknown tag' })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required',
+  })
   async createPattern(
     @Body() dto: CreatePatternDto,
-    @CurrentUser() user: { id: number},
+    @CurrentUser() user: { id: number },
   ): Promise<{ id: number }> {
     return this.patternsService.createPattern(dto, user.id);
   }
-
-  
-    @Get('tags')
-    @ApiOperation({
-      summary: 'Get available pattern tags',
-      description: 'Returns the IDs and names of all tags available for patterns.',
-    })
-    @ApiOkResponse({
-      description: 'The available pattern tags were returned successfully.',
-      type: PatternTagDto,
-      isArray: true,
-    })
-    @ApiUnauthorizedResponse({
-      description: 'A valid session cookie is required.',
-    })
-    async getFabricTags(): Promise<PatternTagDto[]> {
-      return this.patternsService.getPatternTags();
-    }
 }

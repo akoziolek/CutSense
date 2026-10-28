@@ -1,6 +1,6 @@
 import type { PointDto } from './dto/create-pattern.dto.js';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
-import { PatternTagDto } from './dto/pattern-tags.dto.js';
+import { PatternTagDto } from './dto/pattern-tag.dto.js';
 
 interface PatternWithRelations {
   id: number;

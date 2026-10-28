@@ -3,11 +3,14 @@ import { PatternController } from './pattern.controller.js';
 import type { PatternsService } from './patterns.service.js';
 
 describe('PatternController', () => {
-  let service: { getPatternById: ReturnType<typeof vi.fn> };
+  let service: {
+    getPatternById: ReturnType<typeof vi.fn>;
+    updatePattern: ReturnType<typeof vi.fn>;
+  };
   let controller: PatternController;
 
   beforeEach(() => {
-    service = { getPatternById: vi.fn() };
+    service = { getPatternById: vi.fn(), updatePattern: vi.fn() };
     controller = new PatternController(service as unknown as PatternsService);
   });
 
@@ -24,5 +27,16 @@ describe('PatternController', () => {
     service.getPatternById.mockRejectedValue(error);
 
     await expect(controller.getPatternById(5, { id: 3 })).rejects.toBe(error);
+  });
+
+  it('passes the pattern id, update fields and current user id to the service', async () => {
+    const dto = { id: 5, name: 'Updated pattern' };
+    const editDto = { name: 'Updated pattern' };
+    service.updatePattern.mockResolvedValue(dto);
+
+    await expect(
+      controller.editPattern(5, editDto, { id: 3 }),
+    ).resolves.toBe(dto);
+    expect(service.updatePattern).toHaveBeenCalledWith(5, editDto, 3);
   });
 });

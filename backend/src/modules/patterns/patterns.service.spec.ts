@@ -2,26 +2,139 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { DRIZZLE } from '../../db/drizzle.provider.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
+import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
 import { PatternsService } from './patterns.service.js';
+import { PatternSize, PatternVisibility } from './dto/pattern.enum.js';
 
 describe('PatternsService', () => {
   let service: PatternsService;
   let findFirst: ReturnType<typeof vi.fn>;
+  let findManyTags: ReturnType<typeof vi.fn>;
+  let updateReturning: ReturnType<typeof vi.fn>;
+  let updateSet: ReturnType<typeof vi.fn>;
+  let selectWhere: ReturnType<typeof vi.fn>;
+  let deleteWhere: ReturnType<typeof vi.fn>;
+  let insertValues: ReturnType<typeof vi.fn>;
+  let transaction: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     findFirst = vi.fn();
+    findManyTags = vi.fn();
+    updateReturning = vi.fn();
+    updateSet = vi.fn(() => ({
+      where: () => ({ returning: updateReturning }),
+    }));
+    selectWhere = vi.fn().mockResolvedValue([{ id: 17 }]);
+    deleteWhere = vi.fn().mockResolvedValue(undefined);
+    insertValues = vi.fn().mockResolvedValue(undefined);
+    transaction = vi.fn(
+      async (
+        callback: (tx: {
+          update: ReturnType<typeof vi.fn>;
+          select: ReturnType<typeof vi.fn>;
+          delete: ReturnType<typeof vi.fn>;
+          insert: ReturnType<typeof vi.fn>;
+        }) => unknown,
+      ) =>
+        callback({
+          update: vi.fn(() => ({ set: updateSet })),
+          select: vi.fn(() => ({
+            from: vi.fn(() => ({ where: selectWhere })),
+          })),
+          delete: vi.fn(() => ({ where: deleteWhere })),
+          insert: vi.fn(() => ({ values: insertValues })),
+        }),
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PatternsService,
         {
           provide: DRIZZLE,
-          useValue: { query: { patterns: { findFirst } } },
+          useValue: {
+            query: {
+              patterns: { findFirst },
+              tagsForPatterns: { findMany: findManyTags },
+            },
+            transaction,
+          },
         },
       ],
     }).compile();
 
     service = module.get(PatternsService);
+  });
+
+  it('updates pattern fields and replaces deduplicated tags', async () => {
+    findManyTags.mockResolvedValue([{ id: 2 }, { id: 5 }]);
+    updateReturning.mockResolvedValue([{ id: 17 }]);
+    findFirst.mockResolvedValue({
+      id: 17,
+      name: 'Updated shirt',
+      description: 'Updated description',
+      size: 'M',
+      visibility: 'PUBLIC',
+      starCount: 5,
+      starAverage: '4.50',
+      userId: 3,
+      createdAt: new Date('2025-01-15T10:30:00.000Z'),
+      tags: [],
+      user: { id: 3, nickname: 'ala_k', name: 'Ala' },
+      pieces: [],
+    });
+
+    await expect(
+      service.updatePattern(17, {
+        name: 'Updated shirt',
+        description: 'Updated description',
+        size: PatternSize.M,
+        visibility: PatternVisibility.PUBLIC,
+        tagIds: [2, 5, 2],
+      }, 3),
+    ).resolves.toMatchObject({
+      id: 17,
+      name: 'Updated shirt',
+      visibility: 'PUBLIC',
+    });
+
+    expect(findManyTags).toHaveBeenCalledWith(
+      expect.objectContaining({ columns: { id: true } }),
+    );
+    expect(updateSet).toHaveBeenCalledWith({
+      name: 'Updated shirt',
+      description: 'Updated description',
+      size: 'M',
+      visibility: 'PUBLIC',
+    });
+    expect(deleteWhere).toHaveBeenCalledOnce();
+    expect(insertValues).toHaveBeenCalledWith([
+      { patternId: 17, tagId: 2 },
+      { patternId: 17, tagId: 5 },
+    ]);
+  });
+
+  it('rejects an empty update', async () => {
+    await expect(service.updatePattern(17, {}, 3)).rejects.toBeInstanceOf(
+      RequestValidationException,
+    );
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects references to nonexistent pattern tags', async () => {
+    findManyTags.mockResolvedValue([]);
+
+    await expect(
+      service.updatePattern(17, { tagIds: [99] }, 3),
+    ).rejects.toBeInstanceOf(RequestValidationException);
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it('does not update a pattern that is not owned by the current user', async () => {
+    updateReturning.mockResolvedValue([]);
+
+    await expect(
+      service.updatePattern(17, { name: 'Changed' }, 99),
+    ).rejects.toBeInstanceOf(ResourceNotFoundException);
   });
 
   it('returns a pattern with ISO date, tag names, author and pieces', async () => {
@@ -35,7 +148,10 @@ describe('PatternsService', () => {
       starAverage: '4.50',
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
-      tags: [{ tag: { name: 'summer' } }, { tag: { name: 'tops' } }],
+      tags: [
+        { tag: { id: 2, name: 'summer' } },
+        { tag: { id: 5, name: 'tops' } },
+      ],
       user: { id: 3, nickname: 'ala_k', name: 'Ala' },
       pieces: [
         {
@@ -61,7 +177,10 @@ describe('PatternsService', () => {
       starAverage: '4.50',
       userId: 3,
       createdAt: '2025-01-15T10:30:00.000Z',
-      tags: ['summer', 'tops'],
+      tags: [
+        { id: 2, name: 'summer' },
+        { id: 5, name: 'tops' },
+      ],
       author: { id: 3, nickname: 'ala_k' },
       pieces: [
         {

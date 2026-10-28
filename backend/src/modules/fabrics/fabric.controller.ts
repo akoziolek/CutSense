@@ -52,20 +52,25 @@ export class FabricController {
   @Get()
   @ApiOperation({
     summary: 'List fabrics of the current user',
-    description: 'Returns a page of fabrics owned by the current user, sorted by the chosen option.',
+    description:
+      'Returns a page of fabrics owned by the current user, sorted by the chosen option.',
   })
-  @ApiOkResponse({ 
+  @ApiOkResponse({
     description: 'A page of fabrics was returned successfully.',
-    type: FabricListResponseDto })
-  @ApiBadRequestResponse({ description: 'Invalid pagination or sort parameters.' })
-  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+    type: FabricListResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid pagination or sort parameters.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
   async getFabrics(
     @Query() query: ListFabricsQueryDto,
     @CurrentUser() user: { id: number },
   ): Promise<FabricListResponseDto> {
     return this.fabricService.getFabrics(query, user.id);
   }
-  
 
   @Get('tags')
   @ApiOperation({
@@ -216,6 +221,12 @@ export class FabricController {
     description:
       'Updates the supplied fabric fields and optionally replaces its tags. The fabric must belong to the current user.',
   })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique identifier of the fabric',
+    type: Number,
+    example: 1,
+  })
   @ApiBody({ type: EditFabricDto })
   @ApiOkResponse({
     description: 'The fabric has been successfully updated.',
@@ -236,19 +247,24 @@ export class FabricController {
 
   @Patch(':id/favourite')
   @ApiOperation({
-  summary: 'Add or remove a fabric from favourites',
-  description: 'Sets the favourite flag of a fabric owned by the current user. Idempotent.',
+    summary: 'Add or remove a fabric from favourites',
+    description:
+      'Sets the favourite flag of a fabric owned by the current user. Idempotent.',
   })
-  @ApiParam({ 
-    name: 'id', type: Number, 
-    example: 1 
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    example: 1,
   })
   @ApiBody({ type: SetFavouriteDto })
   @ApiOkResponse({ type: FabricFavouriteDto })
   @ApiBadRequestResponse({ description: 'Invalid ID or body.' })
-  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
-  @ApiNotFoundResponse({ 
-    description: 'The fabric does not exist or is not owned by the current user.' 
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  @ApiNotFoundResponse({
+    description:
+      'The fabric does not exist or is not owned by the current user.',
   })
   async setFavourite(
     @Param('id', ParseIntPipe) fabricId: number,

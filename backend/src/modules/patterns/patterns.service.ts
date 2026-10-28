@@ -1,10 +1,16 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { eq, and, or } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
-import { patterns } from '../../db/schema/schema.js';
+import {
+  patterns,
+  patternTags,
+  tagsForPatterns,
+} from '../../db/schema/schema.js';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
+import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
+import { EditPatternDto } from './dto/edit-pattern.dto.js';
 
 const ringOf = (geojson: string): [number, number][] =>
   (JSON.parse(geojson) as { coordinates: [number, number][][] }).coordinates[0];
@@ -15,6 +21,84 @@ export class PatternsService {
     @Inject(DRIZZLE)
     private readonly db: DrizzleDB,
   ) {}
+
+  async updatePattern(
+    patternId: number,
+    editPatternDto: EditPatternDto,
+    currentUserId: number,
+  ): Promise<PatternResponseDto> {
+    const { tagIds, ...patternFields } = editPatternDto;
+    const selectedTagIds =
+      tagIds === undefined ? undefined : [...new Set(tagIds)];
+
+    if (
+      Object.keys(patternFields).length === 0 &&
+      selectedTagIds === undefined
+    ) {
+      throw new RequestValidationException(
+        'At least one pattern field or tag must be provided.',
+      );
+    }
+
+    if (selectedTagIds !== undefined) {
+      const selectedTags = selectedTagIds.length
+        ? await this.db.query.tagsForPatterns.findMany({
+            where: inArray(tagsForPatterns.id, selectedTagIds),
+            columns: { id: true },
+          })
+        : [];
+
+      if (selectedTags.length !== selectedTagIds.length) {
+        throw new RequestValidationException(
+          'One or more selected pattern tags do not exist.',
+        );
+      }
+    }
+
+    await this.db.transaction(async (tx) => {
+      if (Object.keys(patternFields).length > 0) {
+        const [updatedPattern] = await tx
+          .update(patterns)
+          .set(patternFields)
+          .where(
+            and(eq(patterns.id, patternId), eq(patterns.userId, currentUserId)),
+          )
+          .returning();
+
+        if (!updatedPattern) {
+          throw new ResourceNotFoundException('Pattern', patternId);
+        }
+      } else {
+        const [ownedPattern] = await tx
+          .select({ id: patterns.id })
+          .from(patterns)
+          .where(
+            and(eq(patterns.id, patternId), eq(patterns.userId, currentUserId)),
+          );
+
+        if (!ownedPattern) {
+          throw new ResourceNotFoundException('Pattern', patternId);
+        }
+      }
+
+      if (selectedTagIds !== undefined) {
+        await tx
+          .delete(patternTags)
+          .where(eq(patternTags.patternId, patternId));
+
+        if (selectedTagIds.length > 0) {
+          await tx.insert(patternTags).values(
+            selectedTagIds.map((tagId) => ({
+              patternId,
+              tagId,
+            })),
+          );
+        }
+      }
+    });
+
+    return this.getPatternById(patternId, currentUserId);
+  }
 
   async getPatternById(
     patternId: number,

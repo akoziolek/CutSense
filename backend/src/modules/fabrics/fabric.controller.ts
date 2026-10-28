@@ -31,6 +31,7 @@ import {
   ApiUnauthorizedResponse,
   ApiTags,
   ApiCookieAuth,
+  ApiNoContentResponse,
 } from '@nestjs/swagger';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
 import { FabricService } from './fabrics.service.js';
@@ -296,6 +297,16 @@ export class FabricController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+  summary: 'Delete a fabric',
+  description:
+    'Permanently deletes a fabric owned by the current user, together with its tags, its optimizations and its stored photo.',
+  })
+  @ApiParam({ name: 'id', description: 'Unique identifier of the fabric', type: Number, example: 1 })
+  @ApiNoContentResponse({ description: 'The fabric and its optimizations were deleted.' })
+  @ApiBadRequestResponse({ description: 'The fabric ID is not a valid integer.' })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  @ApiNotFoundResponse({ description: 'The fabric does not exist or is not owned by the current user.' })
   async deleteFabric(
     @Param('id', ParseIntPipe) fabricId: number,
     @CurrentUser() user: { id: number },

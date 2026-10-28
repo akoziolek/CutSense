@@ -25,12 +25,14 @@ const FabricPhotoConfigPage = () => import('../views/fabrics/new/FabricConfigVie
 const UploadImagePage = () => import('../views/fabrics/new/FabricUploadView.vue')
 const FabricDescritptionPage = () => import('../views/fabrics/new/FabricDescriptionView.vue')
 const FabricEditPage = () => import('../views/fabrics/FabricEdit.vue')
+const PatternPage = () => import('../views/PatternView.vue')
 
 const routes = [
   { path: '/', name: 'Landing', component: LandingPage },
 
   // public pages (guests can browse public patterns)
   { path: '/patterns', name: 'Patterns', component: ComingSoonPage },
+  { path: '/patterns/:id', name: 'pattern-details', component: PatternPage , props: true },
 
   // pages that need a logged-in user
   { path: '/home', name: 'Home', component: ComingSoonPage, meta: { requiresAuth: true } },

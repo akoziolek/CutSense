@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { CalendarDays, RulerDimensionLine, ArrowLeft, RotateCcw } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import DetailsActions from '@/components/common/DetailsActions.vue'
-import type { FabricTag } from '@/types/fabric'
+import type { NameTag } from '@/types/fabric'
 import type { PolygonEdge } from '@/types/geometry'
 import { toImagePercentBoundary, type CartesianPoint } from '@/utils/fabricBoundary'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
@@ -22,7 +22,7 @@ interface Fabric {
   name: string
   description?: string
   pictureUrl?: string
-  tags: FabricTag[]
+  tags: NameTag[]
   createdAt: string
   area: number
   boundary: CartesianPoint[]
@@ -66,9 +66,9 @@ const normalizedPoints = computed(() => {
 const edges = computed<PolygonEdge[]>(() => {
   const pts = normalizedPoints.value
   if (pts.length < 2) return []
-  
-    const imageWidthCm = fabric.value?.imageWidthCm ?? 0
-    const imageHeightCm = fabric.value?.imageHeightCm ?? 0
+
+  const imageWidthCm = fabric.value?.imageWidthCm ?? 0
+  const imageHeightCm = fabric.value?.imageHeightCm ?? 0
 
   return pts.map((p1, index) => {
     const p2 = pts[(index + 1) % pts.length]!
@@ -97,7 +97,7 @@ const metaItems = computed<MetaItem[]>(() =>
         {
           icon: RulerDimensionLine,
           label: 'Area',
-          value: `${(fabric.value.area/10000).toFixed(2)} m²`,
+          value: `${(fabric.value.area / 10000).toFixed(2)} m²`,
         },
       ]
     : [],
@@ -165,8 +165,6 @@ watch(
           </div>
         </template>
       </PageHeader>
-
-
 
       <Transition
         mode="out-in"

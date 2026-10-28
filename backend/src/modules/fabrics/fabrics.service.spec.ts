@@ -29,7 +29,9 @@ describe('FabricService', () => {
   let selectFrom: ReturnType<typeof vi.fn>;
   let selectWhere: ReturnType<typeof vi.fn>;
   let findManyFabrics: ReturnType<typeof vi.fn>;
-  let selectWhere: ReturnType<typeof vi.fn>;
+
+// in useValue:
+
 
   beforeEach(async () => {
     fetchMock = vi.fn();
@@ -55,6 +57,8 @@ describe('FabricService', () => {
     deleteFile = vi.fn();
     findManyFabrics = vi.fn();
     selectWhere = vi.fn();
+    updateReturning = vi.fn();
+    updateSet = vi.fn(() => ({ where: () => ({ returning: updateReturning }) }));
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -67,6 +71,7 @@ describe('FabricService', () => {
               tagsForFabrics: { findMany: findManyTags },
             },
             select: vi.fn(() => ({ from: () => ({ where: selectWhere }) })),
+            update: vi.fn(() => ({ set: updateSet })),
             insert,
             transaction: async (
               callback: (tx: {
@@ -217,6 +222,7 @@ describe('FabricService', () => {
           destination: '',
           filename: 'fabric.jpg',
           path: '',
+//          stream: undefined as never,
         },
         3,
       ),
@@ -288,6 +294,7 @@ describe('FabricService', () => {
           destination: '',
           filename: 'fabric.jpg',
           path: '',
+ //         stream: undefined as never,
         },
         3,
       ),
@@ -601,4 +608,26 @@ describe('FabricService', () => {
 
     expect(result.totalPages).toBe(2);
   });
+
+  describe('setFavourite', () => {
+  it('sets the flag and returns the new state', async () => {
+    updateReturning.mockResolvedValue([{ id: 5, isFavourite: true }]);
+
+    await expect(service.setFavourite(5, true, 3)).resolves.toEqual({ id: 5, isFavourite: true });
+    expect(updateSet).toHaveBeenCalledWith({ isFavourite: true });
+  });
+
+  it('can remove a fabric from favourites', async () => {
+    updateReturning.mockResolvedValue([{ id: 5, isFavourite: false }]);
+
+    await expect(service.setFavourite(5, false, 3)).resolves.toEqual({ id: 5, isFavourite: false });
+    expect(updateSet).toHaveBeenCalledWith({ isFavourite: false });
+  });
+
+  it('throws not-found when the fabric is missing or owned by someone else', async () => {
+    updateReturning.mockResolvedValue([]);
+
+    await expect(service.setFavourite(99, true, 3)).rejects.toBeInstanceOf(ResourceNotFoundException);
+  });
+});
 });

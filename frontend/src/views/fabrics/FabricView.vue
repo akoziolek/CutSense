@@ -14,6 +14,8 @@ import DetailsActions from '@/components/common/DetailsActions.vue'
 import type { FabricTag } from '@/types/fabric'
 import type { PolygonEdge } from '@/types/geometry'
 import { toImagePercentBoundary, type CartesianPoint } from '@/utils/fabricBoundary'
+import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
+import FavouriteButton from '@/components/common/FavouriteButton.vue'
 
 interface Fabric {
   id: number
@@ -26,6 +28,7 @@ interface Fabric {
   boundary: CartesianPoint[]
   imageWidthCm?: number
   imageHeightCm?: number
+  isFavourite: boolean
 }
 
 const props = defineProps<{ id: string }>()
@@ -94,7 +97,7 @@ const metaItems = computed<MetaItem[]>(() =>
         {
           icon: RulerDimensionLine,
           label: 'Area',
-          value: `${fabric.value.area.toFixed(2)} m²`,
+          value: `${(fabric.value.area/10000).toFixed(2)} m²`,
         },
       ]
     : [],
@@ -130,6 +133,8 @@ const fetchFabric = async (id: string, activeSignal = { active: true }) => {
   }
 }
 
+const { toggle: toggleFavourite, pending } = useFavouriteToggle()
+
 watch(
   () => props.id,
   (id, _, onCleanup) => {
@@ -149,9 +154,19 @@ watch(
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
       <PageHeader :title="fabric?.name ?? (isFetching ? '' : 'Fabric details')">
         <template #actions>
-          <DetailsActions :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" />
+          <div class="flex items-center gap-2">
+            <FavouriteButton
+              v-if="fabric"
+              :is-favourite="fabric.isFavourite"
+              :disabled="pending.has(fabric.id)"
+              @toggle="toggleFavourite(fabric)"
+            />
+            <DetailsActions :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" />
+          </div>
         </template>
       </PageHeader>
+
+
 
       <Transition
         mode="out-in"
@@ -219,7 +234,7 @@ watch(
               </div>
             </div>
             <p
-              v-if="fabric.boundary.length > 0 && normalizedPoints.length === 0"
+              v-if="fabric.boundary?.length > 0 && normalizedPoints?.length === 0"
               class="mt-2 text-sm text-muted-foreground"
             >
               Boundary preview is unavailable because calibrated image dimensions are missing.

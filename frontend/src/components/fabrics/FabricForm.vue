@@ -95,7 +95,7 @@ const knownTagsMap = computed(() => {
 const selectedTags = computed<NameTag[]>(() => {
   return selectedTagNames.value.map((name) => {
     const lower = name.toLowerCase()
-    return knownTagsMap.value.get(lower) || { id: 0, name }
+    return knownTagsMap.value.get(lower) || { id: -1, name }
   })
 })
 
@@ -271,7 +271,7 @@ onMounted(() => {
               <TagsInput
                 v-slot="{ modelValue: tagItems }"
                 v-model="selectedTagNames"
-                class="w-full flex-col items-start gap-2 p-3 font-inter bg-background border border-input rounded-xl focus-within:ring-2 focus-within:ring-ring"
+                class="w-full flex-col items-start gap-2 p-3 font-inter bg-background border border-input rounded-md focus-within:ring-2 focus-within:ring-ring"
               >
                 <div v-if="tagItems.length > 0" class="flex flex-wrap gap-1.5 w-full">
                   <TagsInputItem

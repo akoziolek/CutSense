@@ -3,7 +3,7 @@ import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DiscardNewFabricModal from '@/components/forms/DiscardChangesModal.vue'
 import { useRoute } from 'vue-router'
-import { useEditFabricFormGuard } from '@/composables/useEditFormGuard'
+import { useEditFormGuard } from '@/composables/useEditFormGuard'
 import { onMounted, ref, watch, computed } from 'vue'
 import { api, ApiError } from '@/api/client'
 import FabricForm, { type FabricFormPayload } from '@/components/fabrics/FabricForm.vue'
@@ -30,7 +30,7 @@ const isSubmitting = ref(false)
 const submitError = ref('')
 
 const detailsRoute = computed(() => ({ name: 'FabricDetails', params: { id: fabricId.value } }))
-const { isCancelModalOpen, handleCancel, confirmExit, resetGuard } = useEditFabricFormGuard(
+const { isCancelModalOpen, handleCancel, confirmExit, resetGuard } = useEditFormGuard(
   isDirty,
   detailsRoute.value,
 )

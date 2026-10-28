@@ -28,7 +28,7 @@ import { CheckIcon } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import FormFloatingActions from '../forms/FormFloatingActions.vue'
 import Skeleton from '../ui/skeleton/Skeleton.vue'
-import type { FabricTag } from '@/types/fabric'
+import type { NameTag } from '@/types/fabric'
 
 const MAX_NAME_LENGTH = 35
 const MAX_DESC_LENGTH = 400
@@ -36,7 +36,7 @@ const MAX_DESC_LENGTH = 400
 export interface FabricFormPayload {
   name: string
   description?: string
-  tags: FabricTag[]
+  tags: NameTag[]
 }
 
 const emit = defineEmits<{
@@ -49,7 +49,7 @@ const props = withDefaults(
   defineProps<{
     name?: string
     description?: string
-    tags?: FabricTag[]
+    tags?: NameTag[]
     isSubmitting?: boolean
     isLoading?: boolean
     submitError?: string
@@ -69,11 +69,11 @@ const description = ref(props.description)
 
 const selectedTagNames = ref<string[]>(props.tags ? props.tags.map((tag) => tag.name) : [])
 
-const availableTags = ref<FabricTag[]>([])
+const availableTags = ref<NameTag[]>([])
 const tagLoadError = ref('')
 
 const knownTagsMap = computed(() => {
-  const map = new Map<string, FabricTag>()
+  const map = new Map<string, NameTag>()
 
   if (Array.isArray(props.tags)) {
     props.tags.forEach((tag) => {
@@ -92,7 +92,7 @@ const knownTagsMap = computed(() => {
   return map
 })
 
-const selectedTags = computed<FabricTag[]>(() => {
+const selectedTags = computed<NameTag[]>(() => {
   return selectedTagNames.value.map((name) => {
     const lower = name.toLowerCase()
     return knownTagsMap.value.get(lower) || { id: 0, name }
@@ -112,7 +112,7 @@ const filteredTags = computed(() =>
 const loadAvailableTags = async () => {
   tagLoadError.value = ''
   try {
-    availableTags.value = await api<FabricTag[]>('/fabrics/tags')
+    availableTags.value = await api<NameTag[]>('/fabrics/tags')
   } catch (error) {
     tagLoadError.value =
       error instanceof ApiError

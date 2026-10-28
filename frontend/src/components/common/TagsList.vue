@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Badge } from '@/components/ui/badge'
 import { Tag } from 'lucide-vue-next'
-import type { FabricTag } from '@/types/fabric'
+import type { NameTag } from '@/types/fabric'
 
 defineProps<{
-  tags: FabricTag[]
+  tags: NameTag[]
 }>()
 </script>
 

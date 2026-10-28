@@ -7,7 +7,7 @@ import { useEditFabricFormGuard } from '@/composables/useEditFormGuard'
 import { onMounted, ref, watch, computed } from 'vue'
 import { api, ApiError } from '@/api/client'
 import FabricForm, { type FabricFormPayload } from '@/components/fabrics/FabricForm.vue'
-import type { FabricTag } from '@/types/fabric'
+import type { NameTag } from '@/types/fabric'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { RotateCcw } from 'lucide-vue-next'
 import { ArrowLeft } from 'lucide-vue-next'
@@ -17,7 +17,7 @@ interface Fabric {
   id: number
   name: string
   description?: string
-  tags: FabricTag[]
+  tags: NameTag[]
 }
 
 const route = useRoute()

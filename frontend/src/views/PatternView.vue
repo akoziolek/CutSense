@@ -19,6 +19,7 @@ import { api, ApiError } from '@/api/client'
 import PatternPiecesCarousel, {
   type PatternPiece,
 } from '@/components/patterns/PatternPiecesCarousel.vue'
+import type { NameTag } from '@/types/fabric'
 
 interface Pattern {
   id: number
@@ -28,9 +29,9 @@ interface Pattern {
   visibility: 'PUBLIC' | 'PRIVATE'
   starCount: number
   starAverage: string
-  tags: string[]
+  tags: NameTag[]
   createdAt: string
-  author: { id: number; name: string }
+  author: { id: number; nickname: string }
   pieces: PatternPiece[]
 }
 
@@ -89,6 +90,7 @@ const fetchPattern = async (id: string, activeSignal = { active: true }) => {
 
   try {
     const result = await api<Pattern>(`/patterns/${encodeURIComponent(id)}`)
+    console.log(pattern)
     if (activeSignal.active) pattern.value = result
   } catch (e) {
     if (activeSignal.active) {
@@ -128,7 +130,8 @@ watch(
       <PageHeader :title="pattern?.name ?? (isFetching ? '' : 'Pattern details')">
         <!-- Place for icons -->
       </PageHeader>
-      <p v-if="pattern" class="-mt-4 text-xs text-muted-foreground">
+      <!-- TODO - move this to card section?? -->
+      <p v-if="pattern" class="-mt-4 text-sm ml-4 text-muted-foreground">
         Author: {{ pattern.author.nickname }}
       </p>
 

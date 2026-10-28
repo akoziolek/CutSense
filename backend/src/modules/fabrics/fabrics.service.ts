@@ -19,6 +19,7 @@ import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';
 import { FabricSortOption, ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
 import { FabricFavouriteDto } from './dto/fabric-favourite.dto.js';
+import { BulkDeleteFabricsResponseDto } from './dto/bulk-delete-fabrics.dto.js';
 
 @Injectable()
 export class FabricService {
@@ -388,22 +389,38 @@ export class FabricService {
 
     private readonly logger = new Logger(FabricService.name);
 
-async deleteFabric(fabricId: number, currentUserId: number): Promise<void> {
-  const [deleted] = await this.db
-    .delete(fabrics)
-    .where(and(eq(fabrics.id, fabricId), eq(fabrics.userId, currentUserId)))
-    .returning({ pictureS3Key: fabrics.pictureS3Key });
+  async deleteFabric(fabricId: number, currentUserId: number): Promise<void> {
+    const [deleted] = await this.db
+      .delete(fabrics)
+      .where(and(eq(fabrics.id, fabricId), eq(fabrics.userId, currentUserId)))
+      .returning({ pictureS3Key: fabrics.pictureS3Key });
 
-  if (!deleted) throw new ResourceNotFoundException('Fabric', fabricId);
+    if (!deleted) throw new ResourceNotFoundException('Fabric', fabricId);
 
-  if (deleted.pictureS3Key) {
-    try {
-      await this.storageService.deleteFile(deleted.pictureS3Key);
-    } catch (error) {
-      this.logger.warn(
-        `Fabric ${fabricId} deleted, but its picture ${deleted.pictureS3Key} was not removed: ${String(error)}`,
-      );
+    if (deleted.pictureS3Key) {
+      try {
+        await this.storageService.deleteFile(deleted.pictureS3Key);
+      } catch (error) {
+        this.logger.warn(
+          `Fabric ${fabricId} deleted, but its picture ${deleted.pictureS3Key} was not removed: ${String(error)}`,
+        );
+      }
     }
   }
-}
+
+    async deleteFabrics(ids: number[], currentUserId: number): Promise<BulkDeleteFabricsResponseDto> {
+    const deleted = await this.db
+      .delete(fabrics)
+      .where(and(inArray(fabrics.id, ids), eq(fabrics.userId, currentUserId)))
+      .returning({ id: fabrics.id, pictureS3Key: fabrics.pictureS3Key });
+
+    const results = await Promise.allSettled(
+      deleted.flatMap((f) => (f.pictureS3Key ? [this.storageService.deleteFile(f.pictureS3Key)] : [])),
+    );
+    results.forEach((r) => {
+      if (r.status === 'rejected') this.logger.warn(`Picture was not removed: ${String(r.reason)}`);
+    });
+
+    return { deletedIds: deleted.map((f) => f.id) };
+  }
 }

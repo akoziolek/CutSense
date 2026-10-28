@@ -45,6 +45,7 @@ import { FabricListResponseDto } from './dto/fabric-list.dto.js';
 import { ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
 import { SetFavouriteDto } from './dto/set-favourite.dto.js';
 import { FabricFavouriteDto } from './dto/fabric-favourite.dto.js';
+import { BulkDeleteFabricsDto, BulkDeleteFabricsResponseDto } from './dto/bulk-delete-fabrics.dto.js';
 
 @Controller('fabrics')
 @ApiTags('Fabrics')
@@ -312,6 +313,15 @@ export class FabricController {
     @CurrentUser() user: { id: number },
   ): Promise<void> {
     return this.fabricService.deleteFabric(fabricId, user.id);
+  }
+
+  @Post('bulk-delete')
+  @HttpCode(HttpStatus.OK)
+  async deleteFabrics(
+    @Body() dto: BulkDeleteFabricsDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<BulkDeleteFabricsResponseDto> {
+    return this.fabricService.deleteFabrics(dto.ids, user.id);
   }
   
 }

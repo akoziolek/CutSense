@@ -142,6 +142,18 @@ const bulk = useBulkDeleteFabrics(
 const pendingFavourites = new Set<number>()
 const { toggle: toggleFavourite } = useFavouriteToggle()
 
+const handleGlobalClick = (e: MouseEvent) => {
+  if (!selectionMode.value) return
+
+  const target = e.target as HTMLElement
+  const isCard = target.closest('[data-resource-card]')
+  const isActionToolbar = target.closest('.flex.flex-wrap.items-center') // pasek z przyciskiem Delete/Cancel
+
+  if (!isCard && !isActionToolbar) {
+    stopSelecting()
+  }
+}
+
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'Escape' && selectionMode.value) {
     stopSelecting()
@@ -150,10 +162,12 @@ const handleKeyDown = (e: KeyboardEvent) => {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown)
+  window.addEventListener('click', handleGlobalClick)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown)
+  window.removeEventListener('click', handleGlobalClick)
 })
 
 watch(

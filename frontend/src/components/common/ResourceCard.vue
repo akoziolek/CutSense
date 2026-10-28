@@ -68,6 +68,7 @@ const wrapperProps = computed(() =>
   <component
     :is="selectable ? 'div' : RouterLink"
     v-bind="wrapperProps"
+    data-resource-card
     class="group block rounded-xl focus-visible:outline-none select-none"
     :class="{ 'cursor-pointer': selectable }"
     @pointerdown="startPress"

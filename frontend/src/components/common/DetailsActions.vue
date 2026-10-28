@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { EllipsisVertical, Pencil } from 'lucide-vue-next'
+import { EllipsisVertical, Pencil, TrashIcon } from 'lucide-vue-next'
 import Button from '../ui/button/Button.vue'
 import { ref } from 'vue'
 import { type RouteLocationRaw } from 'vue-router'
@@ -17,6 +17,7 @@ interface Props {
 defineProps<Props>()
 
 const isMenuOpen = ref(false)
+const emit = defineEmits<{ (e: 'delete'): void }>()
 </script>
 
 <template>
@@ -45,6 +46,14 @@ const isMenuOpen = ref(false)
           <Pencil class="w-4 h-4 mr-2" />
           Edit
         </RouterLink>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem
+        class="cursor-pointer rounded-none px-4 py-2.5 flex items-center text-destructive focus:text-destructive"
+        @select="emit('delete')"
+      >
+        <TrashIcon class="w-4 h-4 mr-2 flex items-center text-destructive"/>
+        Delete
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>

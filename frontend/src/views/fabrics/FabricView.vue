@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ImagePreview from '@/components/common/ImagePreview.vue'
@@ -16,6 +16,8 @@ import type { PolygonEdge } from '@/types/geometry'
 import { toImagePercentBoundary, type CartesianPoint } from '@/utils/fabricBoundary'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 import FavouriteButton from '@/components/common/FavouriteButton.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import MessageDIalog from '@/components/common/MessageDIalog.vue'
 
 interface Fabric {
   id: number
@@ -29,7 +31,10 @@ interface Fabric {
   imageWidthCm?: number
   imageHeightCm?: number
   isFavourite: boolean
+  optimizationCount: number
 }
+
+
 
 const props = defineProps<{ id: string }>()
 
@@ -37,6 +42,21 @@ const fabric = ref<Fabric | null>(null)
 const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
+
+const router = useRouter()
+const confirmOpen = ref(false)
+const successOpen = ref(false)
+
+
+const requestDelete = () => (confirmOpen.value = true)
+const confirmDelete = () => {
+  confirmOpen.value = false
+  successOpen.value = true
+}
+const closeSuccess = () => {
+  successOpen.value = false
+  router.push('/fabrics')
+}
 
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -161,7 +181,10 @@ watch(
               :disabled="pending.has(fabric.id)"
               @toggle="toggleFavourite(fabric)"
             />
-            <DetailsActions :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" />
+            <DetailsActions 
+              :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" 
+              @delete="requestDelete"  
+            />
           </div>
         </template>
       </PageHeader>
@@ -251,5 +274,20 @@ watch(
         </main>
       </Transition>
     </div>
+
+    <ConfirmDialog
+      v-model:open="confirmOpen"
+      :title="`Delete ${fabric?.name ?? 'this fabric'}?`"
+      :description="`This action cannot be undone and will permanently remove all associated optimizations.`"
+      confirm-label="Delete"
+      cancel-label="Cancel"
+      @confirm="confirmDelete"
+    />
+    <MessageDIalog
+      :open="successOpen"
+      title="Fabric deleted"
+      description="The fabric and its optimizations were deleted."
+      @update:open="(open) => !open && closeSuccess()"
+    />
   </GridLayout>
 </template>

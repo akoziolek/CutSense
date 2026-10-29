@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount } from 'vue'
 import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { Heart, ImageOff } from 'lucide-vue-next'
 import { Card } from '@/components/ui/card'
@@ -21,16 +21,10 @@ const emit = defineEmits<{
   (e: 'longPress'): void
 }>()
 
-let pressTimer: ReturnType<typeof setTimeout> | null = null
-const isLongPress = ref(false)
+const LONG_PRESS_MS = 500
 
-const startPress = () => {
-  isLongPress.value = false
-  pressTimer = setTimeout(() => {
-    isLongPress.value = true
-    emit('longPress')
-  }, 500) // 500ms przytrzymania
-}
+let pressTimer: ReturnType<typeof setTimeout> | null = null
+let suppressNextClick = false
 
 const cancelPress = () => {
   if (pressTimer) {
@@ -39,12 +33,27 @@ const cancelPress = () => {
   }
 }
 
-const handleClick = (e: MouseEvent) => {
-  if (isLongPress.value) {
-    e.preventDefault()
-    isLongPress.value = false
-  }
+const startPress = (e: PointerEvent) => {
+  suppressNextClick = false
+  cancelPress()
+  if ((e.target as HTMLElement).closest('button')) return
+  if (e.pointerType === 'mouse' && e.button !== 0) return
+
+  pressTimer = setTimeout(() => {
+    pressTimer = null
+    suppressNextClick = true
+    emit('longPress')
+  }, LONG_PRESS_MS)
 }
+
+const onClickCapture = (e: MouseEvent) => {
+  if (!suppressNextClick) return
+  suppressNextClick = false
+  e.preventDefault()
+  e.stopImmediatePropagation()
+}
+
+onBeforeUnmount(cancelPress)
 
 const wrapperProps = computed(() =>
   props.selectable
@@ -75,7 +84,7 @@ const wrapperProps = computed(() =>
     @pointerup="cancelPress"
     @pointerleave="cancelPress"
     @pointercancel="cancelPress"
-    @click="handleClick"
+    @click.capture="onClickCapture"
   >
     <Card
       class="relative gap-2 px-4 py-4 bg-[var(--card-fabrics)] border-muted shadow-md transition-all duration-200 group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring"

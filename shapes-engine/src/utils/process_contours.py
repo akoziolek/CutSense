@@ -27,10 +27,10 @@ def _extract_largest_contour(bin_mask: np.ndarray) -> np.ndarray:
     return max(contours, key=cv2.contourArea)
 
 
-def _simplify_contour(contour: np.ndarray, frame_size: Tuple[int, int], max_points: int = MAX_POINTS) -> np.ndarray:
+def _simplify_contour(contour: np.ndarray, frame_size: Tuple[int, int], max_points: int = MAX_POINTS, epsilon_ratio: float = 0.008) -> np.ndarray:
     height, width = frame_size
     perimeter = cv2.arcLength(contour, True)  # obwód of the contour
-    epsilon = 0.008 * perimeter  # acceptance level for connecting two lines
+    epsilon = epsilon_ratio * perimeter  # acceptance level for connecting two lines
     approx = cv2.approxPolyDP(contour, epsilon, True).reshape(-1, 2)
 
     # Adaptively increase epsilon if there are too many points > MAX_POINTS

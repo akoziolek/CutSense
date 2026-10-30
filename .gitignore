@@ -12,3 +12,5 @@ terraform/*.tfvars
 *.tfplan
 
 shapes-engine/sample-images/
+
+*.pt

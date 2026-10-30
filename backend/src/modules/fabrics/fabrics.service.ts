@@ -408,7 +408,7 @@ export class FabricService {
     }
   }
 
-    async deleteFabrics(ids: number[], currentUserId: number): Promise<BulkDeleteFabricsResponseDto> {
+  async deleteFabrics(ids: number[], currentUserId: number): Promise<BulkDeleteFabricsResponseDto> {
     const deleted = await this.db
       .delete(fabrics)
       .where(and(inArray(fabrics.id, ids), eq(fabrics.userId, currentUserId)))
@@ -423,7 +423,7 @@ export class FabricService {
 
     return { deletedIds: deleted.map((f) => f.id) };
   }
-    }
+  
 
   private buildWhere(query: ListFabricsQueryDto, currentUserId: number): SQL {
     const { createdFrom, createdTo, favourite, tagIds, areaMin, areaMax } = query;
@@ -434,6 +434,7 @@ export class FabricService {
     if (areaMin !== undefined && areaMax !== undefined && areaMin > areaMax) {
       throw new RequestValidationException('areaMin must not be greater than areaMax.');
     }
+    
 
     const withAllTags = tagIds?.length
       ? this.db

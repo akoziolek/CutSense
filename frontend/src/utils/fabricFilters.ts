@@ -42,13 +42,20 @@ export const filtersFromQuery = (query: LocationQuery): FabricFilters => ({
   areaMax: asArea(query.areaMax),
 })
 
-export const filtersToQuery = (f: FabricFilters): Record<string, string | undefined> => ({
+const normalizeArea = (v: unknown): string | undefined => {
+  if (v === '' || v === null || v === undefined) return undefined
+  return String(v).trim() || undefined
+}
+
+export const filtersToQuery = (
+  f: FabricFilters,
+): Record<string, string | undefined> => ({
   from: f.createdFrom || undefined,
   to: f.createdTo || undefined,
   fav: f.favouriteOnly ? '1' : undefined,
   tags: f.tagIds.length ? f.tagIds.join(',') : undefined,
-  areaMin: f.areaMin.trim() || undefined,
-  areaMax: f.areaMax.trim() || undefined,
+  areaMin: normalizeArea(f.areaMin),
+  areaMax: normalizeArea(f.areaMax),
 })
 
 export const filtersToApiParams = (f: FabricFilters): Record<string, string> => {
@@ -57,8 +64,10 @@ export const filtersToApiParams = (f: FabricFilters): Record<string, string> => 
   if (f.createdTo) params.createdTo = new Date(`${f.createdTo}T23:59:59.999`).toISOString()
   if (f.favouriteOnly) params.favourite = 'true'
   if (f.tagIds.length) params.tagIds = f.tagIds.join(',')
-  if (f.areaMin) params.areaMin = f.areaMin
-  if (f.areaMax) params.areaMax = f.areaMax
+  if (f.areaMin)
+    params.areaMin = String(Number(f.areaMin) * 10000)
+  if (f.areaMax)
+    params.areaMax = String(Number(f.areaMax) * 10000)
   return params
 }
 

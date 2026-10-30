@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, ListFilter, Plus, RotateCcw, Search, Shirt } from 'lucide-vue-next'
+import { ArrowLeft, ListFilter, RotateCcw, Search, Shirt } from 'lucide-vue-next'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
@@ -13,10 +13,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/api/client'
-import type { FabricListItem, FabricListResponse, FabricSort, FabricTag } from '@/types/fabric'
+import type { FabricListResponse, FabricSort, NameTag } from '@/types/fabric'
 import { formatCardDate } from '@/utils/formatCardDate'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
-import { SearchX } from 'lucide-vue-next' // add to the existing lucide import; drop ListFilter if unused
+import { SearchX } from 'lucide-vue-next'
 import FabricFilterPopover from '@/components/fabrics/FabricFilterPopover.vue'
 import {
   countActiveFilters, filtersFromQuery, filtersToApiParams, filtersToQuery, type FabricFilters,
@@ -52,7 +52,7 @@ const hasActiveFilters = computed(() => countActiveFilters(filters.value) > 0)
 const applyFilters = (next: FabricFilters) =>
   router.push({ query: { ...route.query, ...filtersToQuery(next), page: undefined } })
 
-const availableTags = ref<FabricTag[]>([])
+const availableTags = ref<NameTag[]>([])
 const tagsLoaded = ref(false)
 const tagsLoading = ref(false)
 const tagsError = ref('')
@@ -61,7 +61,7 @@ const loadTags = async () => {
   tagsError.value = ''
   tagsLoading.value = true
   try {
-    availableTags.value = await api<FabricTag[]>('/fabrics/tags')
+    availableTags.value = await api<NameTag[]>('/fabrics/tags')
     tagsLoaded.value = true
   } catch (e) {
     tagsError.value = e instanceof ApiError ? e.body.message : 'Could not load tags. Reopen to retry.'

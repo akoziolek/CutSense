@@ -8,12 +8,12 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import type { FabricTag } from '@/types/fabric'
+import type { NameTag } from '@/types/fabric'
 import { emptyFilters, type FabricFilters } from '@/utils/fabricFilters'
 
 const props = defineProps<{
   modelValue: FabricFilters
-  tags: FabricTag[]
+  tags: NameTag[]
   tagsLoading?: boolean
   tagsError?: string
   active: boolean

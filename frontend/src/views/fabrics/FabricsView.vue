@@ -54,15 +54,19 @@ const applyFilters = (next: FabricFilters) =>
 
 const availableTags = ref<FabricTag[]>([])
 const tagsLoaded = ref(false)
+const tagsLoading = ref(false)
 const tagsError = ref('')
 const loadTags = async () => {
-  if (tagsLoaded.value) return
+  if (tagsLoaded.value || tagsLoading.value ) return
   tagsError.value = ''
+  tagsLoading.value = true
   try {
     availableTags.value = await api<FabricTag[]>('/fabrics/tags')
     tagsLoaded.value = true
   } catch (e) {
     tagsError.value = e instanceof ApiError ? e.body.message : 'Could not load tags. Reopen to retry.'
+  } finally {
+    tagsLoading.value = false
   }
 }
 
@@ -170,6 +174,7 @@ watch(
         <FabricFilterPopover
           :model-value="filters"
           :tags="availableTags"
+          :tags-loading="tagsLoading"
           :tags-error="tagsError"
           :active="hasActiveFilters"
           @apply="applyFilters"

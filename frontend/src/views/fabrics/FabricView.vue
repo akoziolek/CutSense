@@ -16,6 +16,8 @@ import type { PolygonEdge } from '@/types/geometry'
 import { toImagePercentBoundary, type CartesianPoint } from '@/utils/fabricBoundary'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 import FavouriteButton from '@/components/common/FavouriteButton.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
+import { useDeleteFabric } from '@/composables/fabrics/useDeleteFabric'
 
 interface Fabric {
   id: number
@@ -29,6 +31,7 @@ interface Fabric {
   imageWidthCm?: number
   imageHeightCm?: number
   isFavourite: boolean
+  optimizationCount: number
 }
 
 const props = defineProps<{ id: string }>()
@@ -37,6 +40,9 @@ const fabric = ref<Fabric | null>(null)
 const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
+
+const { confirmOpen, successOpen, isDeleting, error: deleteError, request: requestDelete,
+  confirm: confirmDelete, closeSuccess } = useDeleteFabric(() => props.id)
 
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -161,7 +167,10 @@ watch(
               :disabled="pending.has(fabric.id)"
               @toggle="toggleFavourite(fabric)"
             />
-            <DetailsActions :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" />
+            <DetailsActions 
+              :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" 
+              @delete="requestDelete"  
+            />
           </div>
         </template>
       </PageHeader>
@@ -249,5 +258,49 @@ watch(
         </main>
       </Transition>
     </div>
+
+    <!-- confirm deletion -->
+    <BaseModal
+      :open="confirmOpen"
+      :title="`Delete ${fabric?.name ?? 'this fabric'}?`"
+      description="This action cannot be undone and will permanently remove all associated optimizations."
+      @update:open="(open: boolean) => { if (!isDeleting) confirmOpen = open }"
+    >
+      <p v-if="deleteError" class="text-sm font-semibold text-destructive" role="alert">
+        {{ deleteError }}
+      </p>
+
+      <template #footer>
+        <div class="flex items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            class="h-9 rounded-lg text-xs sm:text-sm font-semibold border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive"
+            :disabled="isDeleting"
+            @click="confirmOpen = false"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            class="h-9 rounded-lg px-4 text-xs sm:text-sm font-semibold font-inter bg-zinc-950 text-white hover:bg-zinc-800 disabled:bg-zinc-300 disabled:text-white disabled:opacity-100 disabled:cursor-not-allowed"
+            :disabled="isDeleting"
+            @click="confirmDelete"
+          >
+            Delete
+          </Button>
+        </div>
+      </template>
+    </BaseModal>
+
+    <!-- success -->
+    <BaseModal
+      :open="successOpen"
+      title="Fabric deleted"
+      description="The fabric and its optimizations were deleted."
+      confirm-label="Got it"
+      prevent-close
+      @confirm="closeSuccess"
+    />
   </GridLayout>
 </template>

@@ -29,6 +29,7 @@ describe('FabricService', () => {
   let selectFrom: ReturnType<typeof vi.fn>;
   let selectWhere: ReturnType<typeof vi.fn>;
   let findManyFabrics: ReturnType<typeof vi.fn>;
+  let deleteReturning: ReturnType<typeof vi.fn>;
 
 // in useValue:
 
@@ -59,6 +60,7 @@ describe('FabricService', () => {
     selectWhere = vi.fn();
     updateReturning = vi.fn();
     updateSet = vi.fn(() => ({ where: () => ({ returning: updateReturning }) }));
+    deleteReturning = vi.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -81,6 +83,7 @@ describe('FabricService', () => {
                 select: typeof select;
               }) => unknown,
             ) => callback({ insert, update, delete: deleteQuery, select }),
+            delete: vi.fn(() => ({ where: () => ({ returning: deleteReturning }) })),
           },
         },
         {
@@ -610,24 +613,56 @@ describe('FabricService', () => {
   });
 
   describe('setFavourite', () => {
-  it('sets the flag and returns the new state', async () => {
-    updateReturning.mockResolvedValue([{ id: 5, isFavourite: true }]);
+    it('sets the flag and returns the new state', async () => {
+      updateReturning.mockResolvedValue([{ id: 5, isFavourite: true }]);
 
-    await expect(service.setFavourite(5, true, 3)).resolves.toEqual({ id: 5, isFavourite: true });
-    expect(updateSet).toHaveBeenCalledWith({ isFavourite: true });
+      await expect(service.setFavourite(5, true, 3)).resolves.toEqual({ id: 5, isFavourite: true });
+      expect(updateSet).toHaveBeenCalledWith({ isFavourite: true });
+    });
+
+    it('can remove a fabric from favourites', async () => {
+      updateReturning.mockResolvedValue([{ id: 5, isFavourite: false }]);
+
+      await expect(service.setFavourite(5, false, 3)).resolves.toEqual({ id: 5, isFavourite: false });
+      expect(updateSet).toHaveBeenCalledWith({ isFavourite: false });
+    });
+
+    it('throws not-found when the fabric is missing or owned by someone else', async () => {
+      updateReturning.mockResolvedValue([]);
+
+      await expect(service.setFavourite(99, true, 3)).rejects.toBeInstanceOf(ResourceNotFoundException);
+    });
   });
 
-  it('can remove a fabric from favourites', async () => {
-    updateReturning.mockResolvedValue([{ id: 5, isFavourite: false }]);
+  describe('deleteFabric', () => {
+    it('deletes the fabric and its stored picture', async () => {
+      deleteReturning.mockResolvedValue([{ pictureS3Key: 'users/3/fabrics/a.jpg' }]);
 
-    await expect(service.setFavourite(5, false, 3)).resolves.toEqual({ id: 5, isFavourite: false });
-    expect(updateSet).toHaveBeenCalledWith({ isFavourite: false });
+      await expect(service.deleteFabric(5, 3)).resolves.toBeUndefined();
+
+      expect(deleteFile).toHaveBeenCalledWith('users/3/fabrics/a.jpg');
+    });
+
+    it('throws not-found and touches no storage when the fabric is missing or not owned', async () => {
+      deleteReturning.mockResolvedValue([]);
+
+      await expect(service.deleteFabric(99, 3)).rejects.toBeInstanceOf(ResourceNotFoundException);
+      expect(deleteFile).not.toHaveBeenCalled();
+    });
+
+    it('still succeeds when removing the picture from storage fails', async () => {
+      deleteReturning.mockResolvedValue([{ pictureS3Key: 'users/3/fabrics/a.jpg' }]);
+      deleteFile.mockRejectedValue(new Error('s3 down'));
+
+      await expect(service.deleteFabric(5, 3)).resolves.toBeUndefined();
+    });
+
+    it('skips storage when the fabric has no picture', async () => {
+      deleteReturning.mockResolvedValue([{ pictureS3Key: null }]);
+
+      await service.deleteFabric(5, 3);
+
+      expect(deleteFile).not.toHaveBeenCalled();
+    });
   });
-
-  it('throws not-found when the fabric is missing or owned by someone else', async () => {
-    updateReturning.mockResolvedValue([]);
-
-    await expect(service.setFavourite(99, true, 3)).rejects.toBeInstanceOf(ResourceNotFoundException);
-  });
-});
 });

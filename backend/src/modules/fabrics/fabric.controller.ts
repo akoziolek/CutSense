@@ -13,6 +13,9 @@ import {
   FileTypeValidator,
   Patch,
   Query,
+  Delete,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -28,6 +31,7 @@ import {
   ApiUnauthorizedResponse,
   ApiTags,
   ApiCookieAuth,
+  ApiNoContentResponse,
 } from '@nestjs/swagger';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
 import { FabricService } from './fabrics.service.js';
@@ -41,6 +45,7 @@ import { FabricListResponseDto } from './dto/fabric-list.dto.js';
 import { ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
 import { SetFavouriteDto } from './dto/set-favourite.dto.js';
 import { FabricFavouriteDto } from './dto/fabric-favourite.dto.js';
+import { BulkDeleteFabricsDto, BulkDeleteFabricsResponseDto } from './dto/bulk-delete-fabrics.dto.js';
 
 @Controller('fabrics')
 @ApiTags('Fabrics')
@@ -306,4 +311,41 @@ export class FabricController {
   ): Promise<FabricResponseDto> {
     return this.fabricService.getFabricById(fabricId, user.id);
   }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+  summary: 'Delete a fabric',
+  description:
+    'Permanently deletes a fabric owned by the current user, together with its tags, its optimizations and its stored photo.',
+  })
+  @ApiParam({ name: 'id', description: 'Unique identifier of the fabric', type: Number, example: 1 })
+  @ApiNoContentResponse({ description: 'The fabric and its optimizations were deleted.' })
+  @ApiBadRequestResponse({ description: 'The fabric ID is not a valid integer.' })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  @ApiNotFoundResponse({ description: 'The fabric does not exist or is not owned by the current user.' })
+  async deleteFabric(
+    @Param('id', ParseIntPipe) fabricId: number,
+    @CurrentUser() user: { id: number },
+  ): Promise<void> {
+    return this.fabricService.deleteFabric(fabricId, user.id);
+  }
+
+  @Post('bulk-delete')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+  summary: 'Delete several fabrics',
+  description: 'Permanently deletes the listed fabrics owned by the current user, with their optimizations and photos. IDs that do not exist or belong to someone else are skipped.',
+  })
+  @ApiBody({ type: BulkDeleteFabricsDto })
+  @ApiOkResponse({ type: BulkDeleteFabricsResponseDto })
+  @ApiBadRequestResponse({ description: 'ids must be 1–100 unique positive integers.' })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  async deleteFabrics(
+    @Body() dto: BulkDeleteFabricsDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<BulkDeleteFabricsResponseDto> {
+    return this.fabricService.deleteFabrics(dto.ids, user.id);
+  }
+  
 }

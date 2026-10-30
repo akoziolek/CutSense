@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, ListFilter, RotateCcw, Search, Shirt } from 'lucide-vue-next'
 import GridLayout from '@/components/layouts/GridLayout.vue'
@@ -32,6 +32,8 @@ const SORT_OPTIONS: { value: FabricSort; label: string }[] = [
   { value: 'area_asc', label: 'Smallest first' },
   { value: 'area_desc', label: 'Biggest first' },
 ]
+const SEARCH_DEBOUNCE_MS = 300
+const SEARCH_MAX = 100
 
 const route = useRoute()
 const router = useRouter()
@@ -83,6 +85,53 @@ const goToPage = (newPage: number) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+
+//--- searching ---
+const search = computed(() =>
+  typeof route.query.q === 'string' ? route.query.q.trim().slice(0, SEARCH_MAX) : '',
+)
+const searchInput = ref(search.value)
+const hasActiveCriteria = computed(() => hasActiveFilters.value || search.value !== '')
+
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+const clearSearchTimer = () => {
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+    searchTimer = null
+  }
+}
+
+const applySearch = (value: string) => {
+  const next = value.trim()
+  if (next === search.value) return
+  router.replace({ query: { ...route.query, q: next || undefined, page: undefined } })
+}
+
+const flushSearch = () => {
+  clearSearchTimer()
+  applySearch(searchInput.value)
+}
+
+const clearSearch = () => {
+  searchInput.value = ''
+  flushSearch()
+}
+
+watch(searchInput, (value) => {
+  clearSearchTimer()
+  searchTimer = setTimeout(() => applySearch(value), SEARCH_DEBOUNCE_MS)
+})
+
+watch(search, (value) => {
+  if (value !== searchInput.value.trim()) searchInput.value = value
+})
+
+const resetCriteria = () => {
+  clearSearchTimer()
+  searchInput.value = ''
+  router.push({ query: { sort: route.query.sort } })
+}
+
 const data = ref<FabricListResponse | null>(null)
 const isFetching = ref(true)
 const showSkeleton = ref(false)
@@ -113,6 +162,9 @@ const fetchFabrics = async (activeSignal = { active: true }) => {
       limit: String(PAGE_SIZE),
       sort: sort.value,
     })
+    if (search.value) {
+      params.set('q', search.value)
+    }
     for (const [key, value] of Object.entries(filtersToApiParams(filters.value))) params.set(key, value)
 
     const result = await api<FabricListResponse>(`/fabrics?${params}`)
@@ -142,8 +194,54 @@ const fetchFabrics = async (activeSignal = { active: true }) => {
 const pendingFavourites = new Set<number>()
 const { toggle: toggleFavourite } = useFavouriteToggle()
 
+// ---------- selection ----------
+const selectionMode = ref(false)
+const selectedIds = ref<number[]>([])
+const selectedCount = computed(() => selectedIds.value.length)
+const isSelected = (id: number) => selectedIds.value.includes(id)
+
+const toggleSelect = (id: number) => {
+  selectedIds.value = isSelected(id)
+    ? selectedIds.value.filter((x) => x !== id)
+    : [...selectedIds.value, id]
+}
+
+const selectFromGesture = (id: number) => {
+  selectionMode.value = true
+  if (!isSelected(id)) toggleSelect(id)
+}
+
+const stopSelecting = () => {
+  selectionMode.value = false
+  selectedIds.value = []
+}
+
+const contentRef = ref<HTMLElement | null>(null)
+
+const handleGlobalClick = (e: MouseEvent) => {
+  if (!selectionMode.value) return
+  const target = e.target as HTMLElement
+  if (!contentRef.value?.contains(target)) return
+  if (target.closest('[data-resource-card]')) return
+  stopSelecting()
+}
+
+const handleKeyDown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && selectionMode.value) stopSelecting()
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown)
+  window.addEventListener('click', handleGlobalClick)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
+  window.removeEventListener('click', handleGlobalClick)
+})
+
 watch(
-  [page, sort, filtersKey],
+  [page, sort, filtersKey, search],
   (_, __, onCleanup) => {
     const activeSignal = { active: true }
     onCleanup(() => {
@@ -165,12 +263,28 @@ watch(
       </PageHeader>
 
       <div class="flex flex-wrap items-center gap-2">
-        <div class="relative flex-1 min-w-48">
-          <Search
-            class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input disabled placeholder="Search fabrics..." class="h-9 pl-9" />
-        </div>
+      <div class="relative flex-1 min-w-48">
+        <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          v-model="searchInput"
+          type="text"
+          autocomplete="off"
+          :maxlength="SEARCH_MAX"
+          placeholder="Search fabrics..."
+          aria-label="Search fabrics"
+          class="h-9 pl-9 pr-9"
+          @keydown.enter="flushSearch"
+        />
+        <button
+          v-if="searchInput"
+          type="button"
+          class="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded p-1 text-muted-foreground hover:text-foreground"
+          aria-label="Clear search"
+          @click="clearSearch"
+        >
+          <X class="size-4" />
+        </button>
+      </div>
         <FabricFilterPopover
           :model-value="filters"
           :tags="availableTags"
@@ -225,7 +339,7 @@ watch(
 
         <!-- filters are active but nothing matches -->
         <div
-          v-else-if="data && data.total === 0 && hasActiveFilters"
+          v-else-if="data && data.total === 0 && hasActiveCriteria"
           key="no-match"
           class="flex flex-col items-center justify-center gap-2 py-20 text-center"
         >
@@ -233,6 +347,9 @@ watch(
           <p class="max-w-xs text-xs text-muted-foreground">
             We couldn't find any fabrics matching your criteria.
           </p>
+          <Button variant="outline" size="sm" class="mt-2 rounded-lg" @click="resetCriteria">
+            Clear filters
+          </Button>
         </div>
 
         <!-- empty: user has no fabrics yet -->

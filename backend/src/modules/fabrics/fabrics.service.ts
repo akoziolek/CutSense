@@ -1,6 +1,6 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { eq, and, inArray, sql, asc, desc, count, type SQL } from 'drizzle-orm';
+import { eq, and, or, inArray, sql, asc, desc, count, type SQL, gte, lte, ilike } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import { fabrics, fabricTags, tagsForFabrics } from '../../db/schema/schema.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
@@ -19,6 +19,7 @@ import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';
 import { FabricSortOption, ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
 import { FabricFavouriteDto } from './dto/fabric-favourite.dto.js';
+import { BulkDeleteFabricsResponseDto } from './dto/bulk-delete-fabrics.dto.js';
 
 @Injectable()
 export class FabricService {
@@ -333,7 +334,7 @@ export class FabricService {
     currentUserId: number,
   ): Promise<FabricListResponseDto> {
     const { page, limit, sort } = query;
-    const where = eq(fabrics.userId, currentUserId);
+    const where = this.buildWhere(query, currentUserId);
 
     const [rows, [{ total }]] = await Promise.all([
       this.db.query.fabrics.findMany({
@@ -385,4 +386,76 @@ export class FabricService {
     if (!updated) throw new ResourceNotFoundException('Fabric', fabricId);
     return updated;
     }
+
+    private readonly logger = new Logger(FabricService.name);
+
+  async deleteFabric(fabricId: number, currentUserId: number): Promise<void> {
+    const [deleted] = await this.db
+      .delete(fabrics)
+      .where(and(eq(fabrics.id, fabricId), eq(fabrics.userId, currentUserId)))
+      .returning({ pictureS3Key: fabrics.pictureS3Key });
+
+    if (!deleted) throw new ResourceNotFoundException('Fabric', fabricId);
+
+    if (deleted.pictureS3Key) {
+      try {
+        await this.storageService.deleteFile(deleted.pictureS3Key);
+      } catch (error) {
+        this.logger.warn(
+          `Fabric ${fabricId} deleted, but its picture ${deleted.pictureS3Key} was not removed: ${String(error)}`,
+        );
+      }
+    }
+  }
+
+    async deleteFabrics(ids: number[], currentUserId: number): Promise<BulkDeleteFabricsResponseDto> {
+    const deleted = await this.db
+      .delete(fabrics)
+      .where(and(inArray(fabrics.id, ids), eq(fabrics.userId, currentUserId)))
+      .returning({ id: fabrics.id, pictureS3Key: fabrics.pictureS3Key });
+
+    const results = await Promise.allSettled(
+      deleted.flatMap((f) => (f.pictureS3Key ? [this.storageService.deleteFile(f.pictureS3Key)] : [])),
+    );
+    results.forEach((r) => {
+      if (r.status === 'rejected') this.logger.warn(`Picture was not removed: ${String(r.reason)}`);
+    });
+
+    return { deletedIds: deleted.map((f) => f.id) };
+  }
+    }
+
+  private buildWhere(query: ListFabricsQueryDto, currentUserId: number): SQL {
+    const { createdFrom, createdTo, favourite, tagIds, areaMin, areaMax } = query;
+
+    if (createdFrom && createdTo && new Date(createdFrom) > new Date(createdTo)) {
+      throw new RequestValidationException('createdFrom must not be later than createdTo.');
+    }
+    if (areaMin !== undefined && areaMax !== undefined && areaMin > areaMax) {
+      throw new RequestValidationException('areaMin must not be greater than areaMax.');
+    }
+
+    const withAllTags = tagIds?.length
+      ? this.db
+          .select({ id: fabricTags.fabricId })
+          .from(fabricTags)
+          .where(inArray(fabricTags.tagId, tagIds))
+      : undefined;
+
+    const escapeLike = (text: string) => text.replace(/[\\%_]/g, '\\$&');
+
+    const term = query.q?.trim();
+    const pattern = term ? `%${escapeLike(term)}%` : undefined;
+
+    return and(
+      eq(fabrics.userId, currentUserId),
+      createdFrom ? gte(fabrics.createdAt, new Date(createdFrom)) : undefined,
+      createdTo ? lte(fabrics.createdAt, new Date(createdTo)) : undefined,
+      favourite === undefined ? undefined : eq(fabrics.isFavourite, favourite),
+      areaMin === undefined ? undefined : gte(fabrics.area, areaMin),
+      areaMax === undefined ? undefined : lte(fabrics.area, areaMax),
+      withAllTags ? inArray(fabrics.id, withAllTags) : undefined,
+      pattern ? or(ilike(fabrics.name, pattern), ilike(fabrics.description, pattern)) : undefined,
+    )!;
+  }
 }

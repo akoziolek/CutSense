@@ -19,12 +19,14 @@ async function ensureWizardHydrated() {
 
 const LandingPage = () => import('../views/LandingPage.vue')
 const ComingSoonPage = () => import('../views/ComingSoonPage.vue') // temporary, to change for correct ones later
+
 const FabricPage = () => import('../views/fabrics/FabricView.vue')
 const FabricsPage = () => import('../views/fabrics/FabricsView.vue')
 const FabricPhotoConfigPage = () => import('../views/fabrics/new/FabricConfigView.vue')
 const UploadImagePage = () => import('../views/fabrics/new/FabricUploadView.vue')
 const FabricDescritptionPage = () => import('../views/fabrics/new/FabricDescriptionView.vue')
 const FabricEditPage = () => import('../views/fabrics/FabricEdit.vue')
+const PatternEditPage = () => import('../views/patterns/PatternEdit.vue')
 const PatternPage = () => import('../views/patterns/PatternView.vue')
 const NewPatternPage = () => import('../views/patterns/NewPatternView.vue')
 const PatternsPage = () => import('../views/patterns/PatternsView.vue')
@@ -34,6 +36,7 @@ const routes = [
 
   // pattern pages
   { path: '/patterns', name: 'Patterns', component: PatternsPage },
+  { path: '/patterns/:id', name: 'PatternDetails', component: PatternPage, props: true },
   { path: '/patterns/new', name: 'pattern-new', component: NewPatternPage, meta: { requiresAuth: true } },
   { path: '/patterns/:id', name: 'pattern-details', component: PatternPage , props: true },
   
@@ -92,6 +95,13 @@ const routes = [
         return { name: wizardStore.file ? 'FabricPhotoConfig' : 'AddFabric' }
       }
     },
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/patterns/:id/edit',
+    name: 'PatternEdit',
+    component: PatternEditPage,
+    props: true,
     meta: { requiresAuth: true },
   },
   { path: '/account', name: 'Account', component: ComingSoonPage, meta: { requiresAuth: true } },

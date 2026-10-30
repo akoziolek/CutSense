@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { eq, and, inArray, sql, asc, desc, count, type SQL, gte, lte } from 'drizzle-orm';
+import { eq, and, or, inArray, sql, asc, desc, count, type SQL, gte, lte, ilike } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import { fabrics, fabricTags, tagsForFabrics } from '../../db/schema/schema.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
@@ -403,6 +403,11 @@ export class FabricService {
           .where(inArray(fabricTags.tagId, tagIds))
       : undefined;
 
+    const escapeLike = (text: string) => text.replace(/[\\%_]/g, '\\$&');
+
+    const term = query.q?.trim();
+    const pattern = term ? `%${escapeLike(term)}%` : undefined;
+
     return and(
       eq(fabrics.userId, currentUserId),
       createdFrom ? gte(fabrics.createdAt, new Date(createdFrom)) : undefined,
@@ -411,6 +416,7 @@ export class FabricService {
       areaMin === undefined ? undefined : gte(fabrics.area, areaMin),
       areaMax === undefined ? undefined : lte(fabrics.area, areaMax),
       withAllTags ? inArray(fabrics.id, withAllTags) : undefined,
+      pattern ? or(ilike(fabrics.name, pattern), ilike(fabrics.description, pattern)) : undefined,
     )!;
   }
 }

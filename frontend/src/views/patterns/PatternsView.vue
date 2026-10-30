@@ -14,6 +14,7 @@ import type { PatternListResponse, PatternSort } from '@/types/pattern'
 import { formatCardDate } from '@/utils/formatCardDate'
 import ResourceCard from '@/components/common/ResourceCard.vue'
 import ListPagination from '@/components/common/ListPagination.vue'
+import FloatingButton from '@/components/common/FloatingButton.vue'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: PatternSort = 'name_asc'
@@ -122,7 +123,7 @@ watch(
 
 <template>
   <GridLayout>
-    <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
+    <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-10">
       <PageHeader>
         <span>Patterns</span>
         <span v-if="data" class="ml-3 text-sm font-semibold">({{ data.total }} found)</span>
@@ -219,5 +220,6 @@ watch(
         </div>
       </Transition>
     </div>
+    <FloatingButton :to="{ name: 'pattern-new' }" />
   </GridLayout>
 </template>

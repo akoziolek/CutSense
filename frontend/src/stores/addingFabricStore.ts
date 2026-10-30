@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { get, set, del } from 'idb-keyval'
-import type { FabricTag } from '@/types/fabric'
+import type { NameTag } from '@/types/fabric'
 
 export interface Point2D {
   pctX: number
@@ -21,7 +21,7 @@ export interface FabricConfig {
 export interface FabricDetails {
   name: string
   description: string
-  tags: FabricTag[]
+  tags: NameTag[]
 }
 
 const STORAGE_FILE_KEY = 'adding_fabric_file'

@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { FabricModule } from './modules/fabrics/fabrics.module.js';
 import { StorageModule } from './modules/storage/storage.module.js';
+import { PatternsModule } from './modules/patterns/pattern.module.js';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { StorageModule } from './modules/storage/storage.module.js';
     AuthModule,
     UsersModule,
     FabricModule,
+    PatternsModule,
     StorageModule,
   ],
   controllers: [AppController],

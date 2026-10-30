@@ -101,6 +101,11 @@ export class ListFabricsQueryDto {
   @Min(0)
   areaMax?: number;
 
+  @ApiPropertyOptional({
+  description: 'Case-insensitive text to look for in the fabric name and description',
+  maxLength: 100,
+  example: 'linen',
+  })
   @IsOptional()
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() || undefined : value))
   @IsString()

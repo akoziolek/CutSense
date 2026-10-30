@@ -423,7 +423,6 @@ export class FabricService {
 
     return { deletedIds: deleted.map((f) => f.id) };
   }
-    }
 
   private buildWhere(query: ListFabricsQueryDto, currentUserId: number): SQL {
     const { createdFrom, createdTo, favourite, tagIds, areaMin, areaMax } = query;

@@ -1,18 +1,47 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { eq, and, inArray } from 'drizzle-orm';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import {
+  eq,
+  and,
+  or,
+  sql,
+  asc,
+  desc,
+  count,
+  inArray,
+  type SQL,
+} from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import {
-  patterns,
+  patternPieces,
   patternTags,
+  patterns,
   tagsForPatterns,
+  patternFavourites,
 } from '../../db/schema/schema.js';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
-import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
-import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
-import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
+import type { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { EditPatternDto } from './dto/edit-pattern.dto.js';
 import { PatternTagDto } from './dto/pattern-tag.dto.js';
 import { PatternsMapper } from './patterns.mapper.js';
+import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
+import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
+import { rotateAndAnchor } from './geometry.js';
+import { PatternListResponseDto } from './dto/pattern-list.dto.js';
+import {
+  ListPatternsQueryDto,
+  PatternSortOption,
+} from './dto/list-patterns-query.dto.js';
+
+// identity ids start at 1, so this never matches a favourite row (used for guests)
+const NO_USER_ID = 0;
+
+const toWkt = (points: { x: number; y: number }[]): string => {
+  const ring = [...points];
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  if (first.x !== last.x || first.y !== last.y) ring.push(first);
+  return `POLYGON((${ring.map((p) => `${p.x} ${p.y}`).join(', ')}))`;
+};
 
 const ringOf = (geojson: string): [number, number][] =>
   (JSON.parse(geojson) as { coordinates: [number, number][][] }).coordinates[0];
@@ -104,7 +133,7 @@ export class PatternsService {
 
   async getPatternById(
     patternId: number,
-    currentUserId: number,
+    currentUserId: number | null,
   ): Promise<PatternResponseDto> {
     const pattern = await this.db.query.patterns.findFirst({
       where: eq(patterns.id, patternId),
@@ -128,12 +157,10 @@ export class PatternsService {
     });
 
     if (!pattern) {
-      throw new ResourceNotFoundException(`Pattern`, patternId);
+      throw new ResourceNotFoundException('Pattern', patternId);
     }
     if (pattern.visibility === 'PRIVATE' && pattern.userId !== currentUserId) {
-      throw new AccessDeniedException(
-        'This pattern is private and belongs to another user.',
-      );
+      throw new ResourceNotFoundException('Pattern', patternId);
     }
 
     return {
@@ -169,101 +196,11 @@ export class PatternsService {
 
     return PatternsMapper.toTagDtos(tags);
   }
-}
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
-import { eq, and, or, sql, asc, desc, count, type SQL, inArray } from 'drizzle-orm';
-import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
-import { patternPieces, patternTags, patterns, tagsForPatterns, patternFavourites } from '../../db/schema/schema.js';
-import { PatternResponseDto } from './dto/pattern-response.dto.js';
-import type { CreatePatternDto } from './dto/create-pattern.dto.js';
-import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
-import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
-import { rotateAndAnchor } from './geometry.js';
-import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';
-import { PatternListResponseDto } from './dto/pattern-list.dto.js';
-import {
-  ListPatternsQueryDto,
-  PatternSortOption,
-} from './dto/list-patterns-query.dto.js';
 
-const NO_USER_ID = 0;
-
-const toWkt = (points: { x: number; y: number }[]): string => {
-  const ring = [...points];
-  const first = ring[0];
-  const last = ring[ring.length - 1];
-  if (first.x !== last.x || first.y !== last.y) ring.push(first);
-  return `POLYGON((${ring.map((p) => `${p.x} ${p.y}`).join(', ')}))`;
-};
-
-const ringOf = (geojson: string): [number, number][] =>
-  (JSON.parse(geojson) as { coordinates: [number, number][][] }).coordinates[0];
-
-@Injectable()
-export class PatternsService {
-  constructor(
-    @Inject(DRIZZLE)
-    private readonly db: DrizzleDB,
-  ) {}
-
-  async getPatternById(
-    patternId: number,
-    currentUserId: number | null,
-  ): Promise<PatternResponseDto> {
-    const pattern = await this.db.query.patterns.findFirst({
-      where: eq(patterns.id, patternId),
-      with: {
-        tags: {
-          with: {
-            tag: true,
-          },
-        },
-                user: {
-          columns: { id: true, nickname: true, name: true },
-        },
-        pieces: {
-          columns: { id: true },
-          extras: (piece, { sql }) => ({
-            geojson: sql<string>`ST_AsGeoJSON(${piece.boundary})`.as('geojson'),
-          }),
-          orderBy: (piece, { asc }) => [asc(piece.id)],
-      },
-    },
-  });
-
-    if (!pattern) {
-      throw new ResourceNotFoundException(`Pattern`, patternId);
-    }
-    if (pattern.visibility === 'PRIVATE' && pattern.userId !== currentUserId) {
-      if (currentUserId === null) {
-        throw new AuthenticationRequiredException('Sign in to view this pattern.');
-      }
-      throw new AccessDeniedException('This pattern is private and belongs to another user.');
-    }
-
-    return {
-      id: pattern.id,
-      name: pattern.name,
-      description: pattern.description ?? undefined,
-      size: pattern.size,
-      visibility: pattern.visibility,
-      starCount: pattern.starCount,
-      starAverage: pattern.starAverage,
-      userId: pattern.userId,
-      createdAt: pattern.createdAt.toISOString(),
-      tags: pattern.tags.map((item) => item.tag.name),
-      author: {
-        id: pattern.user.id,
-        nickname: pattern.user.nickname ?? pattern.user.name,
-      },
-      pieces: pattern.pieces.map((piece) => ({
-        id: piece.id,
-        points: ringOf(piece.geojson),
-      })),
-    };
-  }
-
-    async createPattern(dto: CreatePatternDto, userId: number): Promise<{ id: number }> {
+  async createPattern(
+    dto: CreatePatternDto,
+    userId: number,
+  ): Promise<{ id: number }> {
     const tagNames = [...new Set(dto.tags.map((t) => t.trim().toLowerCase()))];
 
     // one transaction: if anything fails, nothing is saved
@@ -275,7 +212,9 @@ export class PatternsService {
             .where(inArray(tagsForPatterns.name, tagNames))
         : [];
 
-      const unknown = tagNames.filter((n) => !tagRows.some((r) => r.name === n));
+      const unknown = tagNames.filter(
+        (n) => !tagRows.some((r) => r.name === n),
+      );
       if (unknown.length) {
         throw new BadRequestException([`Unknown tags: ${unknown.join(', ')}`]);
       }
@@ -315,13 +254,13 @@ export class PatternsService {
     switch (sort) {
       case PatternSortOption.NAME_DESC:
         return [desc(nameLower), desc(patterns.id)];
-    case PatternSortOption.DATE_DESC:
-      return [desc(patterns.createdAt), desc(patterns.id)];
-    case PatternSortOption.DATE_ASC:
-      return [asc(patterns.createdAt), asc(patterns.id)];
-    case PatternSortOption.NAME_ASC:
-    default:
-      return [asc(nameLower), asc(patterns.id)];
+      case PatternSortOption.DATE_DESC:
+        return [desc(patterns.createdAt), desc(patterns.id)];
+      case PatternSortOption.DATE_ASC:
+        return [asc(patterns.createdAt), asc(patterns.id)];
+      case PatternSortOption.NAME_ASC:
+      default:
+        return [asc(nameLower), asc(patterns.id)];
     }
   }
 

@@ -68,8 +68,15 @@
     {
       "idx": 9,
       "version": "7",
-      "when": 1792414358851,
-      "tag": "0009_add_normal_mirrored_pieces_count_col",
+      "when": 1793013706744,
+      "tag": "0009_add_fabric_image_dimensions",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793019791908,
+      "tag": "0010_make_fabric_image_size_mandatory",
       "breakpoints": true
     }
   ]

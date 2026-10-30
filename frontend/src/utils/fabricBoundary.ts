@@ -1,12 +1,8 @@
 import type { FabricConfig, Point2D } from '@/stores/addingFabricStore'
+import type { FabricBoundaryPoint } from '@/types/fabric'
 import type { Point2D as ImagePoint } from '@/types/geometry'
 
 export interface PostgisPoint {
-  x: number
-  y: number
-}
-
-export interface CartesianPoint {
   x: number
   y: number
 }
@@ -22,7 +18,7 @@ export function toPostgisBoundary(
 }
 
 export function toImagePercentBoundary(
-  points: CartesianPoint[],
+  points: FabricBoundaryPoint[],
   imageWidthCm: number,
   imageHeightCm: number,
 ): ImagePoint[] {

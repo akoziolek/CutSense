@@ -104,7 +104,7 @@ def analyze_fabric_shape(image_bytes: bytes) -> ShapeAnalysisResult:
     return {
         "imageWidth": img_w,
         "imageHeight": img_h,
-        "points": normalized_points,
+        "shapes": [normalized_points],
     }
 
 
@@ -137,6 +137,6 @@ if __name__ == "__main__":
                 target.mkdir(parents=True, exist_ok=True)
                 out = target / f"result_{path.stem}.jpg"
                 visualize_and_save(data, res, str(out))
-                print(f"SUCESS points={len(res['points'])} -> {out}\n")
+                print(f"SUCESS points={len(res['shapes'][0])} -> {out}\n")
             except Exception as err:
                 print(f"ERROR file [{idx}] {path.name}: {err}\n")

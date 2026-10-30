@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { toImagePercentBoundary, toPostgisBoundary } from './fabricBoundary'
+import {
+  toImagePercentBoundary,
+  toPostgisBoundary,
+} from './fabricBoundary'
 
 describe('toPostgisBoundary', () => {
   it('converts image percentages to calibrated coordinates in the upper-right quadrant', () => {

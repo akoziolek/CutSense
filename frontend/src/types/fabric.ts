@@ -2,6 +2,28 @@ export interface FabricTag {
   id: number
   name: string
 }
+
+export interface FabricBoundaryPoint {
+  x: number
+  y: number
+}
+
+export interface FabricResponse {
+  id: number
+  name: string
+  description?: string
+  pictureS3Key?: string
+  pictureUrl?: string
+  isFavourite: boolean
+  area: number
+  shapes: FabricBoundaryPoint[][]
+  imageWidthCm?: number
+  imageHeightCm?: number
+  userId: number
+  createdAt: string
+  tags: FabricTag[]
+}
+
 export interface FabricListItem {
     id: number
     name: string

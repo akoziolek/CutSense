@@ -12,12 +12,18 @@ import { FabricMapper } from './fabric.mapper.js';
 import { CreateFabricDto } from './dto/create-fabric.dto.js';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { AnalyzeFabricDto } from './dto/analyze-fabric.dto.js';
+import {
+  AnalysisPointDto,
+  AnalysisShapesDto,
+} from './dto/analyze-fabric.dto.js';
 import { AnalyzeFabricEngineResponseDto } from './dto/analyze-fabric-engine-response.dto.js';
 import { FabricBoundaryMapper } from './fabric-boundary.mapper.js';
 import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';
-import { FabricSortOption, ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
+import {
+  FabricSortOption,
+  ListFabricsQueryDto,
+} from './dto/list-fabrics-query.dto.js';
 
 @Injectable()
 export class FabricService {
@@ -30,7 +36,7 @@ export class FabricService {
 
   async analyzeFabricBoundary(
     picture: Express.Multer.File,
-  ): Promise<AnalyzeFabricDto> {
+  ): Promise<AnalysisShapesDto> {
     const engineUrl = this.configService
       .get<string>('SHAPES_ENGINE_URL', 'http://localhost:8000')
       .replace(/\/$/, '');
@@ -85,13 +91,49 @@ export class FabricService {
       forbidNonWhitelisted: true,
     });
 
-    if (validationErrors.length > 0) {
+    if (!Array.isArray(engineResult.shapes) || engineResult.shapes.length !== 1) {
       throw new ExternalServiceException(
         'Shape analysis returned an invalid boundary.',
       );
     }
 
-    return FabricBoundaryMapper.toAnalyzeFabricDto(engineResult);
+    const shapeValidationErrors = await Promise.all(
+      engineResult.shapes.map(async (shape) => {
+        if (!Array.isArray(shape) || shape.length < 3) {
+          return true;
+        }
+
+        const pointValidationErrors = await Promise.all(
+          shape.map(async (point) => {
+            if (
+              typeof point !== 'object' ||
+              point === null ||
+              Array.isArray(point)
+            ) {
+              return true;
+            }
+            const pointDto = plainToInstance(AnalysisPointDto, point);
+            const errors = await validate(pointDto, {
+              whitelist: true,
+              forbidNonWhitelisted: true,
+            });
+            return errors.length > 0;
+          }),
+        );
+        return pointValidationErrors.some(Boolean);
+      }),
+    );
+
+    if (
+      validationErrors.length > 0 ||
+      shapeValidationErrors.some(Boolean)
+    ) {
+      throw new ExternalServiceException(
+        'Shape analysis returned an invalid boundary.',
+      );
+    }
+
+    return FabricBoundaryMapper.toAnalysisShapesDto(engineResult);
   }
 
   async getFabricTags(): Promise<{ id: number; name: string }[]> {

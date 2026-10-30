@@ -15,7 +15,8 @@ def visualize_and_save(image_bytes: bytes, result: ShapeAnalysisResult, output_p
             int(round(pt["pctX"] / 100.0 * max(1, width - 1))),
             int(round(pt["pctY"] / 100.0 * max(1, height - 1))),
         ]
-        for pt in result["points"]
+        for shape in result["shapes"]
+        for pt in shape
     ]
 
     pts_arr = np.array(px, dtype=np.int32).reshape((-1, 1, 2))

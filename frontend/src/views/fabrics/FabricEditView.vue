@@ -7,18 +7,11 @@ import { useEditFabricFormGuard } from '@/composables/useEditFormGuard'
 import { onMounted, ref, watch, computed } from 'vue'
 import { api, ApiError } from '@/api/client'
 import FabricForm, { type FabricFormPayload } from '@/components/fabrics/FabricForm.vue'
-import type { FabricTag } from '@/types/fabric'
+import type { FabricResponse } from '@/types/fabric'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { RotateCcw } from 'lucide-vue-next'
 import { ArrowLeft } from 'lucide-vue-next'
 import Button from '@/components/ui/button/Button.vue'
-
-interface Fabric {
-  id: number
-  name: string
-  description?: string
-  tags: FabricTag[]
-}
 
 const route = useRoute()
 const fabricId = computed(() => Number(route.params.id))
@@ -35,7 +28,7 @@ const { isCancelModalOpen, handleCancel, confirmExit, resetGuard } = useEditFabr
   detailsRoute.value,
 )
 
-const fabric = ref<Fabric | null>(null)
+const fabric = ref<FabricResponse | null>(null)
 const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
@@ -63,7 +56,7 @@ const fetchFabric = async (id: number, activeSignal = { active: true }) => {
   }, 150)
 
   try {
-    const result = await api<Fabric>(`/fabrics/${id}`)
+    const result = await api<FabricResponse>(`/fabrics/${id}`)
     if (activeSignal.active) {
       fabric.value = result
 

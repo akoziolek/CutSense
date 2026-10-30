@@ -34,7 +34,7 @@ import { FabricService } from './fabrics.service.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { SessionGuard } from '../../auth/guards/session.guard.js';
 import { CreateFabricDto } from './dto/create-fabric.dto.js';
-import { AnalyzeFabricDto } from './dto/analyze-fabric.dto.js';
+import { AnalysisShapesDto } from './dto/analyze-fabric.dto.js';
 import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricTagDto } from './dto/fabric-tags.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';
@@ -50,20 +50,25 @@ export class FabricController {
   @Get()
   @ApiOperation({
     summary: 'List fabrics of the current user',
-    description: 'Returns a page of fabrics owned by the current user, sorted by the chosen option.',
+    description:
+      'Returns a page of fabrics owned by the current user, sorted by the chosen option.',
   })
-  @ApiOkResponse({ 
+  @ApiOkResponse({
     description: 'A page of fabrics was returned successfully.',
-    type: FabricListResponseDto })
-  @ApiBadRequestResponse({ description: 'Invalid pagination or sort parameters.' })
-  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+    type: FabricListResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid pagination or sort parameters.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
   async getFabrics(
     @Query() query: ListFabricsQueryDto,
     @CurrentUser() user: { id: number },
   ): Promise<FabricListResponseDto> {
     return this.fabricService.getFabrics(query, user.id);
   }
-  
 
   @Get('tags')
   @ApiOperation({
@@ -99,11 +104,11 @@ export class FabricController {
   @ApiOperation({
     summary: 'Detect the fabric boundary in a photo',
     description:
-      'Analyzes the uploaded photo and returns a normalized boundary and the original image dimensions.',
+      'Analyzes the uploaded photo and returns normalized detected shapes and the original image dimensions.',
   })
   @ApiOkResponse({
-    description: 'The fabric boundary was detected.',
-    type: AnalyzeFabricDto,
+    description: 'The detected fabric shape was returned.',
+    type: AnalysisShapesDto,
   })
   @ApiBadRequestResponse({
     description: 'The uploaded image could not be analyzed.',
@@ -125,7 +130,7 @@ export class FabricController {
       }),
     )
     picture: Express.Multer.File,
-  ): Promise<AnalyzeFabricDto> {
+  ): Promise<AnalysisShapesDto> {
     return this.fabricService.analyzeFabricBoundary(picture);
   }
 
@@ -236,7 +241,7 @@ export class FabricController {
   @ApiOperation({
     summary: 'Get a fabric by ID',
     description:
-      'Returns a fabric owned by the current user, including its boundary points and tags.',
+      'Returns a fabric owned by the current user, including its shapes and tags. Fabric shape data is a list containing one boundary.',
   })
   @ApiParam({
     name: 'id',

@@ -11,26 +11,13 @@ import { Button } from '@/components/ui/button'
 import { CalendarDays, RulerDimensionLine, ArrowLeft, RotateCcw } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import DetailsActions from '@/components/common/DetailsActions.vue'
-import type { FabricTag } from '@/types/fabric'
+import type { FabricResponse } from '@/types/fabric'
 import type { PolygonEdge } from '@/types/geometry'
-import { toImagePercentBoundary, type CartesianPoint } from '@/utils/fabricBoundary'
-
-interface Fabric {
-  id: number
-  name: string
-  description?: string
-  pictureUrl?: string
-  tags: FabricTag[]
-  createdAt: string
-  area: number
-  boundary: CartesianPoint[]
-  imageWidthCm?: number
-  imageHeightCm?: number
-}
+import { toImagePercentBoundary } from '@/utils/fabricBoundary'
 
 const props = defineProps<{ id: string }>()
 
-const fabric = ref<Fabric | null>(null)
+const fabric = ref<FabricResponse | null>(null)
 const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
@@ -54,7 +41,7 @@ const normalizedPoints = computed(() => {
   }
 
   return toImagePercentBoundary(
-    fabric.value.boundary,
+    fabric.value.shapes[0] ?? [],
     fabric.value.imageWidthCm,
     fabric.value.imageHeightCm,
   )
@@ -114,7 +101,7 @@ const fetchFabric = async (id: string, activeSignal = { active: true }) => {
   }, 150)
 
   try {
-    const result = await api<Fabric>(`/fabrics/${encodeURIComponent(id)}`)
+    const result = await api<FabricResponse>(`/fabrics/${encodeURIComponent(id)}`)
     if (activeSignal.active) fabric.value = result
   } catch (e) {
     if (activeSignal.active) {
@@ -219,7 +206,7 @@ watch(
               </div>
             </div>
             <p
-              v-if="fabric.boundary.length > 0 && normalizedPoints.length === 0"
+              v-if="fabric.shapes.length > 0 && normalizedPoints.length === 0"
               class="mt-2 text-sm text-muted-foreground"
             >
               Boundary preview is unavailable because calibrated image dimensions are missing.

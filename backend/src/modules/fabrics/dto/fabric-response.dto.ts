@@ -37,16 +37,29 @@ export class FabricResponseDto {
   area!: number;
 
   @ApiProperty({
-    description: 'Fabric boundary points in calibrated Cartesian centimeters',
-    type: [PointDto],
+    description:
+      'Fabric boundaries as calibrated Cartesian point lists. A fabric currently has one shape.',
+    type: 'array',
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          x: { type: 'number', example: -250 },
+          y: { type: 'number', example: 125 },
+        },
+      },
+    },
     example: [
-      { x: -250, y: 125 },
-      { x: 250, y: 125 },
-      { x: 250, y: 625 },
-      { x: -250, y: 625 },
+      [
+        { x: -250, y: 125 },
+        { x: 250, y: 125 },
+        { x: 250, y: 625 },
+        { x: -250, y: 625 },
+      ],
     ],
   })
-  boundary!: PointDto[];
+  shapes!: PointDto[][];
 
   @ApiPropertyOptional({
     description:

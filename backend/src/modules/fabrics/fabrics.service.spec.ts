@@ -29,7 +29,6 @@ describe('FabricService', () => {
   let selectFrom: ReturnType<typeof vi.fn>;
   let selectWhere: ReturnType<typeof vi.fn>;
   let findManyFabrics: ReturnType<typeof vi.fn>;
-  let selectWhere: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     fetchMock = vi.fn();
@@ -54,7 +53,6 @@ describe('FabricService', () => {
     uploadFile = vi.fn().mockResolvedValue('users/3/fabrics/uploaded.jpg');
     deleteFile = vi.fn();
     findManyFabrics = vi.fn();
-    selectWhere = vi.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -98,12 +96,14 @@ describe('FabricService', () => {
     vi.unstubAllGlobals();
   });
 
-  it('forwards image bytes to the shape engine and returns the detected boundary', async () => {
+  it('forwards image bytes and returns the fabric boundary as one shape', async () => {
     const result = {
-      points: [
-        { pctX: 20, pctY: 20 },
-        { pctX: 80, pctY: 20 },
-        { pctX: 80, pctY: 80 },
+      shapes: [
+        [
+          { pctX: 20, pctY: 20 },
+          { pctX: 80, pctY: 20 },
+          { pctX: 80, pctY: 80 },
+        ],
       ],
       imageWidth: 800,
       imageHeight: 600,
@@ -115,7 +115,11 @@ describe('FabricService', () => {
         buffer: Buffer.from('image-data'),
         mimetype: 'image/png',
       } as Express.Multer.File),
-    ).resolves.toEqual(result);
+    ).resolves.toEqual({
+      shapes: result.shapes,
+      imageWidth: result.imageWidth,
+      imageHeight: result.imageHeight,
+    });
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:8000/analyze-fabric-boundary',
@@ -131,11 +135,52 @@ describe('FabricService', () => {
   it('rejects an invalid boundary returned by the shape engine', async () => {
     fetchMock.mockResolvedValue(
       Response.json({
-        points: [
-          { pctX: 20, pctY: 20 },
-          { pctX: 120, pctY: 20 },
-          { pctX: 80, pctY: 80 },
+        shapes: [
+          [
+            { pctX: 20, pctY: 20 },
+            { pctX: 120, pctY: 20 },
+            { pctX: 80, pctY: 80 },
+          ],
         ],
+        imageWidth: 800,
+        imageHeight: 600,
+      }),
+    );
+
+    await expect(
+      service.analyzeFabricBoundary({
+        buffer: Buffer.from('image-data'),
+        mimetype: 'image/png',
+      } as Express.Multer.File),
+    ).rejects.toBeInstanceOf(ExternalServiceException);
+  });
+
+  it('rejects detected shapes with fewer than three points', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({
+        shapes: [[{ pctX: 20, pctY: 20 }, { pctX: 80, pctY: 20 }]],
+        imageWidth: 800,
+        imageHeight: 600,
+      }),
+    );
+
+    await expect(
+      service.analyzeFabricBoundary({
+        buffer: Buffer.from('image-data'),
+        mimetype: 'image/png',
+      } as Express.Multer.File),
+    ).rejects.toBeInstanceOf(ExternalServiceException);
+  });
+
+  it('rejects multiple boundaries from the fabric analyzer', async () => {
+    const shape = [
+      { pctX: 20, pctY: 20 },
+      { pctX: 80, pctY: 20 },
+      { pctX: 80, pctY: 80 },
+    ];
+    fetchMock.mockResolvedValue(
+      Response.json({
+        shapes: [shape, shape],
         imageWidth: 800,
         imageHeight: 600,
       }),
@@ -232,11 +277,13 @@ describe('FabricService', () => {
       createdAt: '2025-01-15T10:30:00.000Z',
       imageWidthCm: 50,
       imageHeightCm: 25,
-      boundary: [
-        { x: -250, y: 125 },
-        { x: 250, y: 125 },
-        { x: 250, y: 625 },
-        { x: -250, y: 625 },
+      shapes: [
+        [
+          { x: -250, y: 125 },
+          { x: 250, y: 125 },
+          { x: 250, y: 625 },
+          { x: -250, y: 625 },
+        ],
       ],
       tags: [],
     });
@@ -328,11 +375,13 @@ describe('FabricService', () => {
       imageHeightCm: 25,
       userId: 3,
       createdAt: '2025-01-15T10:30:00.000Z',
-      boundary: [
-        { x: -250, y: 125 },
-        { x: 250, y: 125 },
-        { x: 250, y: 625 },
-        { x: -250, y: 625 },
+      shapes: [
+        [
+          { x: -250, y: 125 },
+          { x: 250, y: 125 },
+          { x: 250, y: 625 },
+          { x: -250, y: 625 },
+        ],
       ],
       tags: [
         { id: 2, name: 'cotton' },

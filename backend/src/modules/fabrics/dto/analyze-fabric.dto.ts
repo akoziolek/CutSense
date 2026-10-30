@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   ArrayMinSize,
   IsArray,
   IsInt,
@@ -8,10 +8,9 @@ import {
   IsPositive,
   Max,
   Min,
-  ValidateNested,
 } from 'class-validator';
 
-export class AnalyzeFabricPointDto {
+export class AnalysisPointDto {
   @ApiProperty({ example: 20, minimum: 0, maximum: 100 })
   @IsNumber({ allowNaN: false, allowInfinity: false })
   @Min(0)
@@ -25,16 +24,26 @@ export class AnalyzeFabricPointDto {
   pctY!: number;
 }
 
-export class AnalyzeFabricDto {
+export class AnalysisShapesDto {
   @ApiProperty({
-    type: [AnalyzeFabricPointDto],
-    description: 'Normalized points describing the detected fabric boundary.',
+    type: 'array',
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          pctX: { type: 'number', minimum: 0, maximum: 100 },
+          pctY: { type: 'number', minimum: 0, maximum: 100 },
+        },
+      },
+    },
+    description:
+      'Normalized points for each detected boundary. Fabric analysis currently returns one shape.',
   })
   @IsArray()
-  @ArrayMinSize(3)
-  @ValidateNested({ each: true })
-  @Type(() => AnalyzeFabricPointDto)
-  points!: AnalyzeFabricPointDto[];
+  @ArrayMinSize(1)
+  @ArrayMaxSize(1)
+  shapes!: AnalysisPointDto[][];
 
   @ApiProperty({ example: 800, minimum: 1 })
   @IsInt()

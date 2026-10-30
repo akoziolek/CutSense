@@ -10,6 +10,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/api/client'
 import BaseModal from '@/components/common/BaseModal.vue'
 
+interface ShapeAnalysisResponse {
+  shapes: { pctX: number; pctY: number }[][]
+  imageWidth: number
+  imageHeight: number
+}
+
 const emit = defineEmits<{
   (e: 'next'): void
   (e: 'cancel'): void
@@ -95,24 +101,27 @@ const detectFabricBoundary = async () => {
   try {
     const formData = new FormData()
     formData.append('picture', picture)
-    const result = await api<{
-      points: { pctX: number; pctY: number }[]
-      imageWidth: number
-      imageHeight: number
-    }>('/fabrics/analyze-boundary', {
+    const result = await api<ShapeAnalysisResponse>('/fabrics/analyze-boundary', {
       method: 'POST',
       body: formData,
     })
 
-    if (result.imageWidth <= 0 || result.imageHeight <= 0 || result.points.length < 3) {
+    const [shape] = result.shapes
+    if (
+      result.imageWidth <= 0 ||
+      result.imageHeight <= 0 ||
+      result.shapes.length !== 1 ||
+      !shape ||
+      shape.length < 3
+    ) {
       throw new Error('Shape analysis returned an invalid boundary.')
     }
 
     isSyncing = true
-    points.value = result.points
-    updateOriginalPoints(result.points)
+    points.value = shape
+    updateOriginalPoints(shape)
     await fabricStore.updateConfig({
-      points: result.points,
+      points: shape,
     })
   } catch (error) {
     console.error('Failed to analyze fabric photo:', error)

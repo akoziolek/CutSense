@@ -64,6 +64,8 @@ export class FabricMapper {
     fabric: FabricWithTags,
     pictureUrl?: string,
   ): FabricResponseDto {
+    const shape = FabricMapper.withoutClosingPoint(fabric.boundary);
+
     return Object.assign(new FabricResponseDto(), {
       id: fabric.id,
       name: fabric.name,
@@ -80,7 +82,7 @@ export class FabricMapper {
         id: item.tag.id,
         name: item.tag.name,
       })),
-      boundary: FabricMapper.withoutClosingPoint(fabric.boundary),
+      shapes: shape.length > 0 ? [shape] : [],
     });
   }
 

@@ -113,11 +113,13 @@ const fabric = {
   ],
   createdAt: '2025-02-03T00:00:00.000Z',
   area: 12.5,
-  boundary: [
-    { x: 10, y: 40 },
-    { x: 50, y: 40 },
-    { x: 50, y: 20 },
-    { x: 10, y: 20 },
+  shapes: [
+    [
+      { x: 10, y: 40 },
+      { x: 50, y: 40 },
+      { x: 50, y: 20 },
+      { x: 10, y: 20 },
+    ],
   ],
   imageWidthCm: 100,
   imageHeightCm: 80,

@@ -9,4 +9,4 @@ class PointPCT(TypedDict):
 class ShapeAnalysisResult(TypedDict):
     imageWidth: int
     imageHeight: int
-    points: List[PointPCT]
+    shapes: List[List[PointPCT]]

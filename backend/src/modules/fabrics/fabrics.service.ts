@@ -401,8 +401,6 @@ export class FabricService {
           .select({ id: fabricTags.fabricId })
           .from(fabricTags)
           .where(inArray(fabricTags.tagId, tagIds))
-          .groupBy(fabricTags.fabricId)
-          .having(sql`count(distinct ${fabricTags.tagId}) = ${tagIds.length}`)
       : undefined;
 
     return and(

@@ -69,7 +69,7 @@ export class ListFabricsQueryDto {
 
   @ApiPropertyOptional({ 
     type: [Number], 
-    description: 'Fabric must have all of these tags. Comma-separated (1,2) or repeated (tagIds=1&tagIds=2).', 
+    description: 'Fabric must have at least one of these tags. Comma-separated (1,2) or repeated (tagIds=1&tagIds=2).', 
     example: '1,2' })
   @IsOptional()
   @Transform(({ value }) => {

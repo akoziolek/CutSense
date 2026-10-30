@@ -146,8 +146,8 @@ export class FabricController {
         'name',
         'picture',
         'boundary',
-        'imageWidthCm',
-        'imageHeightCm',
+        'imageWidthMm',
+        'imageHeightMm',
       ],
       properties: {
         name: { type: 'string', maxLength: 35, example: 'Cotton canvas' },
@@ -160,19 +160,19 @@ export class FabricController {
         boundary: {
           type: 'string',
           description:
-            'JSON-encoded array of { x, y } points in calibrated centimeters.',
+            'JSON-encoded array of { x, y } points in calibrated millimeters.',
           example:
-            '[{"x":-250,"y":125},{"x":250,"y":125},{"x":250,"y":625},{"x":-250,"y":625}]',
+            '[{"x":-2500,"y":1250},{"x":2500,"y":1250},{"x":2500,"y":6250},{"x":-2500,"y":6250}]',
         },
-        imageWidthCm: {
+        imageWidthMm: {
           type: 'number',
-          description: 'Image width in calibrated centimeters.',
-          example: 60,
+          description: 'Image width in calibrated millimeters.',
+          example: 600,
         },
-        imageHeightCm: {
+        imageHeightMm: {
           type: 'number',
-          description: 'Image height in calibrated centimeters.',
-          example: 40,
+          description: 'Image height in calibrated millimeters.',
+          example: 400,
         },
         picture: {
           type: 'string',
@@ -185,7 +185,7 @@ export class FabricController {
   @ApiOperation({
     summary: 'Add a fabric',
     description:
-      'Uploads a fabric photo to the current user’s S3 folder and creates a fabric using boundary points in calibrated centimeters.',
+      'Uploads a fabric photo to the current user’s S3 folder and creates a fabric using counter-clockwise boundary points in calibrated millimeters.',
   })
   @ApiCreatedResponse({
     description: 'The fabric was created successfully.',

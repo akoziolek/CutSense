@@ -10,7 +10,7 @@ export interface Point2D {
 
 export interface FabricConfig {
   points: Point2D[]
-  pxPerCm: number
+  pxPerMm: number
   threadAngle: number
   rotation: number
   imageWidth: number
@@ -37,7 +37,7 @@ const DEFAULT_DETAILS: FabricDetails = {
 // TODO remove later, for dev purpose
 const DEFAULT_CONFIG: FabricConfig = {
   points: [],
-  pxPerCm: 0,
+  pxPerMm: 0,
   threadAngle: 0,
   rotation: 0,
   imageWidth: 0,
@@ -188,7 +188,7 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     if (!isFileLoaded.value) return false
 
     const hasValidPoints = Array.isArray(config.value.points) && config.value.points.length >= 3
-    const hasValidScale = typeof config.value.pxPerCm === 'number' && config.value.pxPerCm > 0
+    const hasValidScale = typeof config.value.pxPerMm === 'number' && config.value.pxPerMm > 0
 
     const hasImageDimensions = config.value.imageWidth > 0 && config.value.imageHeight > 0
 

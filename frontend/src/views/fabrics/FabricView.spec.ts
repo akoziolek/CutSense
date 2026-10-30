@@ -112,17 +112,17 @@ const fabric = {
     { id: 2, name: 'natural' },
   ],
   createdAt: '2025-02-03T00:00:00.000Z',
-  area: 12.5,
+  areaMm2: 12_500_000,
   shapes: [
     [
-      { x: 10, y: 40 },
-      { x: 50, y: 40 },
-      { x: 50, y: 20 },
-      { x: 10, y: 20 },
+      { x: 100, y: 400 },
+      { x: 500, y: 400 },
+      { x: 500, y: 200 },
+      { x: 100, y: 200 },
     ],
   ],
-  imageWidthCm: 100,
-  imageHeightCm: 80,
+  imageWidthMm: 1000,
+  imageHeightMm: 800,
 }
 
 afterEach(() => {

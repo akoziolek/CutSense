@@ -91,7 +91,10 @@ export class FabricService {
       forbidNonWhitelisted: true,
     });
 
-    if (!Array.isArray(engineResult.shapes) || engineResult.shapes.length !== 1) {
+    if (
+      !Array.isArray(engineResult.shapes) ||
+      engineResult.shapes.length !== 1
+    ) {
       throw new ExternalServiceException(
         'Shape analysis returned an invalid boundary.',
       );
@@ -124,10 +127,7 @@ export class FabricService {
       }),
     );
 
-    if (
-      validationErrors.length > 0 ||
-      shapeValidationErrors.some(Boolean)
-    ) {
+    if (validationErrors.length > 0 || shapeValidationErrors.some(Boolean)) {
       throw new ExternalServiceException(
         'Shape analysis returned an invalid boundary.',
       );
@@ -165,13 +165,15 @@ export class FabricService {
     }
 
     const points = [...createFabricDto.boundary];
-    const first = points[0];
+    const first = points[0]!;
     const last = points.at(-1);
     if (!first || !last || points.length < 3) {
       throw new RequestValidationException(
         'A fabric boundary needs at least three points.',
       );
     }
+
+    // closing the polygon
     if (first.x !== last.x || first.y !== last.y) {
       points.push(first);
     }
@@ -179,7 +181,7 @@ export class FabricService {
     const polygonWkt = `POLYGON((${points
       .map(({ x, y }) => `${x} ${y}`)
       .join(', ')}))`;
-    const geometry = sql`ST_GeomFromText(${polygonWkt}, 0)`;
+    const geometry = sql`ST_MakeValid(ST_SimplifyPreserveTopology(ST_ForcePolygonCCW(ST_GeomFromText(${polygonWkt}, 0)), 0))`;
     const pictureS3Key = await this.storageService.uploadFile(
       picture,
       StoragePaths.fabrics(currentUserId),
@@ -195,9 +197,9 @@ export class FabricService {
             description: createFabricDto.description,
             pictureS3Key,
             boundary: geometry,
-            imageWidthCm: createFabricDto.imageWidthCm,
-            imageHeightCm: createFabricDto.imageHeightCm,
-            area: sql<number>`ST_Area(${geometry})`,
+            imageWidthMm: createFabricDto.imageWidthMm,
+            imageHeightMm: createFabricDto.imageHeightMm,
+            areaMm2: sql<number>`ROUND(ST_Area(${geometry}))::bigint`,
             userId: currentUserId,
           })
           .returning();
@@ -360,9 +362,9 @@ export class FabricService {
       case FabricSortOption.DATE_ASC:
         return [asc(fabrics.createdAt), asc(fabrics.id)];
       case FabricSortOption.AREA_ASC:
-        return [asc(fabrics.area), asc(fabrics.id)];
+        return [asc(fabrics.areaMm2), asc(fabrics.id)];
       case FabricSortOption.AREA_DESC:
-        return [desc(fabrics.area), desc(fabrics.id)];
+        return [desc(fabrics.areaMm2), desc(fabrics.id)];
       case FabricSortOption.DATE_DESC:
       default:
         return [desc(fabrics.createdAt), desc(fabrics.id)];
@@ -384,7 +386,7 @@ export class FabricService {
           name: true,
           pictureS3Key: true,
           isFavourite: true,
-          area: true,
+          areaMm2: true,
           createdAt: true,
         },
         orderBy: this.getOrderBy(sort),

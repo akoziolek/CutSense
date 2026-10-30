@@ -33,29 +33,32 @@ export class FabricResponseDto {
   })
   isFavourite!: boolean;
 
-  @ApiProperty({ description: 'Fabric area', example: 4.32 })
-  area!: number;
+  @ApiProperty({
+    description: 'Fabric area in square millimeters.',
+    example: 4_320_000,
+  })
+  areaMm2!: number;
 
   @ApiProperty({
     description:
-      'Fabric boundaries as calibrated Cartesian point lists. A fabric currently has one shape.',
+      'Fabric boundaries as calibrated Cartesian point lists in millimeters, ordered counter-clockwise. A fabric currently has one shape.',
     type: 'array',
     items: {
       type: 'array',
       items: {
         type: 'object',
         properties: {
-          x: { type: 'number', example: -250 },
-          y: { type: 'number', example: 125 },
+          x: { type: 'number', example: -2500 },
+          y: { type: 'number', example: 1250 },
         },
       },
     },
     example: [
       [
-        { x: -250, y: 125 },
-        { x: 250, y: 125 },
-        { x: 250, y: 625 },
-        { x: -250, y: 625 },
+        { x: -2500, y: 1250 },
+        { x: 2500, y: 1250 },
+        { x: 2500, y: 6250 },
+        { x: -2500, y: 6250 },
       ],
     ],
   })
@@ -63,17 +66,17 @@ export class FabricResponseDto {
 
   @ApiPropertyOptional({
     description:
-      'Image width in calibrated boundary units; omitted for fabrics created before image dimensions were stored.',
-    example: 60,
+      'Image width in calibrated millimeters; omitted for fabrics created before image dimensions were stored.',
+    example: 600,
   })
-  imageWidthCm?: number;
+  imageWidthMm?: number;
 
   @ApiPropertyOptional({
     description:
-      'Image height in calibrated boundary units; omitted for fabrics created before image dimensions were stored.',
-    example: 40,
+      'Image height in calibrated millimeters; omitted for fabrics created before image dimensions were stored.',
+    example: 400,
   })
-  imageHeightCm?: number;
+  imageHeightMm?: number;
 
   @ApiProperty({
     description: 'Identifier of the user who owns the fabric',

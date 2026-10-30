@@ -8,15 +8,15 @@ interface SpatialWorkspaceExposed {
 // input type
 interface useSpatialWorkspaceOptions {
   workspaceRef: Ref<SpatialWorkspaceExposed | null>
-  initialPxPerCm?: number
+  initialPxPerMm?: number
   initialPoints?: Point2D[]
   onThreadAngleChange?: (newAngle: number) => void
   currentThreadAngle?: Ref<number>
 }
 
 export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
-  const defaultPxPerCm = 10
-  const { workspaceRef, initialPxPerCm, initialPoints, onThreadAngleChange, currentThreadAngle } =
+  const defaultPxPerMm = 1
+  const { workspaceRef, initialPxPerMm, initialPoints, onThreadAngleChange, currentThreadAngle } =
     options
 
   const backupShape = [
@@ -25,9 +25,9 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     { pctX: 80, pctY: 80 },
     { pctX: 20, pctY: 80 },
   ]
-  // how many px per 1 cm
-  const pxPerCm = ref<number>(
-    initialPxPerCm && initialPxPerCm > 0 ? initialPxPerCm : defaultPxPerCm,
+  // how many pixels per millimeter
+  const pxPerMm = ref<number>(
+    initialPxPerMm && initialPxPerMm > 0 ? initialPxPerMm : defaultPxPerMm,
   )
   // postgis format
   const points = ref<Point2D[]>(
@@ -83,9 +83,9 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   }
 
   const calculateEdgeDistance = (p1: Point2D, p2: Point2D): string => {
-    if (pxPerCm.value <= 0) return '0.0'
+    if (pxPerMm.value <= 0) return '0.0'
     const pixelDist = getImagePixelDistance(p1, p2)
-    return (pixelDist / pxPerCm.value).toFixed(1)
+    return (pixelDist / pxPerMm.value / 10).toFixed(1)
   }
 
   const edges = computed<PolygonEdge[]>(() => {
@@ -122,7 +122,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     const pixelDist = getImagePixelDistance(edge.p1, edge.p2)
 
     if (pixelDist > 0) {
-      pxPerCm.value = pixelDist / customCm
+      pxPerMm.value = pixelDist / (customCm * 10)
     }
   }
 
@@ -323,7 +323,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     previewPoint,
     previewNeighbors,
     isInteractiveDragging,
-    pxPerCm,
+    pxPerMm,
     zoomLevel,
     imageRotation,
     threadAngle,

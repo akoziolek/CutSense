@@ -34,16 +34,16 @@ const clearSkeletonTimer = () => {
 const normalizedPoints = computed(() => {
   if (
     !fabric.value ||
-    fabric.value.imageWidthCm === undefined ||
-    fabric.value.imageHeightCm === undefined
+    fabric.value.imageWidthMm === undefined ||
+    fabric.value.imageHeightMm === undefined
   ) {
     return []
   }
 
   return toImagePercentBoundary(
     fabric.value.shapes[0] ?? [],
-    fabric.value.imageWidthCm,
-    fabric.value.imageHeightCm,
+    fabric.value.imageWidthMm,
+    fabric.value.imageHeightMm,
   )
 })
 
@@ -51,15 +51,15 @@ const edges = computed<PolygonEdge[]>(() => {
   const pts = normalizedPoints.value
   if (pts.length < 2) return []
   
-    const imageWidthCm = fabric.value?.imageWidthCm ?? 0
-    const imageHeightCm = fabric.value?.imageHeightCm ?? 0
+    const imageWidthMm = fabric.value?.imageWidthMm ?? 0
+    const imageHeightMm = fabric.value?.imageHeightMm ?? 0
 
   return pts.map((p1, index) => {
     const p2 = pts[(index + 1) % pts.length]!
 
-    const dx = ((p2.pctX - p1.pctX) / 100) * imageWidthCm
-    const dy = ((p2.pctY - p1.pctY) / 100) * imageHeightCm
-    const distanceCm = Math.hypot(dx, dy).toFixed(1).toString()
+    const dx = ((p2.pctX - p1.pctX) / 100) * imageWidthMm
+    const dy = ((p2.pctY - p1.pctY) / 100) * imageHeightMm
+    const distanceCm = (Math.hypot(dx, dy) / 10).toFixed(1)
 
     return {
       index,
@@ -81,7 +81,7 @@ const metaItems = computed<MetaItem[]>(() =>
         {
           icon: RulerDimensionLine,
           label: 'Area',
-          value: `${fabric.value.area.toFixed(2)} m²`,
+          value: `${(fabric.value.areaMm2 / 1_000_000).toFixed(2)} m²`,
         },
       ]
     : [],

@@ -19,8 +19,8 @@ const COORD_LIMIT = 1_000_000;
 
 export class PointDto {
   @ApiProperty({
-    description: 'X coordinate in calibrated centimeters.',
-    example: -250,
+    description: 'X coordinate in calibrated millimeters.',
+    example: -2500,
     minimum: -COORD_LIMIT,
     maximum: COORD_LIMIT,
   })
@@ -31,8 +31,8 @@ export class PointDto {
   x!: number;
 
   @ApiProperty({
-    description: 'Y coordinate in calibrated centimeters.',
-    example: 125,
+    description: 'Y coordinate in calibrated millimeters.',
+    example: 1250,
     minimum: -COORD_LIMIT,
     maximum: COORD_LIMIT,
   })
@@ -52,10 +52,10 @@ export class CreateFabricDto {
 
   @ApiProperty({
     description:
-      'JSON-encoded array of boundary points in calibrated centimeters. Provide at least three points; the boundary is closed automatically.',
+      'JSON-encoded array of boundary points in calibrated millimeters. Provide at least three points; the boundary is closed automatically.',
     type: String,
     example:
-      '[{"x":-250,"y":125},{"x":250,"y":125},{"x":250,"y":625},{"x":-250,"y":625}]',
+      '[{"x":-2500,"y":1250},{"x":2500,"y":1250},{"x":2500,"y":6250},{"x":-2500,"y":6250}]',
   })
   @Transform(({ value }) => {
     if (typeof value !== 'string') return value;
@@ -73,22 +73,22 @@ export class CreateFabricDto {
   boundary!: PointDto[];
 
   @ApiProperty({
-    description: 'Image width in the same calibrated units as the boundary.',
-    example: 60,
+    description: 'Image width in calibrated millimeters.',
+    example: 600,
   })
   @Type(() => Number)
-  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @IsInt()
   @IsPositive()
-  imageWidthCm!: number;
+  imageWidthMm!: number;
 
   @ApiProperty({
-    description: 'Image height in the same calibrated units as the boundary.',
-    example: 40,
+    description: 'Image height in calibrated millimeters.',
+    example: 400,
   })
   @Type(() => Number)
-  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @IsInt()
   @IsPositive()
-  imageHeightCm!: number;
+  imageHeightMm!: number;
 
   @ApiPropertyOptional({
     description: 'Description of the fabric',

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, ListFilter, Plus, RotateCcw, Search, Shirt } from 'lucide-vue-next'
+import { ArrowLeft, ListFilter, RotateCcw, Search, Shirt } from 'lucide-vue-next'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
@@ -87,7 +87,10 @@ const fetchFabrics = async (activeSignal = { active: true }) => {
 
     if (result.totalPages > 0 && page.value > result.totalPages) {
       await router.replace({
-        query: { ...route.query, page: result.totalPages === 1 ? undefined : String(result.totalPages) },
+        query: {
+          ...route.query,
+          page: result.totalPages === 1 ? undefined : String(result.totalPages),
+        },
       })
       return
     }
@@ -131,9 +134,7 @@ watch(
       <!--TODO replace Search and Filter - placeholders for now -->
       <div class="flex flex-wrap items-center gap-2">
         <div class="relative flex-1 min-w-48">
-          <Search
-            class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          />
+          <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input disabled placeholder="Search fabrics..." class="h-9 pl-9" />
         </div>
         <Button variant="outline" size="sm" class="gap-2" disabled>
@@ -207,7 +208,7 @@ watch(
               :key="fabric.id"
               :to="{ name: 'FabricDetails', params: { id: fabric.id } }"
               :title="fabric.name"
-              :meta="`${formatCardDate(fabric.createdAt)} • ${fabric.area.toFixed(1)} m²`"
+              :meta="`${formatCardDate(fabric.createdAt)} • ${(fabric.areaMm2 / 1_000_000).toFixed(1)} m²`"
               :image-url="fabric.pictureUrl"
               :is-favourite="fabric.isFavourite"
             />

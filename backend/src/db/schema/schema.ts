@@ -143,9 +143,9 @@ export const fabrics = pgTable(
     description: varchar('description', { length: 400 }),
     pictureS3Key: varchar('picture_s3_key', { length: 512 }).notNull(),
     boundary: postgisPolygon('boundary').notNull(),
-    imageWidthCm: doublePrecision('image_width_cm').notNull(),
-    imageHeightCm: doublePrecision('image_height_cm').notNull(),
-    area: doublePrecision('area').notNull(),
+    imageWidthMm: integer('image_width_mm').notNull(),
+    imageHeightMm: integer('image_height_mm').notNull(),
+    areaMm2: bigint('area_mm2', { mode: 'number' }).notNull(),
     isFavourite: boolean('is_favourite').notNull().default(false),
     userId: bigint('user_id', { mode: 'number' })
       .notNull()

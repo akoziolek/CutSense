@@ -39,7 +39,7 @@ const {
   previewPoint,
   previewNeighbors,
   isInteractiveDragging,
-  pxPerCm,
+  pxPerMm,
   zoomLevel,
   imageRotation,
   threadAngle,
@@ -59,7 +59,7 @@ const {
   setImageDimensions,
 } = useSpatialWorkspace({
   workspaceRef,
-  initialPxPerCm: fabricStore.config.pxPerCm,
+  initialPxPerMm: fabricStore.config.pxPerMm,
   initialPoints: fabricStore.config.points,
   currentThreadAngle: ref(fabricStore.config.threadAngle),
 })
@@ -73,8 +73,8 @@ const loadSavedConfig = () => {
     points.value = savedPoints
     updateOriginalPoints(savedPoints)
   }
-  if (fabricStore.config.pxPerCm) {
-    pxPerCm.value = fabricStore.config.pxPerCm
+  if (fabricStore.config.pxPerMm) {
+    pxPerMm.value = fabricStore.config.pxPerMm
   }
   if (typeof fabricStore.config.threadAngle === 'number') {
     threadAngle.value = fabricStore.config.threadAngle
@@ -163,7 +163,7 @@ const handleSubmit = async () => {
     await fabricStore.updateConfig(
       {
         points: JSON.parse(JSON.stringify(points.value)),
-        pxPerCm: pxPerCm.value,
+        pxPerMm: pxPerMm.value,
         threadAngle: threadAngle.value,
         rotation: imageRotation.value,
       },
@@ -201,13 +201,13 @@ watch(
 )
 
 watch(
-  [points, pxPerCm, threadAngle, imageRotation, isInteractiveDragging],
+  [points, pxPerMm, threadAngle, imageRotation, isInteractiveDragging],
   () => {
     if (!fabricStore.isHydrated || isSyncing || isInteractiveDragging.value) return
     void fabricStore
       .updateConfig({
         points: JSON.parse(JSON.stringify(points.value)),
-        pxPerCm: pxPerCm.value,
+        pxPerMm: pxPerMm.value,
         threadAngle: threadAngle.value,
         rotation: imageRotation.value,
       })
@@ -285,7 +285,7 @@ onMounted(() => {
     <FormFloatingActions
       cancel-label="Cancel"
       next-label="Next"
-      :disabled="isAnalyzing || pxPerCm <= 0"
+      :disabled="isAnalyzing || pxPerMm <= 0"
       @cancel="emit('cancel')"
       @next="handleSubmit"
     />

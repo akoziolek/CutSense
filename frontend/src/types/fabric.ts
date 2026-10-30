@@ -15,10 +15,10 @@ export interface FabricResponse {
   pictureS3Key?: string
   pictureUrl?: string
   isFavourite: boolean
-  area: number
+  areaMm2: number
   shapes: FabricBoundaryPoint[][]
-  imageWidthCm?: number
-  imageHeightCm?: number
+  imageWidthMm?: number
+  imageHeightMm?: number
   userId: number
   createdAt: string
   tags: FabricTag[]
@@ -29,7 +29,7 @@ export interface FabricListItem {
     name: string
     pictureUrl: string
     isFavourite: boolean
-    area: number
+    areaMm2: number
     createdAt: string
 }
 

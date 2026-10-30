@@ -9,30 +9,30 @@ export interface PostgisPoint {
 
 export function toPostgisBoundary(
   points: Point2D[],
-  config: Pick<FabricConfig, 'pxPerCm' | 'imageWidth' | 'imageHeight'>,
+  config: Pick<FabricConfig, 'pxPerMm' | 'imageWidth' | 'imageHeight'>,
 ): PostgisPoint[] {
   return points.map(({ pctX, pctY }) => ({
-    x: (pctX * config.imageWidth) / 100 / config.pxPerCm,
-    y: ((100 - pctY) * config.imageHeight) / 100 / config.pxPerCm,
+    x: ((pctX * config.imageWidth) / 100) / config.pxPerMm,
+    y: (((100 - pctY) * config.imageHeight) / 100) / config.pxPerMm,
   }))
 }
 
 export function toImagePercentBoundary(
   points: FabricBoundaryPoint[],
-  imageWidthCm: number,
-  imageHeightCm: number,
+  imageWidthMm: number,
+  imageHeightMm: number,
 ): ImagePoint[] {
   if (
-    !Number.isFinite(imageWidthCm) ||
-    !Number.isFinite(imageHeightCm) ||
-    imageWidthCm <= 0 ||
-    imageHeightCm <= 0
+    !Number.isFinite(imageWidthMm) ||
+    !Number.isFinite(imageHeightMm) ||
+    imageWidthMm <= 0 ||
+    imageHeightMm <= 0
   ) {
     return []
   }
 
   return points.map(({ x, y }) => ({
-    pctX: (x / imageWidthCm) * 100,
-    pctY: 100 - (y / imageHeightCm) * 100,
+    pctX: (x / imageWidthMm) * 100,
+    pctY: 100 - (y / imageHeightMm) * 100,
   }))
 }

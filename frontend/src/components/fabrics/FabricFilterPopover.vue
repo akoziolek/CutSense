@@ -164,7 +164,7 @@ const noSpinner =
         </div>
 
         <!-- tags -->
-        <Collapsible default-open class="border-t border-border/60 px-4 py-3">
+        <Collapsible default-closed class="border-t border-border/60 px-4 py-3">
           <CollapsibleTrigger :class="sectionTrigger">
             <ChevronDown class="size-4 transition-transform group-data-[state=closed]:-rotate-90" />
             Tags
@@ -257,7 +257,7 @@ const noSpinner =
         </Collapsible>
 
         <!-- area -->
-        <Collapsible default-open class="border-t border-border/60 px-4 py-3">
+        <Collapsible default-closed class="border-t border-border/60 px-4 py-3">
           <CollapsibleTrigger :class="sectionTrigger">
             <ChevronDown class="size-4 transition-transform group-data-[state=closed]:-rotate-90" />
             Area

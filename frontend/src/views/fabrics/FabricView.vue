@@ -11,21 +11,27 @@ import { Button } from '@/components/ui/button'
 import { CalendarDays, RulerDimensionLine, ArrowLeft, RotateCcw } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import DetailsActions from '@/components/common/DetailsActions.vue'
-import type { FabricTag } from '@/types/fabric'
+import type { NameTag } from '@/types/fabric'
 import type { PolygonEdge } from '@/types/geometry'
 import { toImagePercentBoundary, type CartesianPoint } from '@/utils/fabricBoundary'
+import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
+import FavouriteButton from '@/components/common/FavouriteButton.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
+import { useDeleteFabric } from '@/composables/fabrics/useDeleteFabric'
 
 interface Fabric {
   id: number
   name: string
   description?: string
   pictureUrl?: string
-  tags: FabricTag[]
+  tags: NameTag[]
   createdAt: string
   area: number
   boundary: CartesianPoint[]
   imageWidthCm?: number
   imageHeightCm?: number
+  isFavourite: boolean
+  optimizationCount: number
 }
 
 const props = defineProps<{ id: string }>()
@@ -34,6 +40,9 @@ const fabric = ref<Fabric | null>(null)
 const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
+
+const { confirmOpen, successOpen, isDeleting, error: deleteError, request: requestDelete,
+  confirm: confirmDelete, closeSuccess } = useDeleteFabric(() => props.id)
 
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -63,9 +72,9 @@ const normalizedPoints = computed(() => {
 const edges = computed<PolygonEdge[]>(() => {
   const pts = normalizedPoints.value
   if (pts.length < 2) return []
-  
-    const imageWidthCm = fabric.value?.imageWidthCm ?? 0
-    const imageHeightCm = fabric.value?.imageHeightCm ?? 0
+
+  const imageWidthCm = fabric.value?.imageWidthCm ?? 0
+  const imageHeightCm = fabric.value?.imageHeightCm ?? 0
 
   return pts.map((p1, index) => {
     const p2 = pts[(index + 1) % pts.length]!
@@ -94,7 +103,7 @@ const metaItems = computed<MetaItem[]>(() =>
         {
           icon: RulerDimensionLine,
           label: 'Area',
-          value: `${fabric.value.area.toFixed(2)} m²`,
+          value: `${(fabric.value.area / 10000).toFixed(2)} m²`,
         },
       ]
     : [],
@@ -130,6 +139,8 @@ const fetchFabric = async (id: string, activeSignal = { active: true }) => {
   }
 }
 
+const { toggle: toggleFavourite, pending } = useFavouriteToggle()
+
 watch(
   () => props.id,
   (id, _, onCleanup) => {
@@ -149,7 +160,18 @@ watch(
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
       <PageHeader :title="fabric?.name ?? (isFetching ? '' : 'Fabric details')">
         <template #actions>
-          <DetailsActions :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" />
+          <div class="flex items-center gap-2">
+            <FavouriteButton
+              v-if="fabric"
+              :is-favourite="fabric.isFavourite"
+              :disabled="pending.has(fabric.id)"
+              @toggle="toggleFavourite(fabric)"
+            />
+            <DetailsActions 
+              :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" 
+              @delete="requestDelete"  
+            />
+          </div>
         </template>
       </PageHeader>
 
@@ -219,7 +241,7 @@ watch(
               </div>
             </div>
             <p
-              v-if="fabric.boundary.length > 0 && normalizedPoints.length === 0"
+              v-if="fabric.boundary?.length > 0 && normalizedPoints?.length === 0"
               class="mt-2 text-sm text-muted-foreground"
             >
               Boundary preview is unavailable because calibrated image dimensions are missing.
@@ -236,5 +258,49 @@ watch(
         </main>
       </Transition>
     </div>
+
+    <!-- confirm deletion -->
+    <BaseModal
+      :open="confirmOpen"
+      :title="`Delete ${fabric?.name ?? 'this fabric'}?`"
+      description="This action cannot be undone and will permanently remove all associated optimizations."
+      @update:open="(open: boolean) => { if (!isDeleting) confirmOpen = open }"
+    >
+      <p v-if="deleteError" class="text-sm font-semibold text-destructive" role="alert">
+        {{ deleteError }}
+      </p>
+
+      <template #footer>
+        <div class="flex items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            class="h-9 rounded-lg text-xs sm:text-sm font-semibold border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive"
+            :disabled="isDeleting"
+            @click="confirmOpen = false"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            class="h-9 rounded-lg px-4 text-xs sm:text-sm font-semibold font-inter bg-zinc-950 text-white hover:bg-zinc-800 disabled:bg-zinc-300 disabled:text-white disabled:opacity-100 disabled:cursor-not-allowed"
+            :disabled="isDeleting"
+            @click="confirmDelete"
+          >
+            Delete
+          </Button>
+        </div>
+      </template>
+    </BaseModal>
+
+    <!-- success -->
+    <BaseModal
+      :open="successOpen"
+      title="Fabric deleted"
+      description="The fabric and its optimizations were deleted."
+      confirm-label="Got it"
+      prevent-close
+      @confirm="closeSuccess"
+    />
   </GridLayout>
 </template>

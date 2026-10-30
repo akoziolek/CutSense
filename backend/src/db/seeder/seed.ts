@@ -358,7 +358,7 @@ async function main(): Promise<void> {
 
         let pictureS3Key: string | null = null;
 
-if (fs.existsSync(filePath)) {
+        if (fs.existsSync(filePath)) {
           try {
             const buffer = fs.readFileSync(filePath);
 
@@ -370,13 +370,21 @@ if (fs.existsSync(filePath)) {
             } as Express.Multer.File;
 
             const folderPath = StoragePaths.fabrics(userId);
-            pictureS3Key = await storageService.uploadFile(mockFile, folderPath);
+            pictureS3Key = await storageService.uploadFile(
+              mockFile,
+              folderPath,
+            );
           } catch (uploadError) {
-            console.warn(`Warning: Failed to upload ${fileName} to S3, skipping image.`, uploadError);
+            console.warn(
+              `Warning: Failed to upload ${fileName} to S3, skipping image.`,
+              uploadError,
+            );
             pictureS3Key = null;
           }
         } else {
-          console.warn(`File ${fileName} doesn't exist in ${fabricsAssetsDir}.`);
+          console.warn(
+            `File ${fileName} doesn't exist in ${fabricsAssetsDir}.`,
+          );
         }
 
         return {

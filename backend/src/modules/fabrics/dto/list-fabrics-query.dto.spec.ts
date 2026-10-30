@@ -56,4 +56,13 @@ describe('ListFabricsQueryDto', () => {
     expect(await errorsFor({ limit: '1' })).toHaveLength(0);
     expect(await errorsFor({ limit: '50' })).toHaveLength(0);
   });
+
+  it('trims the search text and treats a blank one as no search', async () => {
+  expect(plainToInstance(ListFabricsQueryDto, { q: '  linen  ' }).q).toBe('linen');
+  expect(plainToInstance(ListFabricsQueryDto, { q: '   ' }).q).toBeUndefined();
+  });
+
+  it.each([{ q: 'a'.repeat(101) }, { q: ['a', 'b'] }])('rejects search %j', async (query) => {
+    expect((await errorsFor(query)).length).toBeGreaterThan(0);
+  });
 });

@@ -7,6 +7,7 @@ import { ResourceNotFoundException } from '../../common/exceptions/resource-not-
 import { StorageService } from '../storage/storage.service.js';
 import { FabricService } from './fabrics.service.js';
 import { FabricSortOption } from './dto/list-fabrics-query.dto.js';
+import { PgDialect } from 'drizzle-orm/pg-core';
 
 describe('FabricService', () => {
   let service: FabricService;
@@ -29,7 +30,10 @@ describe('FabricService', () => {
   let selectFrom: ReturnType<typeof vi.fn>;
   let selectWhere: ReturnType<typeof vi.fn>;
   let findManyFabrics: ReturnType<typeof vi.fn>;
-  let selectWhere: ReturnType<typeof vi.fn>;
+  let deleteReturning: ReturnType<typeof vi.fn>;
+
+// in useValue:
+
 
   beforeEach(async () => {
     fetchMock = vi.fn();
@@ -55,6 +59,9 @@ describe('FabricService', () => {
     deleteFile = vi.fn();
     findManyFabrics = vi.fn();
     selectWhere = vi.fn();
+    updateReturning = vi.fn();
+    updateSet = vi.fn(() => ({ where: () => ({ returning: updateReturning }) }));
+    deleteReturning = vi.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -67,6 +74,7 @@ describe('FabricService', () => {
               tagsForFabrics: { findMany: findManyTags },
             },
             select: vi.fn(() => ({ from: () => ({ where: selectWhere }) })),
+            update: vi.fn(() => ({ set: updateSet })),
             insert,
             transaction: async (
               callback: (tx: {
@@ -76,6 +84,7 @@ describe('FabricService', () => {
                 select: typeof select;
               }) => unknown,
             ) => callback({ insert, update, delete: deleteQuery, select }),
+            delete: vi.fn(() => ({ where: () => ({ returning: deleteReturning }) })),
           },
         },
         {
@@ -217,6 +226,7 @@ describe('FabricService', () => {
           destination: '',
           filename: 'fabric.jpg',
           path: '',
+//          stream: undefined as never,
         },
         3,
       ),
@@ -288,6 +298,7 @@ describe('FabricService', () => {
           destination: '',
           filename: 'fabric.jpg',
           path: '',
+ //         stream: undefined as never,
         },
         3,
       ),
@@ -600,5 +611,142 @@ describe('FabricService', () => {
     );
 
     expect(result.totalPages).toBe(2);
+  });
+
+  describe('setFavourite', () => {
+    it('sets the flag and returns the new state', async () => {
+      updateReturning.mockResolvedValue([{ id: 5, isFavourite: true }]);
+
+      await expect(service.setFavourite(5, true, 3)).resolves.toEqual({ id: 5, isFavourite: true });
+      expect(updateSet).toHaveBeenCalledWith({ isFavourite: true });
+    });
+
+    it('can remove a fabric from favourites', async () => {
+      updateReturning.mockResolvedValue([{ id: 5, isFavourite: false }]);
+
+      await expect(service.setFavourite(5, false, 3)).resolves.toEqual({ id: 5, isFavourite: false });
+      expect(updateSet).toHaveBeenCalledWith({ isFavourite: false });
+    });
+
+    it('throws not-found when the fabric is missing or owned by someone else', async () => {
+      updateReturning.mockResolvedValue([]);
+
+      await expect(service.setFavourite(99, true, 3)).rejects.toBeInstanceOf(ResourceNotFoundException);
+    });
+  });
+
+  describe('getFabrics filters', () => {
+    const base = { page: 1, limit: 12, sort: FabricSortOption.DATE_DESC };
+    const whereSql = () =>
+      new PgDialect().sqlToQuery(findManyFabrics.mock.calls[0][0].where);
+
+    beforeEach(() => {
+      findManyFabrics.mockResolvedValue([]);
+      selectWhere.mockResolvedValue([{ total: 0 }]);
+    });
+
+    it('always restricts to the current user', async () => {
+      await service.getFabrics(base, 3);
+
+      expect(whereSql().params).toEqual([3]);
+    });
+
+    it('filters by favourite flag', async () => {
+      await service.getFabrics({ ...base, favourite: true }, 3);
+
+      const { sql, params } = whereSql();
+      expect(sql).toContain('"is_favourite"');
+      expect(params).toContain(true);
+    });
+
+    it('filters by creation date range', async () => {
+      await service.getFabrics(
+        { ...base, createdFrom: '2026-03-01T00:00:00.000Z', createdTo: '2026-03-31T23:59:59.999Z' },
+        3,
+      );
+
+      const { sql, params } = whereSql();
+      expect(sql).toContain('"created_at"');
+      expect(JSON.stringify(params)).toContain('2026-03-01');
+      expect(JSON.stringify(params)).toContain('2026-03-31');
+    });
+
+    it('filters by area range', async () => {
+      await service.getFabrics({ ...base, areaMin: 0.5, areaMax: 3 }, 3);
+
+      const { sql, params } = whereSql();
+      expect(sql).toContain('"area"');
+      expect(params).toEqual(expect.arrayContaining([0.5, 3]));
+    });
+
+    it('matches fabrics that have at least one of the selected tags', async () => {
+    await service.getFabrics({ ...base, tagIds: [1, 2] }, 3);
+
+    const { sql, params } = whereSql();
+    expect(sql).toContain('fabric_tags');
+    expect(sql).not.toContain('having');
+    expect(sql).not.toContain('group by');
+    expect(params).toEqual(expect.arrayContaining([1, 2]));
+    });
+
+    it('uses the same filter for the page and for the total', async () => {
+      await service.getFabrics({ ...base, favourite: true }, 3);
+
+      expect(selectWhere).toHaveBeenCalledWith(findManyFabrics.mock.calls[0][0].where);
+    });
+
+    it('searches name and description case-insensitively', async () => {
+    await service.getFabrics({ ...base, q: 'Linen' }, 3);
+
+    const { sql, params } = whereSql();
+    expect(sql).toContain('ilike');
+    expect(sql).toContain('"name"');
+    expect(sql).toContain('"description"');
+    expect(params).toContain('%Linen%');
+    });
+
+    it('escapes LIKE wildcards in the search text', async () => {
+      await service.getFabrics({ ...base, q: '50%_\\' }, 3);
+
+      expect(whereSql().params).toContain('%50\\%\\_\\\\%');
+    });
+
+    it('adds no search condition without q', async () => {
+      await service.getFabrics(base, 3);
+
+      expect(whereSql().sql).not.toContain('ilike');
+    });
+    });
+
+  describe('deleteFabric', () => {
+    it('deletes the fabric and its stored picture', async () => {
+      deleteReturning.mockResolvedValue([{ pictureS3Key: 'users/3/fabrics/a.jpg' }]);
+
+      await expect(service.deleteFabric(5, 3)).resolves.toBeUndefined();
+
+      expect(deleteFile).toHaveBeenCalledWith('users/3/fabrics/a.jpg');
+    });
+
+    it('throws not-found and touches no storage when the fabric is missing or not owned', async () => {
+      deleteReturning.mockResolvedValue([]);
+
+      await expect(service.deleteFabric(99, 3)).rejects.toBeInstanceOf(ResourceNotFoundException);
+      expect(deleteFile).not.toHaveBeenCalled();
+    });
+
+    it('still succeeds when removing the picture from storage fails', async () => {
+      deleteReturning.mockResolvedValue([{ pictureS3Key: 'users/3/fabrics/a.jpg' }]);
+      deleteFile.mockRejectedValue(new Error('s3 down'));
+
+      await expect(service.deleteFabric(5, 3)).resolves.toBeUndefined();
+    });
+
+    it('skips storage when the fabric has no picture', async () => {
+      deleteReturning.mockResolvedValue([{ pictureS3Key: null }]);
+
+      await service.deleteFabric(5, 3);
+
+      expect(deleteFile).not.toHaveBeenCalled();
+    });
   });
 });

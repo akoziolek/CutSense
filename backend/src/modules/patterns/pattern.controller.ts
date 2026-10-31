@@ -35,6 +35,8 @@ import { OptionalUser } from '../../common/decorators/optional-user.decorator.js
 import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
 import { PatternListResponseDto } from './dto/pattern-list.dto.js';
 import { ListPatternsQueryDto } from './dto/list-patterns-query.dto.js';
+import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
+import { SetFavouriteDto } from '../../common/dto/set-favourite.dto.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')
@@ -65,8 +67,6 @@ export class PatternController {
   }
 
   @Get('tags')
-  @UseGuards(SessionGuard)
-  @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Get available pattern tags',
     description:
@@ -101,6 +101,27 @@ export class PatternController {
     @CurrentUser() user: { id: number },
   ): Promise<{ id: number }> {
     return this.patternsService.createPattern(dto, user.id);
+  }
+
+  @Patch(':id/favourite')
+  @UseGuards(SessionGuard)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Add or remove a pattern from favourites',
+    description: 'Sets the favourite flag of a pattern the current user can see (public, or their own). Idempotent.',
+  })
+  @ApiParam({ name: 'id', type: Number, example: 1 })
+  @ApiBody({ type: SetFavouriteDto })
+  @ApiOkResponse({ type: FavouriteStateDto })
+  @ApiBadRequestResponse({ description: 'Invalid ID or body.' })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  @ApiNotFoundResponse({ description: 'The pattern does not exist or is private and owned by someone else.' })
+  async setFavourite(
+    @Param('id', ParseIntPipe) patternId: number,
+    @Body() dto: SetFavouriteDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<FavouriteStateDto> {
+    return this.patternsService.setFavourite(patternId, dto.isFavourite, user.id);
   }
 
   @Patch(':id')

@@ -9,6 +9,10 @@ import {
   count,
   inArray,
   type SQL,
+  gte,
+  ilike,
+  lte,
+  notInArray,
 } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import {
@@ -31,6 +35,8 @@ import {
   ListPatternsQueryDto,
   PatternSortOption,
 } from './dto/list-patterns-query.dto.js';
+import { assertDateRange, likePattern } from '../../common/utils/list-query.js';
+import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 
 // identity ids start at 1, so this never matches a favourite row (used for guests)
 const NO_USER_ID = 0;
@@ -270,14 +276,7 @@ export class PatternsService {
   ): Promise<PatternListResponseDto> {
     const { page, limit, sort } = query;
 
-    const where =
-      currentUserId === undefined
-        ? eq(patterns.visibility, 'PUBLIC')
-        : or(
-            eq(patterns.visibility, 'PUBLIC'),
-            eq(patterns.userId, currentUserId),
-          );
-
+    const where = this.buildWhere(query, currentUserId);
     const [rows, [{ total }]] = await Promise.all([
       this.db
         .select({
@@ -315,5 +314,75 @@ export class PatternsService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async setFavourite(
+    patternId: number,
+    isFavourite: boolean,
+    currentUserId: number,
+  ): Promise<FavouriteStateDto> {
+    const pattern = await this.db.query.patterns.findFirst({
+      where: eq(patterns.id, patternId),
+      columns: { id: true, userId: true, visibility: true },
+    });
+    if (!pattern || (pattern.visibility === 'PRIVATE' && pattern.userId !== currentUserId)) {
+      throw new ResourceNotFoundException('Pattern', patternId);
+    }
+
+    if (isFavourite) {
+      await this.db
+        .insert(patternFavourites)
+        .values({ patternId, userId: currentUserId })
+        .onConflictDoNothing();
+    } else {
+      await this.db
+        .delete(patternFavourites)
+        .where(and(eq(patternFavourites.patternId, patternId), eq(patternFavourites.userId, currentUserId)));
+    }
+    return { id: patternId, isFavourite };
+  }
+
+  private buildWhere(query: ListPatternsQueryDto, currentUserId?: number): SQL {
+    const { createdFrom, createdTo, favourite, tagIds, sizes } = query;
+    assertDateRange(createdFrom, createdTo);
+
+    const visible =
+      currentUserId === undefined
+        ? eq(patterns.visibility, 'PUBLIC')
+        : or(eq(patterns.visibility, 'PUBLIC'), eq(patterns.userId, currentUserId));
+
+    const favouriteIds =
+      currentUserId !== undefined && favourite !== undefined
+        ? this.db
+            .select({ id: patternFavourites.patternId })
+            .from(patternFavourites)
+            .where(eq(patternFavourites.userId, currentUserId))
+        : undefined;
+
+    let favouriteFilter: SQL | undefined;
+    if (favourite === true) {
+      favouriteFilter = favouriteIds ? inArray(patterns.id, favouriteIds) : sql`false`;
+    } else if (favourite === false && favouriteIds) {
+      favouriteFilter = notInArray(patterns.id, favouriteIds);
+    }
+
+    const withAnyTag = tagIds?.length
+      ? this.db
+          .select({ id: patternTags.patternId })
+          .from(patternTags)
+          .where(inArray(patternTags.tagId, tagIds))
+      : undefined;
+
+    const pattern = likePattern(query.q);
+
+    return and(
+      visible,
+      createdFrom ? gte(patterns.createdAt, new Date(createdFrom)) : undefined,
+      createdTo ? lte(patterns.createdAt, new Date(createdTo)) : undefined,
+      favouriteFilter,
+      sizes?.length ? inArray(patterns.size, sizes) : undefined,
+      withAnyTag ? inArray(patterns.id, withAnyTag) : undefined,
+      pattern ? or(ilike(patterns.name, pattern), ilike(patterns.description, pattern)) : undefined,
+    )!;
   }
 }

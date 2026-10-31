@@ -15,7 +15,7 @@ import type { PatternListResponse, PatternSort } from '@/types/pattern'
 import { formatCardDate } from '@/utils/formatCardDate'
 import ResourceCard from '@/components/common/ResourceCard.vue'
 import ListPagination from '@/components/common/ListPagination.vue'
-import FloatingButton from '@/components/common/FloatingButton.vue'
+import { useAuth } from '@/composables/useAuth'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: PatternSort = 'name_asc'
@@ -28,6 +28,16 @@ const SORT_OPTIONS: { value: PatternSort; label: string }[] = [
 
 const route = useRoute()
 const router = useRouter()
+
+const { state: authState } = useAuth()
+
+// odświeżenie listy po zalogowaniu lub wylogowaniu
+watch(
+  () => authState.user,
+  () => {
+    fetchPatterns()
+  },
+)
 
 const sort = computed<PatternSort>(() => {
   const value = route.query.sort
@@ -209,17 +219,17 @@ watch(
               :title="pattern.name"
               :meta="`${formatCardDate(pattern.createdAt)} • ${pattern.size}`"
               :is-favourite="pattern.isFavourite"
-              >
+            >
               <template #placeholder><Scissors class="size-8" /></template>
             </ResourceCard>
           </div>
 
           <ListPagination
-              v-if="data.totalPages > 1"
-              :page="page"
-              :total="data.total"
-              :items-per-page="PAGE_SIZE"
-              @update:page="goToPage"
+            v-if="data.totalPages > 1"
+            :page="page"
+            :total="data.total"
+            :items-per-page="PAGE_SIZE"
+            @update:page="goToPage"
           />
         </div>
       </Transition>

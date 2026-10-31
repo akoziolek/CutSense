@@ -24,6 +24,8 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { SessionGuard } from '../../auth/guards/session.guard.js';
 import { EditPatternDto } from './dto/edit-pattern.dto.js';
 import { PatternTagDto } from './dto/pattern-tag.dto.js';
+import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
+import { SetFavouriteDto } from '../../common/dto/set-favourite.dto.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')
@@ -48,6 +50,16 @@ export class PatternController {
   })
   async getFabricTags(): Promise<PatternTagDto[]> {
     return this.patternsService.getPatternTags();
+  }
+
+  @Patch(':id/favourite')
+  @UseGuards(SessionGuard)
+  async setFavourite(
+    @Param('id', ParseIntPipe) patternId: number,
+    @Body() dto: SetFavouriteDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<FavouriteStateDto> {
+    return this.patternsService.setFavourite(patternId, dto.isFavourite, user.id);
   }
 
   @Patch(':id')

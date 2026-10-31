@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { eq, and, inArray } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import {
+  patternFavourites,
   patterns,
   patternTags,
   tagsForPatterns,
@@ -13,6 +14,7 @@ import { RequestValidationException } from '../../common/exceptions/request-vali
 import { EditPatternDto } from './dto/edit-pattern.dto.js';
 import { PatternTagDto } from './dto/pattern-tag.dto.js';
 import { PatternsMapper } from './patterns.mapper.js';
+import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 
 const ringOf = (geojson: string): [number, number][] =>
   (JSON.parse(geojson) as { coordinates: [number, number][][] }).coordinates[0];
@@ -168,5 +170,33 @@ export class PatternsService {
     });
 
     return PatternsMapper.toTagDtos(tags);
+  }
+
+  async setFavourite(
+    patternId: number,
+    isFavourite: boolean,
+    currentUserId: number,
+  ): Promise<FavouriteStateDto> {
+    const pattern = await this.db.query.patterns.findFirst({
+      where: eq(patterns.id, patternId),
+      columns: { id: true, userId: true, visibility: true },
+    });
+    if (!pattern || (pattern.visibility === 'PRIVATE' && pattern.userId !== currentUserId)) {
+      throw new ResourceNotFoundException('Pattern', patternId);
+    }
+
+    if (isFavourite) {
+      await this.db
+        .insert(patternFavourites)
+        .values({ patternId, userId: currentUserId })
+        .onConflictDoNothing();
+    } else {
+      await this.db
+        .delete(patternFavourites)
+        .where(
+          and(eq(patternFavourites.patternId, patternId), eq(patternFavourites.userId, currentUserId)),
+        );
+    }
+    return { id: patternId, isFavourite };
   }
 }

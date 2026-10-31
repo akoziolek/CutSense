@@ -43,7 +43,7 @@ import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricTagDto } from './dto/fabric-tags.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';
 import { ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
-import { SetFavouriteDto } from './dto/set-favourite.dto.js';
+import { SetFavouriteDto } from '../../common/dto/set-favourite.dto.js';
 import { FabricFavouriteDto } from './dto/fabric-favourite.dto.js';
 import { BulkDeleteFabricsDto, BulkDeleteFabricsResponseDto } from './dto/bulk-delete-fabrics.dto.js';
 

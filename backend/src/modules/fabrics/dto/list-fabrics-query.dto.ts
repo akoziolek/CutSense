@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsNumber, IsOptional, IsPositive, IsString, Max, MaxLength, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEnum, IsNumber, IsOptional, Min } from 'class-validator';
+import { FilterableListQueryDto } from '../../../common/dto/base-list-query.dto.js';
 
 export enum FabricSortOption {
   NAME_ASC = 'name_asc',
@@ -11,30 +12,7 @@ export enum FabricSortOption {
   AREA_DESC = 'area_desc',
 }
 
-export class ListFabricsQueryDto {
-  @ApiPropertyOptional({ 
-    description: 'Page number, starting from 1', 
-    minimum: 1, 
-    default: 1, 
-    example: 1 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page: number = 1;
-
-  @ApiPropertyOptional({ 
-    description: 'Number of fabrics per page', 
-    minimum: 1, 
-    maximum: 50, 
-    default: 12 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(50)
-  limit: number = 12;
-
+export class ListFabricsQueryDto extends FilterableListQueryDto {
   @ApiPropertyOptional({
     description:
       'Sort order: name A-Z / Z-A, newest / oldest first, smallest / biggest area first',
@@ -46,69 +24,23 @@ export class ListFabricsQueryDto {
   @IsEnum(FabricSortOption)
   sort: FabricSortOption = FabricSortOption.DATE_DESC;
 
-  @ApiPropertyOptional({ 
-    description: 'Only fabrics added at or after this moment (ISO 8601)', 
-    example: '2026-03-01T00:00:00.000Z' })
-  @IsOptional()
-  @IsDateString()
-  createdFrom?: string;
-
-  @ApiPropertyOptional({ 
-    description: 'Only fabrics added at or before this moment (ISO 8601)', 
-    example: '2026-03-31T23:59:59.999Z' })
-  @IsOptional()
-  @IsDateString()
-  createdTo?: string;
-
-  @ApiPropertyOptional({ 
-    description: 'true: favourites only, false: non-favourites only, omitted: all' })
-  @IsOptional()
-  @Transform(({ value }) => (value === 'true' ? true : value === 'false' ? false : value))
-  @IsBoolean()
-  favourite?: boolean;
-
-  @ApiPropertyOptional({ 
-    type: [Number], 
-    description: 'Fabric must have at least one of these tags. Comma-separated (1,2) or repeated (tagIds=1&tagIds=2).', 
-    example: '1,2' })
-  @IsOptional()
-  @Transform(({ value }) => {
-    if (value === undefined) return value;
-    const raw: unknown[] = Array.isArray(value) ? value : String(value).split(',');
-    return [...new Set(raw.map(Number))];
+  @ApiPropertyOptional({
+    description: 'Minimum area (same unit as returned in "area")',
+    minimum: 0,
   })
-  @IsArray()
-  @ArrayMaxSize(20)
-  @IsInt({ each: true })
-  @IsPositive({ each: true })
-  tagIds?: number[];
-
-  @ApiPropertyOptional({ 
-    description: 'Minimum area (same unit as returned in "area")', 
-    minimum: 0 })
   @IsOptional()
   @Type(() => Number)
   @IsNumber({ allowNaN: false, allowInfinity: false })
   @Min(0)
   areaMin?: number;
 
-  @ApiPropertyOptional({ 
-    description: 'Maximum area (same unit as returned in "area")', 
-    minimum: 0 })
+  @ApiPropertyOptional({
+    description: 'Maximum area (same unit as returned in "area")',
+    minimum: 0,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber({ allowNaN: false, allowInfinity: false })
   @Min(0)
   areaMax?: number;
-
-  @ApiPropertyOptional({
-  description: 'Case-insensitive text to look for in the fabric name and description',
-  maxLength: 100,
-  example: 'linen',
-  })
-  @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() || undefined : value))
-  @IsString()
-  @MaxLength(100)
-  q?: string;
 }

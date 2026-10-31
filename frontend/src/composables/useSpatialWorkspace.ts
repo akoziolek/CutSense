@@ -76,15 +76,11 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   const canDelete = computed(() => points.value.length > 0 || drawingPoints.value.length > 0)
 
   const isNearStartPoint = computed(() => {
-    if (drawingPoints.value.length < 3 || !previewPoint.value) return false
-    const startPt = drawingPoints.value[0]!
-    const dist = Math.hypot(
-      previewPoint.value.pctX - startPt.pctX,
-      previewPoint.value.pctY - startPt.pctY,
-    )
-    return dist <= AUTO_CLOSE_THRESHOLD_PCT
+    if (!previewPoint.value) return false
+    return checkIsNearStart(previewPoint.value)
   })
 
+  
   const cancelDrawing = () => {
     drawingPoints.value = []
     previewPoint.value = null
@@ -105,7 +101,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
 
     // drawing mode
     if (drawingPoints.value.length > 0) {
-      if (drawingPoints.value.length >= 3 && isNearStartPoint.value) {
+      if (drawingPoints.value.length >= 3 && checkIsNearStart(clickPoint)) {
         finishDrawing()
         return
       }
@@ -310,7 +306,15 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
       return
     }
 
-    // new point preview - update its placement
+    if (drawingPoints.value.length > 0 && workspaceRef.value) {
+      const point = workspaceRef.value.getPointFromEvent(e)
+      if (point) {
+        previewPoint.value = point
+      }
+      return
+    }
+
+    // new point preview 
     if (creatingEdgeIndex.value !== null && workspaceRef.value) {
       const point = workspaceRef.value.getPointFromEvent(e)
       if (point) {
@@ -325,6 +329,14 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
         points.value[draggingPointIndex.value] = point
       }
     }
+  }
+
+
+  const checkIsNearStart = (pt: Point2D) => {
+    if (drawingPoints.value.length < 3) return false
+    const startPt = drawingPoints.value[0]!
+    const dist = Math.hypot(pt.pctX - startPt.pctX, pt.pctY - startPt.pctY)
+    return dist <= AUTO_CLOSE_THRESHOLD_PCT
   }
 
   // on right unclick

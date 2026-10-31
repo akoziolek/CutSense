@@ -2,7 +2,7 @@ import { reactive } from 'vue'
 import { toast } from 'vue-sonner'
 import { api, ApiError } from '@/api/client'
 
-export function useFavouriteToggle() {
+export function useFavouriteToggle(basePath = '/fabrics') {
   const pending = reactive(new Set<number>())
 
   async function toggle(target: { id: number; isFavourite: boolean }) {
@@ -13,7 +13,7 @@ export function useFavouriteToggle() {
     pending.add(target.id)
 
     try {
-      await api(`/fabrics/${target.id}/favourite`, {
+      await api(`${basePath}/${target.id}/favourite`, {
         method: 'PATCH',
         body: JSON.stringify({ isFavourite: next }),
       })

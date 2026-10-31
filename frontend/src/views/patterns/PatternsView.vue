@@ -16,6 +16,7 @@ import { formatCardDate } from '@/utils/formatCardDate'
 import ResourceCard from '@/components/common/ResourceCard.vue'
 import ListPagination from '@/components/common/ListPagination.vue'
 import { useAuth } from '@/composables/useAuth'
+import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: PatternSort = 'name_asc'
@@ -38,6 +39,10 @@ watch(
     fetchPatterns()
   },
 )
+
+const isLoggedIn = computed(() => !!authState.user)
+
+const { toggle: toggleFavourite } = useFavouriteToggle('/patterns')
 
 const sort = computed<PatternSort>(() => {
   const value = route.query.sort
@@ -219,6 +224,8 @@ watch(
               :title="pattern.name"
               :meta="`${formatCardDate(pattern.createdAt)} • ${pattern.size}`"
               :is-favourite="pattern.isFavourite"
+              toggleable
+              @toggle-favourite="toggleFavourite(pattern)"
             >
               <template #placeholder><Scissors class="size-8" /></template>
             </ResourceCard>

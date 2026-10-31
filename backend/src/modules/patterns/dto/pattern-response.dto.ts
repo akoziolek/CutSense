@@ -60,6 +60,12 @@ export class PatternResponseDto {
   })
   visibility!: string;
 
+  @ApiProperty({
+    description: 'Whether the current user marked the pattern as a favourite (always false for guests)',
+    example: false,
+  })
+  isFavourite!: boolean;
+
   @ApiProperty({ description: 'Star count', example: 12 })
   starCount!: number;
 

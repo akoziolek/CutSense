@@ -6,11 +6,12 @@ describe('PatternController', () => {
   let service: {
     getPatternById: ReturnType<typeof vi.fn>;
     updatePattern: ReturnType<typeof vi.fn>;
+    setFavourite: ReturnType<typeof vi.fn>;
   };
   let controller: PatternController;
 
   beforeEach(() => {
-    service = { getPatternById: vi.fn(), updatePattern: vi.fn() };
+    service = { getPatternById: vi.fn(), updatePattern: vi.fn(), setFavourite: vi.fn() };
     controller = new PatternController(service as unknown as PatternsService);
   });
 
@@ -38,5 +39,15 @@ describe('PatternController', () => {
       controller.editPattern(5, editDto, { id: 3 }),
     ).resolves.toBe(dto);
     expect(service.updatePattern).toHaveBeenCalledWith(5, editDto, 3);
+  });
+
+  it('passes id, flag and current user to the service', async () => {
+    service.setFavourite.mockResolvedValue({ id: 5, isFavourite: true });
+
+    await expect(controller.setFavourite(5, { isFavourite: true }, { id: 3 })).resolves.toEqual({
+      id: 5,
+      isFavourite: true,
+    });
+    expect(service.setFavourite).toHaveBeenCalledWith(5, true, 3);
   });
 });

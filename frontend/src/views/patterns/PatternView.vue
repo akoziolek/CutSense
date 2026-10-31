@@ -22,6 +22,8 @@ import PatternPiecesCarousel, {
 import type { NameTag } from '@/types/fabric'
 import DetailsActions from '@/components/common/DetailsActions.vue'
 import { useAuth } from '@/composables/useAuth'
+import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
+import FavouriteButton from '@/components/common/FavouriteButton.vue'
 
 interface Pattern {
   id: number
@@ -36,6 +38,7 @@ interface Pattern {
   createdAt: string
   author: { id: number; nickname: string }
   pieces: PatternPiece[]
+  isFavourite: boolean
 }
 
 const props = defineProps<{ id: string }>()
@@ -45,6 +48,7 @@ const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
 const isNotFound = ref(false)
+const { toggle: toggleFavourite, pending } = useFavouriteToggle('/patterns')
 
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 const { state: auth } = useAuth()
@@ -132,6 +136,12 @@ watch(
       <PageHeader :title="pattern?.name ?? (isFetching ? '' : 'Pattern details')">
         <template #actions>
           <div class="flex items-center gap-2">
+            <FavouriteButton
+              v-if="pattern && auth.user"
+              :is-favourite="pattern.isFavourite"
+              :disabled="pending.has(pattern.id)"
+              @toggle="toggleFavourite(pattern)"
+            />
             <DetailsActions
               v-if="isOwner"
               :edit-to="{ name: 'PatternEdit', params: { id: props.id } }"

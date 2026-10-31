@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/api/client'
-import type { PatternListResponse, PatternSort } from '@/types/pattern'
+import type { PatternListItem, PatternListResponse, PatternSort } from '@/types/pattern'
 import { formatCardDate } from '@/utils/formatCardDate'
 import ResourceCard from '@/components/common/ResourceCard.vue'
 import ListPagination from '@/components/common/ListPagination.vue'
@@ -38,6 +38,12 @@ watch(
     fetchPatterns()
   },
 )
+
+const isLoggedIn = computed(() => !!authState.user)
+
+const toggleFavourite = (pattern: PatternListItem) => {
+  pattern.isFavourite = !pattern.isFavourite
+}
 
 const sort = computed<PatternSort>(() => {
   const value = route.query.sort
@@ -219,6 +225,7 @@ watch(
               :title="pattern.name"
               :meta="`${formatCardDate(pattern.createdAt)} • ${pattern.size}`"
               :is-favourite="pattern.isFavourite"
+              @toggle-favourite="toggleFavourite(pattern)"
             >
               <template #placeholder><Scissors class="size-8" /></template>
             </ResourceCard>

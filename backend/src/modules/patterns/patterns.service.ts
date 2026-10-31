@@ -126,6 +126,10 @@ export class PatternsService {
           }),
           orderBy: (piece, { asc }) => [asc(piece.id)],
         },
+        favoritedBy: {
+          columns: { userId: true },
+          where: (fav, { eq }) => eq(fav.userId, currentUserId),
+        },
       },
     });
 
@@ -144,6 +148,7 @@ export class PatternsService {
       description: pattern.description ?? undefined,
       size: pattern.size,
       visibility: pattern.visibility,
+      isFavourite: pattern.favoritedBy.length > 0,
       starCount: pattern.starCount,
       starAverage: pattern.starAverage,
       userId: pattern.userId,

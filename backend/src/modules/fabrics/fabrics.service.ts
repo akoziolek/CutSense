@@ -18,7 +18,7 @@ import { FabricBoundaryMapper } from './fabric-boundary.mapper.js';
 import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';
 import { FabricSortOption, ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
-import { FabricFavouriteDto } from '../../common/dto/favourite-state.dto.js';
+import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { BulkDeleteFabricsResponseDto } from './dto/bulk-delete-fabrics.dto.js';
 
 @Injectable()
@@ -376,7 +376,7 @@ export class FabricService {
     fabricId: number,
     isFavourite: boolean,
     currentUserId: number,
-  ): Promise<FabricFavouriteDto> {
+  ): Promise<FavouriteStateDto> {
     const [updated] = await this.db
       .update(fabrics)
       .set({ isFavourite })

@@ -11,11 +11,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/api/client'
-import type { PatternListItem, PatternListResponse, PatternSort } from '@/types/pattern'
+import type { PatternListResponse, PatternSort } from '@/types/pattern'
 import { formatCardDate } from '@/utils/formatCardDate'
 import ResourceCard from '@/components/common/ResourceCard.vue'
 import ListPagination from '@/components/common/ListPagination.vue'
 import { useAuth } from '@/composables/useAuth'
+import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: PatternSort = 'name_asc'
@@ -41,9 +42,7 @@ watch(
 
 const isLoggedIn = computed(() => !!authState.user)
 
-const toggleFavourite = (pattern: PatternListItem) => {
-  pattern.isFavourite = !pattern.isFavourite
-}
+const { toggle: toggleFavourite } = useFavouriteToggle('/patterns')
 
 const sort = computed<PatternSort>(() => {
   const value = route.query.sort
@@ -225,6 +224,7 @@ watch(
               :title="pattern.name"
               :meta="`${formatCardDate(pattern.createdAt)} • ${pattern.size}`"
               :is-favourite="pattern.isFavourite"
+              toggleable
               @toggle-favourite="toggleFavourite(pattern)"
             >
               <template #placeholder><Scissors class="size-8" /></template>

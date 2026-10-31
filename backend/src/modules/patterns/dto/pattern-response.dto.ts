@@ -1,5 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { patternSizeEnum } from '../../../db/schema/schema.js';
 import { PatternTagDto } from './pattern-tag.dto.js';
+
+export type PatternSize = (typeof patternSizeEnum.enumValues)[number];
 
 class PatternAuthorDto {
   @ApiProperty({ description: 'Unique identifier of the author', example: 42 })
@@ -44,10 +47,11 @@ export class PatternResponseDto {
 
   @ApiProperty({
     description: 'Size of the pattern',
-    example: 'XS',
-    enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    enum: patternSizeEnum.enumValues,
+    enumName: 'PatternSize',
+    example: 'S',
   })
-  size!: string;
+  size!: PatternSize;
 
   @ApiProperty({
     description: 'Visibility level of the pattern',
@@ -81,7 +85,7 @@ export class PatternResponseDto {
   createdAt!: string;
 
   @ApiProperty({
-    description: 'Tags associated with the fabric',
+    description: 'Tags associated with the pattern',
     example: [{ id: 1, name: 'summer' }],
     type: [PatternTagDto],
   })

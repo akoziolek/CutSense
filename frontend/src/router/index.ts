@@ -26,16 +26,20 @@ const FabricPhotoConfigPage = () => import('../views/fabrics/new/FabricConfigVie
 const UploadImagePage = () => import('../views/fabrics/new/FabricUploadView.vue')
 const FabricDescritptionPage = () => import('../views/fabrics/new/FabricDescriptionView.vue')
 const FabricEditPage = () => import('../views/fabrics/FabricEdit.vue')
-
-const PatternPage = () => import('../views/patterns/PatternView.vue')
 const PatternEditPage = () => import('../views/patterns/PatternEdit.vue')
+const PatternPage = () => import('../views/patterns/PatternView.vue')
+const NewPatternPage = () => import('../views/patterns/NewPatternView.vue')
+const PatternsPage = () => import('../views/patterns/PatternsView.vue')
 
 const routes = [
   { path: '/', name: 'Landing', component: LandingPage },
 
-  // public pages (guests can browse public patterns)
-  { path: '/patterns', name: 'Patterns', component: ComingSoonPage },
+  // pattern pages
+  { path: '/patterns', name: 'Patterns', component: PatternsPage },
   { path: '/patterns/:id', name: 'PatternDetails', component: PatternPage, props: true },
+  { path: '/patterns/new', name: 'pattern-new', component: NewPatternPage, meta: { requiresAuth: true } },
+  { path: '/patterns/:id', name: 'pattern-details', component: PatternPage , props: true },
+  
 
   // pages that need a logged-in user
   { path: '/home', name: 'Home', component: ComingSoonPage, meta: { requiresAuth: true } },
@@ -117,11 +121,16 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const { state, loadUser } = useAuth()
-  await loadUser()
+  try {
+    await loadUser()
+  } catch {
+    // API unreachable: treat as guest, the page shows its own error state
+  }
 
   if (to.meta.requiresAuth && !state.user) {
     return { name: 'Landing', query: { login: '1', redirect: to.fullPath } }
   }
+
 
   // existing user came back from Google to "/": continue where they wanted to go
   if (state.user && to.name === 'Landing' && !to.query.registration) {

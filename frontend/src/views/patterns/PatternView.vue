@@ -44,7 +44,7 @@ const pattern = ref<Pattern | null>(null)
 const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
-const isForbidden = ref(false)
+const isNotFound = ref(false)
 
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 const { state: auth } = useAuth()
@@ -55,6 +55,8 @@ const clearSkeletonTimer = () => {
     skeletonTimer = null
   }
 }
+
+const isOwner = computed(() => !!pattern.value && auth.user?.id === pattern.value.userId)
 
 const metaItems = computed<MetaItem[]>(() =>
   pattern.value
@@ -82,7 +84,7 @@ const fetchPattern = async (id: string, activeSignal = { active: true }) => {
   clearSkeletonTimer()
   pattern.value = null
   error.value = ''
-  isForbidden.value = false
+  isNotFound.value = false
   isFetching.value = true
   showSkeleton.value = false
 
@@ -94,16 +96,12 @@ const fetchPattern = async (id: string, activeSignal = { active: true }) => {
 
   try {
     const result = await api<Pattern>(`/patterns/${encodeURIComponent(id)}`)
-    console.log(pattern)
     if (activeSignal.active) pattern.value = result
   } catch (e) {
     if (activeSignal.active) {
-      if (e instanceof ApiError) {
-        isForbidden.value = e.status === 403
-        error.value = e.body.message
-      } else {
-        error.value = 'Could not load pattern. Please try again.'
-      }
+      isNotFound.value = e instanceof ApiError && e.status === 404
+      error.value =
+        e instanceof ApiError ? e.body.message : 'Could not load pattern. Please try again.'
     }
   } finally {
     if (activeSignal.active) {
@@ -115,8 +113,8 @@ const fetchPattern = async (id: string, activeSignal = { active: true }) => {
 }
 
 watch(
-  () => props.id,
-  (id, _, onCleanup) => {
+  [() => props.id, () => auth.user?.id],
+  ([id], _, onCleanup) => {
     const activeSignal = { active: true }
     onCleanup(() => {
       activeSignal.active = false
@@ -135,7 +133,7 @@ watch(
         <template #actions>
           <div class="flex items-center gap-2">
             <DetailsActions
-              v-if="pattern && auth.user?.id === pattern.userId"
+              v-if="isOwner"
               :edit-to="{ name: 'PatternEdit', params: { id: props.id } }"
             />
           </div>
@@ -175,13 +173,17 @@ watch(
 
         <main v-else-if="error" key="error">
           <ErrorState
-            :title="isForbidden ? 'This pattern is private' : 'Unable to load pattern'"
-            :message="error"
-            :code="isForbidden ? 'Access denied' : 'Error'"
+            :title="isNotFound ? 'Pattern not found' : 'Unable to load pattern'"
+            :message="
+              isNotFound
+                ? 'This pattern does not exist or you do not have access to it.'
+                : error
+            "
+            :code="isNotFound ? 'Error 404' : 'Error'"
           >
             <template #actions>
               <Button
-                v-if="!isForbidden"
+                v-if="!isNotFound"
                 variant="outline"
                 class="rounded-lg gap-2"
                 @click="fetchPattern(props.id)"

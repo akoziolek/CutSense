@@ -391,7 +391,7 @@ onMounted(() => {
       <FormFloatingActions
         cancel-label="Cancel"
         next-label="Next"
-        :disabled="pxPerMm <= 0"
+        :disabled="pxPerMm <= 0 || points.length === 0"
         @cancel="emit('cancel')"
         @next="emit('next')"
       />

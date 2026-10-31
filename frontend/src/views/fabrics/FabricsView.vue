@@ -10,6 +10,8 @@ import SortMenu from '@/components/common/SortMenu.vue'
 import ResourceCard from '@/components/common/ResourceCard.vue'
 import ListPagination from '@/components/common/ListPagination.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
+import FilterSection from '@/components/common/FilterSection.vue'
+import ListFilterPopover from '@/components/common/ListFilterPopover.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -19,9 +21,8 @@ import { formatCardDate } from '@/utils/formatCardDate'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 import { useBulkDeleteFabrics } from '@/composables/fabrics/useBulkDeleteFabrics'
 import { SearchX } from 'lucide-vue-next'
-import FabricFilterPopover from '@/components/fabrics/FabricFilterPopover.vue'
 import {
-  countActiveFilters, filtersFromQuery, filtersToApiParams, filtersToQuery, type FabricFilters,
+  countActiveFilters, emptyFilters, filtersFromQuery, filtersToApiParams, filtersToQuery, areaRangeError, type FabricFilters,
 } from '@/utils/fabricFilters'
 
 const PAGE_SIZE = 12
@@ -86,7 +87,6 @@ const goToPage = (newPage: number) => {
   router.push({ query: { ...route.query, page: newPage === 1 ? undefined : String(newPage) } })
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
-
 
 //--- searching ---
 const search = computed(() =>
@@ -245,7 +245,6 @@ const onConfirmOpenChange = (open: boolean) => {
 
 const { toggle: toggleFavourite } = useFavouriteToggle()
 
-// ---------- selection ----------
 const contentRef = ref<HTMLElement | null>(null)
 
 const handleGlobalClick = (e: MouseEvent) => {
@@ -283,6 +282,8 @@ watch(
   },
   { immediate: true },
 )
+
+const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
 </script>
 
 <template>
@@ -297,37 +298,79 @@ watch(
       </PageHeader>
 
       <div class="flex flex-wrap items-center gap-2">
-      <div class="relative flex-1 min-w-48">
-        <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          v-model="searchInput"
-          type="text"
-          autocomplete="off"
-          :maxlength="SEARCH_MAX"
-          placeholder="Search fabrics..."
-          aria-label="Search fabrics"
-          class="h-9 pl-9 pr-9"
-          @keydown.enter="flushSearch"
-        />
-        <button
-          v-if="searchInput"
-          type="button"
-          class="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded p-1 text-muted-foreground hover:text-foreground"
-          aria-label="Clear search"
-          @click="clearSearch"
-        >
-          <X class="size-4" />
-        </button>
-      </div>
-        <FabricFilterPopover
+        <div class="relative flex-1 min-w-48">
+          <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            v-model="searchInput"
+            type="text"
+            autocomplete="off"
+            :maxlength="SEARCH_MAX"
+            placeholder="Search fabrics..."
+            aria-label="Search fabrics"
+            class="h-9 pl-9 pr-9"
+            @keydown.enter="flushSearch"
+          />
+          <button
+            v-if="searchInput"
+            type="button"
+            class="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded p-1 text-muted-foreground hover:text-foreground"
+            aria-label="Clear search"
+            @click="clearSearch"
+          >
+            <X class="size-4" />
+          </button>
+        </div>
+
+        <!-- Universal Filter Popover with Area slot -->
+        <ListFilterPopover
           :model-value="filters"
+          :empty-filters="emptyFilters"
           :tags="availableTags"
           :tags-loading="tagsLoading"
           :tags-error="tagsError"
           :active="hasActiveFilters"
+          :extra-error="areaRangeError"
           @apply="applyFilters"
           @opened="loadTags"
-        />
+        >
+          <template #default="{ draft }">
+            <FilterSection title="Area" :default-open="false">
+              <div class="grid grid-cols-2 gap-2">
+                <label class="space-y-1 text-xs">
+                  <span>From</span>
+                  <div class="relative">
+                    <Input
+                      v-model="draft.areaMin"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="0"
+                      :class="['h-8 pr-8 text-xs', noSpinner]"
+                      data-testid="area-min"
+                    />
+                    <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">m²</span>
+                  </div>
+                </label>
+                <label class="space-y-1 text-xs">
+                  <span>To</span>
+                  <div class="relative">
+                    <Input
+                      v-model="draft.areaMax"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="∞"
+                      :class="['h-8 pr-8 text-xs', noSpinner]"
+                      data-testid="area-max"
+                    />
+                    <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">m²</span>
+                  </div>
+                </label>
+              </div>
+            </FilterSection>
+          </template>
+        </ListFilterPopover>
+
         <SortMenu v-model="sortModel" :options="SORT_OPTIONS" />
       </div>
 

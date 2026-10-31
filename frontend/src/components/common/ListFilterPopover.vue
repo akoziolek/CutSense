@@ -1,33 +1,39 @@
-<script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+<script setup lang="ts" generic="F extends BaseFilters">
+import { computed, ref, watch, type Ref } from 'vue'
 import { Check, ChevronDown, ListFilter, Search, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { NameTag } from '@/types/fabric'
-import { emptyFilters, type FabricFilters } from '@/utils/fabricFilters'
+import FilterSection from '@/components/common/FilterSection.vue'
+import { type BaseFilters } from '@/utils/listFilters'
 
-const props = defineProps<{
-  modelValue: FabricFilters
-  tags: NameTag[]
-  tagsLoading?: boolean
-  tagsError?: string
-  active: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    modelValue: F
+    emptyFilters: () => F
+    tags: NameTag[]
+    tagsLoading?: boolean
+    tagsError?: string
+    active: boolean
+    showFavourites?: boolean
+    extraError?: (filters: F) => string
+  }>(),
+  { showFavourites: true },
+)
 
 const emit = defineEmits<{
-  (e: 'apply', filters: FabricFilters): void
+  (e: 'apply', filters: F): void
   (e: 'opened'): void
 }>()
 
-const clone = (f: FabricFilters): FabricFilters => ({ ...f, tagIds: [...f.tagIds] })
+const clone = (f: F): F => JSON.parse(JSON.stringify(f))
+const draft = ref(clone(props.modelValue)) as Ref<F>
 
 const isOpen = ref(false)
-const draft = ref<FabricFilters>(clone(props.modelValue))
 const tagQuery = ref('')
 const tagsOpen = ref(false)
 
@@ -39,11 +45,27 @@ watch(isOpen, (open) => {
   emit('opened')
 })
 
+const rangeError = computed(() => {
+  const { createdFrom, createdTo } = draft.value
+  if (createdFrom && createdTo && createdFrom > createdTo)
+    return 'The start date must not be later than the end date.'
+  return props.extraError?.(draft.value) ?? ''
+})
+
+const clearAll = () => {
+  draft.value = props.emptyFilters()
+  tagQuery.value = ''
+}
+
 const visibleTags = computed(() => {
   const q = tagQuery.value.trim().toLowerCase()
   return props.tags.filter((t) => t.name.toLowerCase().includes(q))
 })
-const selectedTags = computed(() => props.tags.filter((t) => draft.value.tagIds.includes(t.id)))
+
+const selectedTags = computed(() => 
+  props.tags.filter((t) => draft.value.tagIds.includes(t.id))
+)
+
 const showTagList = computed(() => tagsOpen.value || tagQuery.value.trim() !== '')
 
 const toggleTag = (id: number) => {
@@ -56,25 +78,6 @@ const onTagsFocusOut = (e: FocusEvent) => {
   if (!next || !(e.currentTarget as HTMLElement).contains(next)) tagsOpen.value = false
 }
 
-const rangeError = computed(() => {
-  const { createdFrom, createdTo, areaMin, areaMax } = draft.value
-  if (createdFrom && createdTo && createdFrom > createdTo)
-    return 'The start date must not be later than the end date.'
-  if (areaMin !== '' && areaMax !== '' && Number(areaMin) > Number(areaMax))
-    return 'The minimum area must not be greater than the maximum.'
-  return ''
-})
-
-const clearAll = () => {
-  draft.value = emptyFilters()
-  tagQuery.value = ''
-}
-
-// const clearAll = () => {
-//   emit('apply', emptyFilters());
-//   isOpen.value = false
-// }
-
 const cancel = () => {
   isOpen.value = false
 }
@@ -84,11 +87,6 @@ const apply = () => {
   emit('apply', clone(draft.value))
   isOpen.value = false
 }
-
-const sectionTrigger =
-  'group flex w-full cursor-pointer items-center gap-1.5 text-sm font-semibold font-inter'
-const noSpinner =
-  '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
 </script>
 
 <template>
@@ -120,40 +118,34 @@ const noSpinner =
       </header>
 
       <div class="max-h-[55vh] overflow-y-auto">
-        <!-- date range -->
-        <Collapsible default-open class="border-t border-border/60 px-4 py-3">
-          <CollapsibleTrigger :class="sectionTrigger">
-            <ChevronDown class="size-4 transition-transform group-data-[state=closed]:-rotate-90" />
-            Date range
-          </CollapsibleTrigger>
-          <CollapsibleContent class="pt-2">
-            <div class="grid grid-cols-2 gap-2">
-              <label class="space-y-1 text-xs">
-                <span>From</span>
-                <Input
-                  v-model="draft.createdFrom"
-                  type="date"
-                  :max="draft.createdTo || undefined"
-                  class="h-8 text-xs"
-                  data-testid="date-from"
-                />
-              </label>
-              <label class="space-y-1 text-xs">
-                <span>To</span>
-                <Input
-                  v-model="draft.createdTo"
-                  type="date"
-                  :min="draft.createdFrom || undefined"
-                  class="h-8 text-xs"
-                  data-testid="date-to"
-                />
-              </label>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+        <!-- Date range section using FilterSection component -->
+        <FilterSection title="Date range" :default-open="true">
+          <div class="grid grid-cols-2 gap-2">
+            <label class="space-y-1 text-xs">
+              <span>From</span>
+              <Input
+                v-model="draft.createdFrom"
+                type="date"
+                :max="draft.createdTo || undefined"
+                class="h-8 text-xs"
+                data-testid="date-from"
+              />
+            </label>
+            <label class="space-y-1 text-xs">
+              <span>To</span>
+              <Input
+                v-model="draft.createdTo"
+                type="date"
+                :min="draft.createdFrom || undefined"
+                class="h-8 text-xs"
+                data-testid="date-to"
+              />
+            </label>
+          </div>
+        </FilterSection>
 
-        <!-- only favourites -->
-        <div class="flex items-center justify-between border-t border-border/60 px-4 py-3">
+        <!-- Only favourites -->
+        <div v-if="showFavourites" class="flex items-center justify-between border-t border-border/60 px-4 py-3">
           <Label for="filter-fav-only" class="cursor-pointer text-sm font-semibold font-inter">
             Only favourites
           </Label>
@@ -163,14 +155,10 @@ const noSpinner =
           </div>
         </div>
 
-        <!-- tags -->
-        <Collapsible default-closed class="border-t border-border/60 px-4 py-3">
-          <CollapsibleTrigger :class="sectionTrigger">
-            <ChevronDown class="size-4 transition-transform group-data-[state=closed]:-rotate-90" />
-            Tags
-          </CollapsibleTrigger>
-          <CollapsibleContent class="space-y-2 pt-2">
-            <p class="text-xs text-muted-foreground">Fabrics with any of the selected tags.</p>
+        <!-- Tags section -->
+        <FilterSection title="Tags" :default-open="false">
+          <div class="space-y-2">
+            <p class="text-xs text-muted-foreground">Items with any of the selected tags.</p>
 
             <div v-if="selectedTags.length" class="flex flex-wrap gap-1.5">
               <Badge
@@ -253,50 +241,11 @@ const noSpinner =
                 </li>
               </ul>
             </div>
-          </CollapsibleContent>
-        </Collapsible>
+          </div>
+        </FilterSection>
 
-        <!-- area -->
-        <Collapsible default-closed class="border-t border-border/60 px-4 py-3">
-          <CollapsibleTrigger :class="sectionTrigger">
-            <ChevronDown class="size-4 transition-transform group-data-[state=closed]:-rotate-90" />
-            Area
-          </CollapsibleTrigger>
-          <CollapsibleContent class="pt-2">
-            <div class="grid grid-cols-2 gap-2">
-              <label class="space-y-1 text-xs">
-                <span>From</span>
-                <div class="relative">
-                  <Input
-                    v-model="draft.areaMin"
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    placeholder="0"
-                    :class="['h-8 pr-8 text-xs', noSpinner]"
-                    data-testid="area-min"
-                  />
-                  <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">m²</span>
-                </div>
-              </label>
-              <label class="space-y-1 text-xs">
-                <span>To</span>
-                <div class="relative">
-                  <Input
-                    v-model="draft.areaMax"
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    placeholder="∞"
-                    :class="['h-8 pr-8 text-xs', noSpinner]"
-                    data-testid="area-max"
-                  />
-                  <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">m²</span>
-                </div>
-              </label>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+        <!-- Slot for view-specific sections (e.g., Area for fabrics, Sizes for patterns) -->
+        <slot :draft="draft" />
       </div>
 
       <p v-if="rangeError" class="border-t border-border/60 px-4 py-2 text-xs text-destructive" role="alert">

@@ -18,7 +18,7 @@ import { FabricBoundaryMapper } from './fabric-boundary.mapper.js';
 import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';
 import { FabricSortOption, ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
-import { FabricFavouriteDto } from './dto/fabric-favourite.dto.js';
+import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { BulkDeleteFabricsResponseDto } from './dto/bulk-delete-fabrics.dto.js';
 
 @Injectable()
@@ -376,7 +376,7 @@ export class FabricService {
     fabricId: number,
     isFavourite: boolean,
     currentUserId: number,
-  ): Promise<FabricFavouriteDto> {
+  ): Promise<FavouriteStateDto> {
     const [updated] = await this.db
       .update(fabrics)
       .set({ isFavourite })
@@ -423,7 +423,6 @@ export class FabricService {
 
     return { deletedIds: deleted.map((f) => f.id) };
   }
-  
 
   private buildWhere(query: ListFabricsQueryDto, currentUserId: number): SQL {
     const { createdFrom, createdTo, favourite, tagIds, areaMin, areaMax } = query;
@@ -434,7 +433,6 @@ export class FabricService {
     if (areaMin !== undefined && areaMax !== undefined && areaMin > areaMax) {
       throw new RequestValidationException('areaMin must not be greater than areaMax.');
     }
-    
 
     const withAllTags = tagIds?.length
       ? this.db

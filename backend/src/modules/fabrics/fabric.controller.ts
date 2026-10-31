@@ -43,8 +43,8 @@ import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricTagDto } from './dto/fabric-tags.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';
 import { ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
-import { SetFavouriteDto } from './dto/set-favourite.dto.js';
-import { FabricFavouriteDto } from './dto/fabric-favourite.dto.js';
+import { SetFavouriteDto } from '../../common/dto/set-favourite.dto.js';
+import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { BulkDeleteFabricsDto, BulkDeleteFabricsResponseDto } from './dto/bulk-delete-fabrics.dto.js';
 
 @Controller('fabrics')
@@ -262,7 +262,7 @@ export class FabricController {
     example: 1,
   })
   @ApiBody({ type: SetFavouriteDto })
-  @ApiOkResponse({ type: FabricFavouriteDto })
+  @ApiOkResponse({ type: FavouriteStateDto })
   @ApiBadRequestResponse({ description: 'Invalid ID or body.' })
   @ApiUnauthorizedResponse({
     description: 'A valid session cookie is required.',
@@ -275,7 +275,7 @@ export class FabricController {
     @Param('id', ParseIntPipe) fabricId: number,
     @Body() dto: SetFavouriteDto,
     @CurrentUser() user: { id: number },
-  ): Promise<FabricFavouriteDto> {
+  ): Promise<FavouriteStateDto> {
     return this.fabricService.setFavourite(fabricId, dto.isFavourite, user.id);
   }
 

@@ -106,7 +106,7 @@ const noSpinner =
       </Button>
     </PopoverTrigger>
 
-    <PopoverContent align="end" class="w-[22rem] max-w-[calc(100vw-2rem)] p-0">
+    <PopoverContent align="end" :sideOffset="12" class="w-[22rem] max-w-[calc(100vw-2rem)] p-0">
       <header class="flex items-center justify-between px-4 py-3">
         <h2 class="text-sm font-bold font-inter">Detailed filters</h2>
         <button

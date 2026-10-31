@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
-import { useNewFabricFormGuard } from '@/composables/fabrics/useNewFabricFormGuard'
+import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -19,7 +19,11 @@ const router = useRouter()
 const fabricStore = useFabricAddingStore()
 const isInitializing = ref(true)
 
-const { isCancelModalOpen, handleCancel, confirmExit } = useNewFabricFormGuard()
+const { isCancelModalOpen, handleCancel, confirmExit } = useUnsavedChangesGuard({
+  isDirty: computed(() => Boolean(fabricStore.file || fabricStore.previewUrl)),
+  defaultTarget: '/fabrics',
+  onConfirmExit: fabricStore.resetWizard,
+})
 
 onMounted(async () => {
   if (!fabricStore.isHydrated) {

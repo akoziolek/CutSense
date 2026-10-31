@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 import StepUpload from '@/components/patterns/new/StepUpload.vue'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
-import { useNewPatternFormGuard } from '@/composables/patterns/useNewPatternFormGuard'
+import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
 
 const TITLES = ['Pattern source', 'Pattern configuration', 'Detected pieces', 'Pattern details']
@@ -19,7 +19,12 @@ const router = useRouter()
 const patternStore = usePatternAddingStore()
 const isInitializing = ref(true)
 
-const { isCancelModalOpen, handleCancel, confirmExit } = useNewPatternFormGuard()
+
+const { isCancelModalOpen, handleCancel, confirmExit } = useUnsavedChangesGuard({
+  isDirty: computed(() => patternStore.hasPhotos),
+  defaultTarget: '/patterns',
+  onConfirmExit: patternStore.resetWizard,
+})
 
 onMounted(async () => {
   if (!patternStore.isHydrated) {

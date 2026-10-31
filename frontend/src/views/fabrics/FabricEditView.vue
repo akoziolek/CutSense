@@ -3,7 +3,7 @@ import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DiscardNewFabricModal from '@/components/forms/DiscardChangesModal.vue'
 import { useRoute } from 'vue-router'
-import { useEditFabricFormGuard } from '@/composables/useEditFormGuard'
+import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { onMounted, ref, watch, computed } from 'vue'
 import { api, ApiError } from '@/api/client'
 import FabricForm, { type FabricFormPayload } from '@/components/fabrics/FabricForm.vue'
@@ -23,10 +23,6 @@ const isSubmitting = ref(false)
 const submitError = ref('')
 
 const detailsRoute = computed(() => ({ name: 'FabricDetails', params: { id: fabricId.value } }))
-const { isCancelModalOpen, handleCancel, confirmExit, resetGuard } = useEditFabricFormGuard(
-  isDirty,
-  detailsRoute.value,
-)
 
 const fabric = ref<FabricResponse | null>(null)
 const isFetching = ref(true)
@@ -110,10 +106,11 @@ const clearDraft = () => {
   localStorage.removeItem(DRAFT_KEY.value)
 }
 
-const handleConfirmExit = () => {
-  clearDraft()
-  confirmExit()
-}
+const { isCancelModalOpen, handleCancel, confirmExit, resetGuard } = useUnsavedChangesGuard({
+  isDirty,
+  defaultTarget: detailsRoute,
+  onConfirmExit: clearDraft,
+})
 
 const handleSubmit = async (payload: FabricFormPayload) => {
   submitError.value = ''
@@ -129,9 +126,7 @@ const handleSubmit = async (payload: FabricFormPayload) => {
       }),
     })
 
-    clearDraft()
-    isDirty.value = false
-    confirmExit()
+    await confirmExit()
   } catch (e) {
     console.error('Failed to update fabric:', e)
     submitError.value =
@@ -218,6 +213,6 @@ onMounted(() => {
       </Transition>
     </div>
 
-    <DiscardNewFabricModal v-model:open="isCancelModalOpen" @confirm="handleConfirmExit" />
+    <DiscardNewFabricModal v-model:open="isCancelModalOpen" @confirm="confirmExit" />
   </GridLayout>
 </template>

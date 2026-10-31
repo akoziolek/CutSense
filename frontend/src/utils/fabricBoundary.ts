@@ -1,6 +1,6 @@
-import type { FabricConfig, Point2D } from '@/stores/addingFabricStore'
+import type { FabricConfig } from '@/stores/addingFabricStore'
 import type { FabricBoundaryPoint } from '@/types/fabric'
-import type { Point2D as ImagePoint } from '@/types/geometry'
+import type { Point2D } from '@/types/geometry'
 
 export interface PostgisPoint {
   x: number
@@ -21,7 +21,7 @@ export function toImagePercentBoundary(
   points: FabricBoundaryPoint[],
   imageWidthMm: number,
   imageHeightMm: number,
-): ImagePoint[] {
+): Point2D[] {
   if (
     !Number.isFinite(imageWidthMm) ||
     !Number.isFinite(imageHeightMm) ||

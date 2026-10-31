@@ -5,7 +5,7 @@ import type { FabricTag } from '@/types/fabric'
 import type { Point2D } from '@/types/geometry'
 
 export interface FabricConfig {
-  points: Point2D[]
+  shapes: Point2D[][]
   pxPerMm: number
   threadAngle: number
   rotation: number
@@ -32,7 +32,7 @@ const DEFAULT_DETAILS: FabricDetails = {
 
 // TODO remove later, for dev purpose
 const DEFAULT_CONFIG: FabricConfig = {
-  points: [],
+  shapes: [],
   pxPerMm: 0,
   threadAngle: 0,
   rotation: 0,
@@ -123,9 +123,10 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     if (isHydrated.value) return
 
     try {
+      type StoredFabricConfig = Partial<FabricConfig> & { points?: Point2D[] }
       const [savedFile, savedConfig, savedDetails] = await Promise.all([
         get<File>(STORAGE_FILE_KEY),
-        get<FabricConfig>(STORAGE_CONFIG_KEY),
+        get<StoredFabricConfig>(STORAGE_CONFIG_KEY),
         get<FabricDetails>(STORAGE_DETAILS_KEY),
       ])
 
@@ -135,9 +136,11 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
       }
 
       if (savedConfig) {
+        const { points: legacyPoints, ...storedConfig } = savedConfig
         config.value = {
           ...DEFAULT_CONFIG,
-          ...savedConfig,
+          ...storedConfig,
+          shapes: storedConfig.shapes ?? (legacyPoints ? [legacyPoints] : []),
         }
         isConfigPersisted.value = Boolean(config.value.isConfigured)
       }
@@ -183,7 +186,10 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
   const isShapeConfigured = computed(() => {
     if (!isFileLoaded.value) return false
 
-    const hasValidPoints = Array.isArray(config.value.points) && config.value.points.length >= 3
+    const hasValidShape =
+      Array.isArray(config.value.shapes) &&
+      Array.isArray(config.value.shapes[0]) &&
+      config.value.shapes[0].length >= 3
     const hasValidScale = typeof config.value.pxPerMm === 'number' && config.value.pxPerMm > 0
 
     const hasImageDimensions = config.value.imageWidth > 0 && config.value.imageHeight > 0
@@ -191,7 +197,7 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     return (
       isConfigPersisted.value &&
       config.value.isConfigured &&
-      hasValidPoints &&
+      hasValidShape &&
       hasValidScale &&
       hasImageDimensions
     )

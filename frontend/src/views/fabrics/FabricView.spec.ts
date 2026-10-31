@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, api } from '@/api/client'
 import type { MetaItem } from '@/components/common/DetailsCard.vue'
 import type { FabricTag } from '@/types/fabric'
+import type { Point2D } from '@/types/geometry'
 import FabricView from './FabricView.vue'
 
 vi.mock('@/api/client', async (importOriginal) => {
@@ -24,14 +25,14 @@ const ImagePreviewStub = defineComponent({
   props: {
     src: String,
     alt: String,
-    points: { type: Array as PropType<{ pctX: number; pctY: number }[]>, default: () => [] },
+    shapes: { type: Array as PropType<Point2D[][]>, default: () => [] },
   },
   setup(props) {
     return () =>
       h('img', {
         src: props.src,
         alt: props.alt,
-        'data-points': JSON.stringify(props.points),
+        'data-shapes': JSON.stringify(props.shapes),
       })
   },
 })
@@ -143,11 +144,13 @@ describe('FabricView', () => {
       src: fabric.pictureUrl,
       alt: fabric.name,
     })
-    expect(JSON.parse(wrapper.get('img').attributes('data-points') ?? '[]')).toEqual([
-      { pctX: 10, pctY: 50 },
-      { pctX: 50, pctY: 50 },
-      { pctX: 50, pctY: 75 },
-      { pctX: 10, pctY: 75 },
+    expect(JSON.parse(wrapper.get('img').attributes('data-shapes') ?? '[]')).toEqual([
+      [
+        { pctX: 10, pctY: 50 },
+        { pctX: 50, pctY: 50 },
+        { pctX: 50, pctY: 75 },
+        { pctX: 10, pctY: 75 },
+      ],
     ])
     expect(wrapper.findComponent(DetailsCardStub).props('tags')).toEqual(fabric.tags)
     expect(wrapper.text()).toContain(fabric.description)

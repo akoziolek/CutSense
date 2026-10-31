@@ -9,9 +9,10 @@ import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/api/client'
 import BaseModal from '@/components/common/BaseModal.vue'
+import type { Point2D } from '@/types/geometry'
 
 interface ShapeAnalysisResponse {
-  shapes: { pctX: number; pctY: number }[][]
+  shapes: Point2D[][]
   imageWidth: number
   imageHeight: number
 }
@@ -60,16 +61,18 @@ const {
 } = useSpatialWorkspace({
   workspaceRef,
   initialPxPerMm: fabricStore.config.pxPerMm,
-  initialPoints: fabricStore.config.points,
+  initialPoints: fabricStore.config.shapes[0],
   currentThreadAngle: ref(fabricStore.config.threadAngle),
+  allowMultipleShapes: false,
 })
 
 const loadSavedConfig = () => {
   if (!fabricStore.isHydrated) return
   isSyncing = true
 
-  if (fabricStore.config.points && fabricStore.config.points.length >= 3) {
-    const savedPoints = JSON.parse(JSON.stringify(fabricStore.config.points))
+  const savedShape = fabricStore.config.shapes[0]
+  if (savedShape && savedShape.length >= 3) {
+    const savedPoints = JSON.parse(JSON.stringify(savedShape))
     points.value = savedPoints
     updateOriginalPoints(savedPoints)
   }
@@ -121,7 +124,7 @@ const detectFabricBoundary = async () => {
     points.value = shape
     updateOriginalPoints(shape)
     await fabricStore.updateConfig({
-      points: shape,
+      shapes: result.shapes,
     })
   } catch (error) {
     console.error('Failed to analyze fabric photo:', error)
@@ -162,7 +165,7 @@ const handleSubmit = async () => {
   try {
     await fabricStore.updateConfig(
       {
-        points: JSON.parse(JSON.stringify(points.value)),
+        shapes: [JSON.parse(JSON.stringify(points.value))],
         pxPerMm: pxPerMm.value,
         threadAngle: threadAngle.value,
         rotation: imageRotation.value,
@@ -182,7 +185,7 @@ const handleConfirm = () => {
 const initializeBoundary = async () => {
   if (!fabricStore.isHydrated) return
 
-  if (fabricStore.config.points && fabricStore.config.points.length >= 3) {
+  if (fabricStore.config.shapes[0] && fabricStore.config.shapes[0].length >= 3) {
     loadSavedConfig()
     return
   }
@@ -206,7 +209,7 @@ watch(
     if (!fabricStore.isHydrated || isSyncing || isInteractiveDragging.value) return
     void fabricStore
       .updateConfig({
-        points: JSON.parse(JSON.stringify(points.value)),
+        shapes: [JSON.parse(JSON.stringify(points.value))],
         pxPerMm: pxPerMm.value,
         threadAngle: threadAngle.value,
         rotation: imageRotation.value,
@@ -246,8 +249,8 @@ onMounted(() => {
         v-model:zoom-level="zoomLevel"
         v-model:canvas-offset="canvasOffset"
         :image-url="fabricStore.previewUrl"
-        :points="points"
-        :edges="edges"
+        :shapes="[points]"
+        :all-shapes-edges="[edges]"
         :preview-point="previewPoint"
         :preview-neighbors="previewNeighbors"
         :selected-edge-index="selectedEdgeIndex"
@@ -257,14 +260,16 @@ onMounted(() => {
         :is-move-mode="isMoveMode"
         :is-dragging-canvas="isDraggingCanvas"
         :is-interactive-dragging="isInteractiveDragging"
-        @select-edge="handleEdgeMouseDown"
+        @activate-and-select-edge="
+          ({ edgeIndex, event }) => handleEdgeMouseDown(edgeIndex, event)
+        "
         @select-point="
           (idx) => {
             selectedPointIndex = idx
             selectedEdgeIndex = null
           }
         "
-        @start-drag-point="startDragPoint"
+        @activate-and-drag-point="({ pointIndex, event }) => startDragPoint(pointIndex, event)"
         @delete-selected="deleteSelected"
         @image-loaded="handleImageLoaded"
         @canvas-drag-start="startCanvasDrag"

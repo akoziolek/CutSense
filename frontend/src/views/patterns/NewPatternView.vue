@@ -8,6 +8,7 @@ import StepCounter from '@/components/forms/StepCounter.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 
 import StepUpload from '@/components/patterns/new/StepUpload.vue'
+import StepConfig from '@/components/patterns/new/StepConfig.vue'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
@@ -18,7 +19,6 @@ const route = useRoute()
 const router = useRouter()
 const patternStore = usePatternAddingStore()
 const isInitializing = ref(true)
-
 
 const { isCancelModalOpen, handleCancel, confirmExit } = useUnsavedChangesGuard({
   isDirty: computed(() => patternStore.hasPhotos),
@@ -39,6 +39,9 @@ const validStep = computed(() => {
 
   if (requestedStep >= 2 && !patternStore.hasPhotos) {
     return 1
+  }
+  if (requestedStep >= 3 && !patternStore.hasPieces) {
+    return 2
   }
 
   return Math.min(Math.max(requestedStep, 1), 4)
@@ -91,7 +94,7 @@ watch(
         </PageHeader>
 
         <StepUpload v-if="step === 1" @next="step = 2" @cancel="handleCancel" />
-
+        <StepConfig v-else-if="step === 2" @next="step = 3" @cancel="handleCancel" />
         <div v-else class="p-8 text-center border border-dashed rounded-xl text-muted-foreground">
           Step {{ step }} placeholder
         </div>

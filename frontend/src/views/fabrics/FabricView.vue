@@ -31,21 +31,24 @@ const clearSkeletonTimer = () => {
   }
 }
 
-const normalizedPoints = computed(() => {
+const normalizedShapes = computed(() => {
+  const currentFabric = fabric.value
+  const imageWidthMm = currentFabric?.imageWidthMm
+  const imageHeightMm = currentFabric?.imageHeightMm
   if (
-    !fabric.value ||
-    fabric.value.imageWidthMm === undefined ||
-    fabric.value.imageHeightMm === undefined
+    !currentFabric ||
+    imageWidthMm === undefined ||
+    imageHeightMm === undefined
   ) {
     return []
   }
 
-  return toImagePercentBoundary(
-    fabric.value.shapes[0] ?? [],
-    fabric.value.imageWidthMm,
-    fabric.value.imageHeightMm,
+  return currentFabric.shapes.map((shape) =>
+    toImagePercentBoundary(shape, imageWidthMm, imageHeightMm),
   )
 })
+
+const normalizedPoints = computed(() => normalizedShapes.value[0] ?? [])
 
 const edges = computed<PolygonEdge[]>(() => {
   const pts = normalizedPoints.value
@@ -195,8 +198,8 @@ watch(
                 v-if="fabric.pictureUrl"
                 :src="fabric.pictureUrl"
                 :alt="fabric.name"
-                :points="normalizedPoints"
-                :edges="edges"
+                :shapes="normalizedShapes"
+                :all-shapes-edges="[edges]"
               />
               <div
                 v-else

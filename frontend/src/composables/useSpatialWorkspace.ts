@@ -5,19 +5,27 @@ interface SpatialWorkspaceExposed {
   getPointFromEvent: (e: MouseEvent) => Point2D | null
 }
 
-// input type
 interface useSpatialWorkspaceOptions {
   workspaceRef: Ref<SpatialWorkspaceExposed | null>
   initialPxPerMm?: number
   initialPoints?: Point2D[]
   onThreadAngleChange?: (newAngle: number) => void
   currentThreadAngle?: Ref<number>
+  onShapeCreated?: (newShape: Point2D[]) => void
+  allowMultipleShapes?: boolean | Ref<boolean>
 }
 
 export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   const defaultPxPerMm = 1
-  const { workspaceRef, initialPxPerMm, initialPoints, onThreadAngleChange, currentThreadAngle } =
-    options
+  const {
+    workspaceRef,
+    initialPxPerMm,
+    initialPoints,
+    onThreadAngleChange,
+    currentThreadAngle,
+    onShapeCreated,
+    allowMultipleShapes = false,
+  } = options
 
   const backupShape = [
     { pctX: 20, pctY: 20 },
@@ -57,55 +65,137 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   const previewPoint = ref<Point2D | null>(null)
   const draggingPointIndex = ref<number | null>(null)
 
+  const drawingPoints = ref<Point2D[]>([])
+  const AUTO_CLOSE_THRESHOLD_PCT = 3.5
+
   const isMoveMode = computed(() => isSpacePressed.value || activeTool.value === 'pan')
 
-  const canDelete = computed(() => {
-    const numPoints = points.value.length
-    if (selectedPointIndex.value !== null) return numPoints > 3
-    if (selectedEdgeIndex.value !== null) return numPoints >= 5
-    return false
+  const canDelete = computed(() => points.value.length > 0 || drawingPoints.value.length > 0)
+
+  const isNearStartPoint = computed(() => {
+    if (drawingPoints.value.length < 3 || !previewPoint.value) return false
+    const startPt = drawingPoints.value[0]!
+    const dist = Math.hypot(
+      previewPoint.value.pctX - startPt.pctX,
+      previewPoint.value.pctY - startPt.pctY,
+    )
+    return dist <= AUTO_CLOSE_THRESHOLD_PCT
   })
 
-  const imageDimensions = ref({ width: 0, height: 0 })
+  const cancelDrawing = () => {
+    drawingPoints.value = []
+    previewPoint.value = null
+  }
+
+  const finishDrawing = () => {
+    if (drawingPoints.value.length >= 3) {
+      const createdShape = JSON.parse(JSON.stringify(drawingPoints.value))
+      if (onShapeCreated) {
+        onShapeCreated(createdShape)
+      }
+    }
+    cancelDrawing()
+  }
+
+  const handleImageClick = (clickPoint: Point2D) => {
+    if (isMoveMode.value) return
+
+    // drawing mode
+    if (drawingPoints.value.length > 0) {
+      if (drawingPoints.value.length >= 3 && isNearStartPoint.value) {
+        finishDrawing()
+        return
+      }
+      drawingPoints.value.push(clickPoint)
+      return
+    }
+
+    const canDrawMultiple =
+      typeof allowMultipleShapes === 'boolean' ? allowMultipleShapes : allowMultipleShapes.value
+
+    if (!canDrawMultiple) return
+
+    selectedPointIndex.value = null
+    selectedEdgeIndex.value = null
+    drawingPoints.value.push(clickPoint)
+  }
+
+  const deleteSelected = (onDeleteActiveShape?: () => void) => {
+    if (drawingPoints.value.length > 0) {
+      drawingPoints.value.pop()
+      return
+    }
+
+    if (!canDelete.value) return
+
+    if (selectedPointIndex.value !== null) {
+      if (points.value.length > 3) {
+        points.value.splice(selectedPointIndex.value, 1)
+        selectedPointIndex.value = null
+      }
+    } else if (selectedEdgeIndex.value !== null) {
+      if (points.value.length >= 5) {
+        const edgeIdx = selectedEdgeIndex.value
+        const numPoints = points.value.length
+        const p1Idx = edgeIdx
+        const p2Idx = (edgeIdx + 1) % numPoints
+
+        if (p2Idx === 0) {
+          points.value.splice(numPoints - 1, 1)
+          points.value.splice(0, 1)
+        } else {
+          points.value.splice(p1Idx, 2)
+        }
+        selectedEdgeIndex.value = null
+      }
+    } else if (onDeleteActiveShape) {
+      onDeleteActiveShape()
+    }
+  }
+
+  const imageDimensions = ref({ width: 1000, height: 1000 })
   const setImageDimensions = (width: number, height: number) => {
-    imageDimensions.value = { width, height }
+    if (width > 0 && height > 0) {
+      imageDimensions.value = { width, height }
+    }
   }
 
   const getImagePixelDistance = (p1: Point2D, p2: Point2D): number => {
     const { width, height } = imageDimensions.value
-    if (width <= 0 || height <= 0) return 0
+    const w = width > 0 ? width : 1000
+    const h = height > 0 ? height : 1000
 
-    const dx = ((p2.pctX - p1.pctX) / 100) * width
-    const dy = ((p2.pctY - p1.pctY) / 100) * height
+    const dx = ((p2.pctX - p1.pctX) / 100) * w
+    const dy = ((p2.pctY - p1.pctY) / 100) * h
 
-    // Pythagoras
     return Math.hypot(dx, dy)
   }
 
-  const calculateEdgeDistance = (p1: Point2D, p2: Point2D): string => {
-    if (pxPerMm.value <= 0) return '0.0'
-    const pixelDist = getImagePixelDistance(p1, p2)
-    return (pixelDist / pxPerMm.value / 10).toFixed(1)
+  const calculateEdgesForShape = (
+    shapePoints: Point2D[],
+    customPxPerMm = pxPerMm.value,
+  ): PolygonEdge[] => {
+    if (!shapePoints || shapePoints.length < 2 || customPxPerMm <= 0) return []
+
+    const result: PolygonEdge[] = []
+    const n = shapePoints.length
+    for (let index = 0; index < n; index++) {
+      const p1 = shapePoints[index]!
+      const p2 = shapePoints[(index + 1) % n]!
+      const pixelDist = getImagePixelDistance(p1, p2)
+      const distanceCm = (pixelDist / customPxPerMm / 10).toFixed(1)
+      result.push({
+        index,
+        p1,
+        p2,
+        distanceCm,
+      })
+    }
+    return result
   }
 
   const edges = computed<PolygonEdge[]>(() => {
-    const n = points.value.length
-    if (n < 2) return []
-
-    const result: PolygonEdge[] = []
-    for (let index = 0; index < n; index++) {
-      const p1 = points.value[index]
-      const p2 = points.value[(index + 1) % n]
-      if (p1 && p2) {
-        result.push({
-          index,
-          p1,
-          p2,
-          distanceCm: calculateEdgeDistance(p1, p2),
-        })
-      }
-    }
-    return result
+    return calculateEdgesForShape(points.value)
   })
 
   const selectedEdge = computed(() => {
@@ -126,43 +216,26 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     }
   }
 
-  const deleteSelected = () => {
-    if (!canDelete.value) return
-
-    // deleting point
-    if (selectedPointIndex.value !== null) {
-      points.value.splice(selectedPointIndex.value, 1)
-    }
-    // deleting edge - both points
-    else if (selectedEdgeIndex.value !== null) {
-      const edgeIdx = selectedEdgeIndex.value
-      const numPoints = points.value.length
-
-      const p1Idx = edgeIdx
-      const p2Idx = (edgeIdx + 1) % numPoints
-
-      // deleting point from the end/start
-      if (p2Idx === 0) {
-        points.value.splice(numPoints - 1, 1)
-        points.value.splice(0, 1)
-      }
-      //deleting normal point
-      else {
-        points.value.splice(p1Idx, 2)
-      }
-    }
-
-    selectedPointIndex.value = null
-    selectedEdgeIndex.value = null
-  }
-
-  // delete with Delete / Backspace
   const handleKeyDown = (e: KeyboardEvent) => {
     const isInput = (e.target as HTMLElement).tagName === 'INPUT'
-    if ((e.key === 'Delete' || e.key === 'Backspace') && !isInput) {
+    if (isInput) return
+
+    if (e.key === 'Space' && !isSpacePressed.value) {
+      isSpacePressed.value = true
+    } else if (e.key === 'Escape') {
+      cancelDrawing()
+    } else if (e.key === 'Enter') {
+      finishDrawing()
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault()
       deleteSelected()
-    } 
+    }
+  }
+
+  const handleKeyUp = (e: KeyboardEvent) => {
+    if (e.key === 'Space') {
+      isSpacePressed.value = false
+    }
   }
 
   const isInteractiveDragging = computed(
@@ -240,7 +313,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
       if (point) {
         previewPoint.value = point
       }
-      return
     }
 
     // moving existing point
@@ -293,6 +365,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   }
 
   const resetAll = () => {
+    cancelDrawing()
     points.value = JSON.parse(JSON.stringify(originalPoints.value))
     selectedEdgeIndex.value = null
     selectedPointIndex.value = null
@@ -303,12 +376,14 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
 
   onMounted(() => {
     window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
     window.addEventListener('mousemove', handleGlobalMouseMove)
     window.addEventListener('mouseup', handleGlobalMouseUp)
   })
 
   onUnmounted(() => {
     window.removeEventListener('keydown', handleKeyDown)
+    window.removeEventListener('keyup', handleKeyUp)
     window.removeEventListener('mousemove', handleGlobalMouseMove)
     window.removeEventListener('mouseup', handleGlobalMouseUp)
   })
@@ -332,6 +407,12 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     isMoveMode,
     isDraggingCanvas,
     canDelete,
+    drawingPoints,
+    isNearStartPoint,
+    handleImageClick,
+    finishDrawing,
+    cancelDrawing,
+    calculateEdgesForShape,
     handleEdgeMouseDown,
     handleRotate,
     handleCalibrateLine,

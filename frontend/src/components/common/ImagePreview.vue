@@ -10,12 +10,12 @@ const props = withDefaults(
   defineProps<{
     src: string
     alt: string
-    points?: Point2D[]
-    edges?: PolygonEdge[]
+    shapes?: Point2D[][]
+    allShapesEdges?: PolygonEdge[][]
   }>(),
   {
-    points: () => [],
-    edges: () => [],
+    shapes: () => [],
+    allShapesEdges: () => [],
   },
 )
 
@@ -78,7 +78,7 @@ const resetZoom = () => {
           <RotateCcw class="h-4 w-4" />
         </Button>
 
-        <template v-if="props.points.length > 0">
+        <template v-if="props.shapes.some((shape) => shape.length > 0)">
           <div class="h-4 w-px bg-border mx-1" />
           <Button
             size="icon"
@@ -107,8 +107,8 @@ const resetZoom = () => {
       <div class="w-full h-full relative">
         <SpatialCanvas
           :image-url="src"
-          :points="showOverlay ? props.points : []"
-          :edges="showOverlay ? props.edges : []"
+          :shapes="showOverlay ? props.shapes : []"
+          :all-shapes-edges="showOverlay ? props.allShapesEdges : []"
           :show-labels="showOverlay"
           :zoom-level="zoomLevel"
           :canvas-offset="canvasOffset"

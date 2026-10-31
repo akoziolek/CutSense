@@ -11,6 +11,7 @@ const props = withDefaults(
     src: string
     alt: string
     shapes?: Point2D[][]
+    activeShapeIndex?: number
     allShapesEdges?: PolygonEdge[][]
   }>(),
   {
@@ -40,26 +41,28 @@ const resetZoom = () => {
 <template>
   <Dialog @update:open="resetZoom">
     <DialogTrigger as-child>
-      <div
-        class="relative group cursor-zoom-in overflow-hidden rounded-md bg-card border border-muted/50 shadow-sm w-full h-full min-h-[300px]"
-      >
-        <img
-          :src="src"
-          :alt="alt"
-          class="w-full h-full object-cover block select-none transition-transform duration-300 group-hover:scale-105"
-        />
+      <slot name="trigger">
         <div
-          class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-30"
+          class="relative group cursor-zoom-in overflow-hidden rounded-md bg-card border border-muted/50 shadow-sm w-full h-full min-h-[300px]"
         >
-          <span class="rounded-full bg-background/80 p-2 shadow-sm backdrop-blur-sm">
-            <ZoomIn class="h-5 w-5 text-foreground" />
-          </span>
+          <img
+            :src="src"
+            :alt="alt"
+            class="w-full h-full object-cover block select-none transition-transform duration-300 group-hover:scale-105"
+          />
+          <div
+            class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-30"
+          >
+            <span class="rounded-full bg-background/80 p-2 shadow-sm backdrop-blur-sm">
+              <ZoomIn class="h-5 w-5 text-foreground" />
+            </span>
+          </div>
         </div>
-      </div>
+      </slot>
     </DialogTrigger>
 
     <DialogContent
-      class="max-w-[95vw] w-full h-[90vh] p-0 flex flex-col items-center justify-center bg-background border overflow-hidden [&>button]:hidden"
+      class="max-w-[95vw] w-full h-[90vh] p-0 flex flex-col items-center justify-center bg-background border overflow-hidden [&>button]:hidden z-50"
       @open-auto-focus="(e) => e.preventDefault()"
     >
       <div
@@ -84,7 +87,6 @@ const resetZoom = () => {
             size="icon"
             variant="ghost"
             class="h-9 w-9 transition-colors cursor-pointer"
-            :class="{ 'bg-brand-green text-foreground': showOverlay }"
             :title="showOverlay ? 'Hide shape' : 'Show shape'"
             @click="showOverlay = !showOverlay"
           >
@@ -108,6 +110,7 @@ const resetZoom = () => {
         <SpatialCanvas
           :image-url="src"
           :shapes="showOverlay ? props.shapes : []"
+          :active-shape-index="props.activeShapeIndex"
           :all-shapes-edges="showOverlay ? props.allShapesEdges : []"
           :show-labels="showOverlay"
           :zoom-level="zoomLevel"

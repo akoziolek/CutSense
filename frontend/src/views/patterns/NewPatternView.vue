@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 import StepUpload from '@/components/patterns/new/StepUpload.vue'
 import StepConfig from '@/components/patterns/new/StepConfig.vue'
+import StepPieces from '@/components/patterns/new/StepPieces.vue'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
@@ -87,6 +88,7 @@ watch(
       </div>
 
       <template v-else>
+        <!-- TODO keep title at the top??, list overflowing behind the navigation -->
         <PageHeader :title="TITLES[step - 1]" :show-back="step > 1" @back="step = step - 1">
           <template #actions>
             <StepCounter :current-step="step" :total-steps="4" />
@@ -95,6 +97,7 @@ watch(
 
         <StepUpload v-if="step === 1" @next="step = 2" @cancel="handleCancel" />
         <StepConfig v-else-if="step === 2" @next="step = 3" @cancel="handleCancel" />
+        <StepPieces v-else-if="step === 3" @next="step = 4" @cancel="handleCancel" />
         <div v-else class="p-8 text-center border border-dashed rounded-xl text-muted-foreground">
           Step {{ step }} placeholder
         </div>

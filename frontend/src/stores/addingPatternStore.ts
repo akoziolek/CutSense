@@ -14,8 +14,12 @@ export interface PatternPhotoData {
 
 export interface PatternPiece {
   id: string
+  photoIndex: number
+  shapeIndex: number
   name: string
-  areaCm2?: number
+  normal: number
+  mirrored: number
+  grainline: number
 }
 
 export interface PatternDetails {
@@ -25,7 +29,8 @@ export interface PatternDetails {
 }
 
 const STORAGE_PHOTOS_KEY = 'adding_pattern_photos'
-const STORAGE_PIECES_KEY = 'adding_pattern_pieces'
+const STORAGE_CONFIGS_KEY = 'adding_pattern_pieces'
+const STORAGE_PIECES_KEY = 'adding_pattern_pieces_data'
 const STORAGE_DETAILS_KEY = 'adding_pattern_details'
 
 const DEFAULT_DETAILS: PatternDetails = {
@@ -56,9 +61,7 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
         ? config.shapes
         : [JSON.parse(JSON.stringify(DEFAULT_SHAPE))]
 
-    const hiddenShapes = shapes.map((_, idx) => {
-      return config?.hiddenShapes?.[idx] ?? idx !== 0
-    })
+    const hiddenShapes = shapes.map((_, idx) => config?.hiddenShapes?.[idx] ?? idx !== 0)
 
     return {
       shapes: JSON.parse(JSON.stringify(shapes)),
@@ -72,13 +75,17 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
 
   function savePhotoConfigsToIDB() {
     const snapshot = JSON.parse(JSON.stringify(photoConfigs.value))
+    writeQueue = writeQueue.then(() => set(STORAGE_CONFIGS_KEY, snapshot))
+    return writeQueue
+  }
+
+  function savePiecesToIDB() {
+    const snapshot = JSON.parse(JSON.stringify(pieces.value))
     writeQueue = writeQueue.then(() => set(STORAGE_PIECES_KEY, snapshot))
     return writeQueue
   }
 
-  const previewUrls = computed(() => {
-    return photos.value.map((file) => URL.createObjectURL(file))
-  })
+  const previewUrls = computed(() => photos.value.map((file) => URL.createObjectURL(file)))
 
   watch(
     previewUrls,
@@ -118,28 +125,61 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
 
     writeQueue = writeQueue.then(async () => {
       await set(STORAGE_PHOTOS_KEY, newPhotos)
-      await set(STORAGE_PIECES_KEY, updatedConfigs)
+      await set(STORAGE_CONFIGS_KEY, updatedConfigs)
+      await set(STORAGE_PIECES_KEY, [])
     })
     await writeQueue
   }
 
-  async function addPhotos(incomingFiles: File[]) {
-    const updated = [...photos.value, ...incomingFiles]
-    await setPhotos(updated)
+  function syncPiecesFromConfigs() {
+    const newPieces: PatternPiece[] = []
+    let counter = 1
+
+    photoConfigs.value.forEach((config, photoIdx) => {
+      config.shapes.forEach((_, shapeIdx) => {
+        const existing = pieces.value.find(
+          (p) => p.photoIndex === photoIdx && p.shapeIndex === shapeIdx,
+        )
+
+        if (existing) {
+          newPieces.push({
+            ...existing,
+            name: existing.name || `Piece #${counter}`,
+          })
+        } else {
+          newPieces.push({
+            id: `piece-${photoIdx}-${shapeIdx}`,
+            photoIndex: photoIdx,
+            shapeIndex: shapeIdx,
+            name: `Piece #${counter}`,
+            normal: 1,
+            mirrored: 0,
+            grainline: 0,
+          })
+        }
+        counter++
+      })
+    })
+
+    pieces.value = newPieces
+    void savePiecesToIDB()
   }
 
-  async function removePhoto(index: number) {
-    const updatedPhotos = photos.value.filter((_, idx) => idx !== index)
-    const updatedConfigs = photoConfigs.value.filter((_, idx) => idx !== index)
+  function updatePiece(id: string, partial: Partial<PatternPiece>) {
+    const piece = pieces.value.find((p) => p.id === id)
+    if (piece) {
+      Object.assign(piece, partial)
+      void savePiecesToIDB()
+    }
+  }
 
-    photos.value = updatedPhotos
-    photoConfigs.value = updatedConfigs
-
-    writeQueue = writeQueue.then(async () => {
-      await set(STORAGE_PHOTOS_KEY, updatedPhotos)
-      await set(STORAGE_PIECES_KEY, updatedConfigs)
-    })
-    await writeQueue
+  function removePieceById(id: string) {
+    const piece = pieces.value.find((p) => p.id === id)
+    if (piece) {
+      removeShape(piece.photoIndex, piece.shapeIndex)
+      pieces.value = pieces.value.filter((p) => p.id !== id)
+      void savePiecesToIDB()
+    }
   }
 
   function setPhotoShapes(photoIndex: number, shapes: Point2D[][]) {
@@ -151,6 +191,7 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     config.isAnalyzed = true
     config.isAnalyzing = false
 
+    syncPiecesFromConfigs()
     return savePhotoConfigsToIDB()
   }
 
@@ -177,8 +218,9 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     if (!config) return null
 
     config.shapes.push(JSON.parse(JSON.stringify(newShape)))
-    config.hiddenShapes.push(false)
+    config.hiddenShapes.push(true)
 
+    syncPiecesFromConfigs()
     void savePhotoConfigsToIDB()
     return config.shapes.length - 1
   }
@@ -190,6 +232,7 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     config.shapes.splice(shapeIndex, 1)
     config.hiddenShapes.splice(shapeIndex, 1)
 
+    syncPiecesFromConfigs()
     return savePhotoConfigsToIDB()
   }
 
@@ -228,9 +271,10 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     if (isHydrated.value) return
 
     try {
-      const [savedPhotos, savedConfigs, savedDetails] = await Promise.all([
+      const [savedPhotos, savedConfigs, savedPieces, savedDetails] = await Promise.all([
         get<File[]>(STORAGE_PHOTOS_KEY),
-        get<PatternPhotoData[]>(STORAGE_PIECES_KEY),
+        get<PatternPhotoData[]>(STORAGE_CONFIGS_KEY),
+        get<PatternPiece[]>(STORAGE_PIECES_KEY),
         get<PatternDetails>(STORAGE_DETAILS_KEY),
       ])
 
@@ -239,9 +283,15 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
         photoConfigs.value = savedPhotos.map((_, idx) => sanitizePhotoConfig(savedConfigs?.[idx]))
       }
 
+      if (savedPieces && Array.isArray(savedPieces)) {
+        pieces.value = savedPieces
+      }
+
       if (savedDetails) {
         details.value = { ...DEFAULT_DETAILS, ...savedDetails }
       }
+
+      syncPiecesFromConfigs()
     } catch (error) {
       console.error('Error reading pattern draft from IndexedDB:', error)
     } finally {
@@ -259,6 +309,7 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
       await writeQueue
       await Promise.all([
         del(STORAGE_PHOTOS_KEY),
+        del(STORAGE_CONFIGS_KEY),
         del(STORAGE_PIECES_KEY),
         del(STORAGE_DETAILS_KEY),
       ])
@@ -280,8 +331,6 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     hasPhotos,
     hasPieces,
     setPhotos,
-    addPhotos,
-    removePhoto,
     setPhotoShapes,
     setPhotoAnalyzing,
     toggleShapeVisibility,
@@ -290,6 +339,9 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     updateShapePoints,
     updatePhotoScale,
     updatePhotoRotation,
+    syncPiecesFromConfigs,
+    updatePiece,
+    removePieceById,
     updateDetails,
     initFromIndexedDB,
     resetWizard,

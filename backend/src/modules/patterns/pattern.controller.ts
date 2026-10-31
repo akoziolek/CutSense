@@ -8,6 +8,11 @@ import {
   Post,
   HttpCode,
   HttpStatus,
+  UploadedFile,
+  UseInterceptors,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -19,6 +24,9 @@ import {
   ApiTags,
   ApiCookieAuth,
   ApiCreatedResponse,
+  ApiBadGatewayResponse,
+  ApiBody,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
 import { PatternsService } from './patterns.service.js';
@@ -29,6 +37,8 @@ import { OptionalSessionGuard } from '../../auth/guards/optional-session.guard.j
 import { OptionalUser } from '../../common/decorators/optional-user.decorator.js';
 import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
 import { PatternTagDto } from './dto/pattern-tag.dto.js';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { AnalysisShapesDto } from '../shapes-engine/dto/analysis-shapes.dto.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')
@@ -51,6 +61,53 @@ export class PatternController {
   })
   async getFabricTags(): Promise<PatternTagDto[]> {
     return this.patternsService.getPatternTags();
+  }
+
+  @Post('analyze-boundary')
+  @UseInterceptors(
+    FileInterceptor('picture', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['picture'],
+      properties: {
+        picture: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiOperation({
+    summary: 'Detect the pattern boundary in a photo',
+    description:
+      'Analyzes the uploaded photo and returns normalized detected shapes and the original image dimensions.',
+  })
+  @ApiOkResponse({
+    description: 'The detected pattern shape was returned.',
+    type: AnalysisShapesDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'The uploaded image could not be analyzed.',
+  })
+  @ApiBadGatewayResponse({
+    description:
+      'The shape analysis service is unavailable or returned invalid data.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  async analyzeFabricBoundary(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      }),
+    )
+    picture: Express.Multer.File,
+  ): Promise<AnalysisShapesDto> {
+    return this.patternsService.analyzePatternBoundary(picture);
   }
 
   @Get(':id')

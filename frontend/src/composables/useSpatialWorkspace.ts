@@ -65,6 +65,9 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   const previewPoint = ref<Point2D | null>(null)
   const draggingPointIndex = ref<number | null>(null)
 
+  // Flag preventing false click event on canvas background right after edge/point interaction
+  let justFinishedInteraction = false
+
   const drawingPoints = ref<Point2D[]>([])
   const AUTO_CLOSE_THRESHOLD_PCT = 3.5
 
@@ -98,7 +101,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   }
 
   const handleImageClick = (clickPoint: Point2D) => {
-    if (isMoveMode.value) return
+    if (isMoveMode.value || justFinishedInteraction) return
 
     // drawing mode
     if (drawingPoints.value.length > 0) {
@@ -331,6 +334,8 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
       isDraggingCanvas.value = false
     }
 
+    const wasInteracting = creatingEdgeIndex.value !== null || draggingPointIndex.value !== null
+
     // inserting new point
     if (creatingEdgeIndex.value !== null && previewPoint.value) {
       const insertIdx = creatingEdgeIndex.value + 1
@@ -345,6 +350,14 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     // finish moving a point
     if (draggingPointIndex.value !== null) {
       draggingPointIndex.value = null
+    }
+
+    // Prevent background click event right after interaction
+    if (wasInteracting) {
+      justFinishedInteraction = true
+      setTimeout(() => {
+        justFinishedInteraction = false
+      }, 50)
     }
   }
 

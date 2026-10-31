@@ -1,13 +1,22 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
-import { Hand, Ruler, Eye, EyeOff, Trash2 } from 'lucide-vue-next'
+import { Hand, Ruler, Trash2, Eye, EyeOff } from 'lucide-vue-next'
 
-const props = defineProps<{
-  activeTool: 'select' | 'pan'
-  isMoveMode?: boolean
-  showLabels: boolean
-  canDelete?: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    activeTool: 'select' | 'pan'
+    isMoveMode?: boolean
+    showLabels?: boolean
+    showLabelToggle?: boolean
+    canDelete?: boolean
+  }>(),
+  {
+    showLabels: true,
+    showLabelToggle: true,
+    isMoveMode: false,
+    canDelete: false,
+  },
+)
 
 const emit = defineEmits<{
   (e: 'update:activeTool', tool: 'select' | 'pan'): void
@@ -17,19 +26,26 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="flex items-center gap-1 bg-background/80 backdrop-blur-sm p-1 rounded-md border shadow-xs">
+  <!-- {click, mousedown}.stop = stop event from being sent to canvas when clicking the toolbar -->
+  <div
+    class="flex items-center gap-1 bg-background/80 backdrop-blur-sm p-1 rounded-md border shadow-xs select-none"
+    @click.stop
+    @mousedown.stop
+  >
     <!-- Ruler Tool -->
     <Button
       type="button"
       size="icon"
       variant="ghost"
-      class="h-7 w-7 rounded-lg cursor-pointer"
-      :class="props.activeTool === 'select' && !props.isMoveMode ? 'bg-brand-green text-foreground' : ''"
-      title="Ruler tool (Drag line to add point)"
-      @click="emit('update:activeTool', 'select')"
+      class="h-7 w-7 rounded-lg cursor-pointer transition-colors"
+      :class="
+        props.activeTool === 'select' && !props.isMoveMode ? 'bg-brand-green text-foreground' : ''
+      "
+      title="Ruler Add & Edit tool"
+      @click.stop="emit('update:activeTool', 'select')"
     >
       <Ruler class="h-3.5 w-3.5" />
-      <span class="sr-only">Ruler tool</span>
+      <span class="sr-only">Edit tool</span>
     </Button>
 
     <!-- Pan Tool -->
@@ -37,10 +53,10 @@ const emit = defineEmits<{
       type="button"
       size="icon"
       variant="ghost"
-      class="h-7 w-7 rounded-lg cursor-pointer"
+      class="h-7 w-7 rounded-lg cursor-pointer transition-colors"
       :class="props.isMoveMode ? 'bg-brand-green text-foreground' : ''"
-      title="Pan tool (Drag image or select line)"
-      @click="emit('update:activeTool', 'pan')"
+      title="Pan tool (Drag canvas or select line)"
+      @click.stop="emit('update:activeTool', 'pan')"
     >
       <Hand class="h-3.5 w-3.5" />
       <span class="sr-only">Pan tool</span>
@@ -48,13 +64,13 @@ const emit = defineEmits<{
 
     <!-- Toggle Labels -->
     <Button
+      v-if="props.showLabelToggle"
       type="button"
       size="icon"
       variant="ghost"
-      class="h-7 w-7 rounded-lg cursor-pointer"
-      :class="props.showLabels ? 'bg-brand-green text-foreground' : ''"
-      :title="props.showLabels ? 'Hide length labels' : 'Show length labels'"
-      @click="emit('update:showLabels', !props.showLabels)"
+      class="h-7 w-7 rounded-lg cursor-pointer transition-colors"
+      :title="props.showLabels ? 'Hide size labels' : 'Show size labels'"
+      @click.stop="emit('update:showLabels', !props.showLabels)"
     >
       <Eye v-if="props.showLabels" class="h-3.5 w-3.5" />
       <EyeOff v-else class="h-3.5 w-3.5" />
@@ -75,8 +91,8 @@ const emit = defineEmits<{
           : 'text-muted-foreground/30 cursor-not-allowed'
       "
       :disabled="!props.canDelete"
-      title="Delete selected point or edge (Delete / Backspace)"
-      @click="emit('deleteSelected')"
+      title="Delete selected point, edge or active shape (Delete / Backspace)"
+      @click.stop="emit('deleteSelected')"
     >
       <Trash2 class="h-3.5 w-3.5" />
       <span class="sr-only">Delete selected</span>

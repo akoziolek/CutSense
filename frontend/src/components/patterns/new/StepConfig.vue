@@ -176,11 +176,20 @@ const detectPatternBoundary = async (photoIndex: number) => {
       !result.shapes ||
       result.shapes.length === 0 ||
       !result.shapes[0] ||
-      result.shapes[0].length < 3
+      result.shapes[0].length < 3 ||
+      !Number.isFinite(result.imageWidth) ||
+      result.imageWidth <= 0 ||
+      !Number.isFinite(result.imageHeight) ||
+      result.imageHeight <= 0
     ) {
       throw new Error('Invalid boundary returned.')
     }
 
+    await patternStore.updatePhotoDimensions(
+      photoIndex,
+      result.imageWidth,
+      result.imageHeight,
+    )
     patternStore.setPhotoShapes(photoIndex, result.shapes)
 
     if (photoIndex === activePhotoIndex.value) {
@@ -302,10 +311,14 @@ watch(
 
 const handleImageLoaded = (image?: HTMLImageElement) => {
   if (!image) return
-  setImageDimensions(
-    image.naturalWidth || image.clientWidth,
-    image.naturalHeight || image.clientHeight,
-  )
+  const imageWidth = image.naturalWidth || image.clientWidth
+  const imageHeight = image.naturalHeight || image.clientHeight
+  setImageDimensions(imageWidth, imageHeight)
+  void patternStore
+    .updatePhotoDimensions(activePhotoIndex.value, imageWidth, imageHeight)
+    .catch((error: unknown) => {
+      console.error('Failed to persist pattern image dimensions:', error)
+    })
 }
 
 onMounted(() => {

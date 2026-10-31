@@ -2,12 +2,15 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { get, set, del } from 'idb-keyval'
 import { type Point2D } from '@/types/geometry'
+import type { NameTag } from '@/types/patterns'
 
 export interface PatternPhotoData {
   shapes: Point2D[][]
   hiddenShapes: boolean[]
   pxPerMm: number
   rotation: number
+  imageWidth: number
+  imageHeight: number
   isAnalyzing?: boolean
   isAnalyzed?: boolean
 }
@@ -25,7 +28,9 @@ export interface PatternPiece {
 export interface PatternDetails {
   name: string
   size: string
-  visibility: 'private' | 'public'
+  description: string
+  tags: NameTag[]
+  visibility: 'PRIVATE' | 'PUBLIC'
 }
 
 const STORAGE_PHOTOS_KEY = 'adding_pattern_photos'
@@ -36,7 +41,9 @@ const STORAGE_DETAILS_KEY = 'adding_pattern_details'
 const DEFAULT_DETAILS: PatternDetails = {
   name: '',
   size: '',
-  visibility: 'private',
+  description: '',
+  tags: [],
+  visibility: 'PRIVATE',
 }
 
 const DEFAULT_SHAPE: Point2D[] = [
@@ -68,6 +75,10 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
       hiddenShapes,
       pxPerMm: typeof config?.pxPerMm === 'number' && config.pxPerMm > 0 ? config.pxPerMm : 1,
       rotation: typeof config?.rotation === 'number' ? config.rotation : 0,
+      imageWidth:
+        typeof config?.imageWidth === 'number' && config.imageWidth > 0 ? config.imageWidth : 0,
+      imageHeight:
+        typeof config?.imageHeight === 'number' && config.imageHeight > 0 ? config.imageHeight : 0,
       isAnalyzing: false,
       isAnalyzed: Boolean(config?.isAnalyzed),
     }
@@ -260,9 +271,26 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     return savePhotoConfigsToIDB()
   }
 
+  async function updatePhotoDimensions(
+    photoIndex: number,
+    imageWidth: number,
+    imageHeight: number,
+  ) {
+    const config = photoConfigs.value[photoIndex]
+    if (!config || imageWidth <= 0 || imageHeight <= 0) return
+
+    config.imageWidth = imageWidth
+    config.imageHeight = imageHeight
+    await savePhotoConfigsToIDB()
+  }
+
   function updateDetails(partialDetails: Partial<PatternDetails>) {
-    details.value = { ...details.value, ...partialDetails }
-    const snapshot = JSON.parse(JSON.stringify(details.value))
+    details.value = {
+      ...details.value,
+      ...partialDetails,
+      tags: partialDetails.tags ? [...partialDetails.tags] : [...details.value.tags],
+    }
+    const snapshot = JSON.parse(JSON.stringify(details.value)) as PatternDetails
     writeQueue = writeQueue.then(() => set(STORAGE_DETAILS_KEY, snapshot))
     return writeQueue
   }
@@ -288,7 +316,11 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
       }
 
       if (savedDetails) {
-        details.value = { ...DEFAULT_DETAILS, ...savedDetails }
+        details.value = {
+          ...DEFAULT_DETAILS,
+          ...savedDetails,
+          visibility: savedDetails.visibility?.toUpperCase() === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE',
+        }
       }
 
       syncPiecesFromConfigs()
@@ -339,6 +371,7 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     updateShapePoints,
     updatePhotoScale,
     updatePhotoRotation,
+    updatePhotoDimensions,
     syncPiecesFromConfigs,
     updatePiece,
     removePieceById,

@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import StepUpload from '@/components/patterns/new/StepUpload.vue'
 import StepConfig from '@/components/patterns/new/StepConfig.vue'
 import StepPieces from '@/components/patterns/new/StepPieces.vue'
+import StepDetails from '@/components/patterns/new/StepDetails.vue'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
@@ -98,9 +99,7 @@ watch(
         <StepUpload v-if="step === 1" @next="step = 2" @cancel="handleCancel" />
         <StepConfig v-else-if="step === 2" @next="step = 3" @cancel="handleCancel" />
         <StepPieces v-else-if="step === 3" @next="step = 4" @cancel="handleCancel" />
-        <div v-else class="p-8 text-center border border-dashed rounded-xl text-muted-foreground">
-          Step {{ step }} placeholder
-        </div>
+        <StepDetails v-else @cancel="handleCancel" />
       </template>
     </div>
 

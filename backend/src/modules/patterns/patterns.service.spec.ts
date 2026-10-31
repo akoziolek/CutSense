@@ -16,10 +16,14 @@ describe('PatternsService', () => {
   let deleteWhere: ReturnType<typeof vi.fn>;
   let insertValues: ReturnType<typeof vi.fn>;
   let transaction: ReturnType<typeof vi.fn>;
+  let insert: ReturnType<typeof vi.fn>;
+  let deleteFn: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     findFirst = vi.fn();
     findManyTags = vi.fn();
+    insert = vi.fn();
+    deleteFn = vi.fn();
     updateReturning = vi.fn();
     updateSet = vi.fn(() => ({
       where: () => ({ returning: updateReturning }),
@@ -57,6 +61,8 @@ describe('PatternsService', () => {
               tagsForPatterns: { findMany: findManyTags },
             },
             transaction,
+            insert,
+            delete: deleteFn,
           },
         },
       ],
@@ -263,5 +269,46 @@ describe('PatternsService', () => {
     await expect(service.getPatternById(20, 3)).rejects.toBeInstanceOf(
       AccessDeniedException,
     );
+  });
+  
+  describe('setFavourite', () => {
+    it('adds a favourite idempotently', async () => {
+      findFirst.mockResolvedValue({ id: 5, userId: 9, visibility: 'PUBLIC' });
+      const onConflictDoNothing = vi.fn().mockResolvedValue(undefined);
+      const values = vi.fn(() => ({ onConflictDoNothing }));
+      insert.mockReturnValue({ values });
+
+      await expect(service.setFavourite(5, true, 3)).resolves.toEqual({ id: 5, isFavourite: true });
+      expect(values).toHaveBeenCalledWith({ patternId: 5, userId: 3 });
+      expect(onConflictDoNothing).toHaveBeenCalled();
+    });
+
+    it('removes a favourite', async () => {
+      findFirst.mockResolvedValue({ id: 5, userId: 9, visibility: 'PUBLIC' });
+      const where = vi.fn().mockResolvedValue(undefined);
+      deleteFn.mockReturnValue({ where });
+
+      await expect(service.setFavourite(5, false, 3)).resolves.toEqual({ id: 5, isFavourite: false });
+      expect(where).toHaveBeenCalled();
+      expect(insert).not.toHaveBeenCalled();
+    });
+
+    it('lets the owner favourite their own private pattern', async () => {
+      findFirst.mockResolvedValue({ id: 5, userId: 3, visibility: 'PRIVATE' });
+      insert.mockReturnValue({ values: () => ({ onConflictDoNothing: vi.fn() }) });
+
+      await expect(service.setFavourite(5, true, 3)).resolves.toEqual({ id: 5, isFavourite: true });
+    });
+
+    it.each([
+      ['a missing pattern', undefined],
+      ['a private pattern of someone else', { id: 5, userId: 9, visibility: 'PRIVATE' }],
+    ])('reports %s as not found and changes nothing', async (_name, row) => {
+      findFirst.mockResolvedValue(row);
+
+      await expect(service.setFavourite(5, true, 3)).rejects.toBeInstanceOf(ResourceNotFoundException);
+      expect(insert).not.toHaveBeenCalled();
+      expect(deleteFn).not.toHaveBeenCalled();
+    });
   });
 });

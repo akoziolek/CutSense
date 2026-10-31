@@ -12,16 +12,33 @@ import { PatternTagDto } from './dto/pattern-tag.dto.js';
 import type { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
-import { rotateAndAnchor } from './geometry.js';
+import { rotateAndAnchor } from '../../common/geometry/shapes-geometry.js';
 import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';
 import { PatternsMapper } from './patterns.mapper.js';
+import { AnalysisShapesDto } from '../shapes-engine/dto/analysis-shapes.dto.js';
+import { ShapeEngineMapper } from '../shapes-engine/shapes-engine.mapper.js';
+import { ShapesEngineClient } from '../shapes-engine/shapes-engine.client.js';
+import { ShapeEngineResponseDto } from '../shapes-engine/dto/shapes-engine-response.dto.js';
 
 @Injectable()
 export class PatternsService {
   constructor(
     @Inject(DRIZZLE)
     private readonly db: DrizzleDB,
+    private readonly shapesEngineClient: ShapesEngineClient,
   ) {}
+
+  async analyzePatternBoundary(
+    picture: Express.Multer.File,
+  ): Promise<AnalysisShapesDto> {
+    const engineResult = await this.shapesEngineClient.analyzeBoundary(
+      'analyze-pattern-boundary',
+      picture,
+      ShapeEngineResponseDto,
+    );
+
+    return ShapeEngineMapper.toAnalysisShapesDto(engineResult);
+  }
 
   async getPatternById(
     patternId: number,

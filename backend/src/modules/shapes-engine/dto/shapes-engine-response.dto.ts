@@ -3,12 +3,16 @@ import {
   IsArray,
   IsInt,
   IsPositive,
+  ValidateNested,
 } from 'class-validator';
-import { AnalysisPointDto } from './analyze-fabric.dto.js';
+import { Type } from 'class-transformer';
+import { AnalysisPointDto } from './analysis-point.dto.js';
 
-export class AnalyzeFabricEngineResponseDto {
+export class ShapeEngineResponseDto {
   @IsArray()
   @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => AnalysisPointDto)
   shapes!: AnalysisPointDto[][];
 
   @IsInt()

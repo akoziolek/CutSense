@@ -1,9 +1,9 @@
-import { AnalysisShapesDto } from './dto/analyze-fabric.dto.js';
-import { AnalyzeFabricEngineResponseDto } from './dto/analyze-fabric-engine-response.dto.js';
+import { AnalysisShapesDto } from './dto/analysis-shapes.dto.js';
+import { ShapeEngineResponseDto } from './dto/shapes-engine-response.dto.js';
 
-export class FabricBoundaryMapper {
+export class ShapeEngineMapper {
   static toAnalysisShapesDto(
-    result: AnalyzeFabricEngineResponseDto,
+    result: ShapeEngineResponseDto,
   ): AnalysisShapesDto {
     return Object.assign(new AnalysisShapesDto(), {
       shapes: result.shapes.map((shape) =>

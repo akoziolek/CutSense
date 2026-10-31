@@ -34,7 +34,7 @@ import { FabricService } from './fabrics.service.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { SessionGuard } from '../../auth/guards/session.guard.js';
 import { CreateFabricDto } from './dto/create-fabric.dto.js';
-import { AnalysisShapesDto } from './dto/analyze-fabric.dto.js';
+import { AnalysisShapesDto } from '../shapes-engine/dto/analysis-shapes.dto.js';
 import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricTagDto } from './dto/fabric-tags.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';

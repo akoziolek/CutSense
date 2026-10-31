@@ -1,5 +1,4 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { eq, and, inArray, sql, asc, desc, count, type SQL } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import { fabrics, fabricTags, tagsForFabrics } from '../../db/schema/schema.js';
@@ -10,20 +9,17 @@ import { RequestValidationException } from '../../common/exceptions/request-vali
 import { StoragePaths, StorageService } from '../storage/storage.service.js';
 import { FabricMapper } from './fabric.mapper.js';
 import { CreateFabricDto } from './dto/create-fabric.dto.js';
-import { plainToInstance } from 'class-transformer';
-import { validate } from 'class-validator';
-import {
-  AnalysisPointDto,
-  AnalysisShapesDto,
-} from './dto/analyze-fabric.dto.js';
-import { AnalyzeFabricEngineResponseDto } from './dto/analyze-fabric-engine-response.dto.js';
-import { FabricBoundaryMapper } from './fabric-boundary.mapper.js';
+import { AnalysisShapesDto } from '../shapes-engine/dto/analysis-shapes.dto.js';
+import { ShapeEngineMapper } from '../shapes-engine/shapes-engine.mapper.js';
 import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';
+import { pointsToWktPolygon } from '../../common/geometry/shapes-geometry.js';
 import {
   FabricSortOption,
   ListFabricsQueryDto,
 } from './dto/list-fabrics-query.dto.js';
+import { ShapesEngineClient } from '../shapes-engine/shapes-engine.client.js';
+import { ShapeEngineResponseDto } from '../shapes-engine/dto/shapes-engine-response.dto.js';
 
 @Injectable()
 export class FabricService {
@@ -31,109 +27,24 @@ export class FabricService {
     @Inject(DRIZZLE)
     private readonly db: DrizzleDB,
     private readonly storageService: StorageService,
-    private readonly configService: ConfigService,
+    private readonly shapesEngineClient: ShapesEngineClient,
   ) {}
 
   async analyzeFabricBoundary(
     picture: Express.Multer.File,
   ): Promise<AnalysisShapesDto> {
-    const engineUrl = this.configService
-      .get<string>('SHAPES_ENGINE_URL', 'http://localhost:8000')
-      .replace(/\/$/, '');
-
-    const imageBytes = new Uint8Array(
-      new ArrayBuffer(picture.buffer.byteLength),
+    const engineResult = await this.shapesEngineClient.analyzeBoundary(
+      'analyze-fabric-boundary',
+      picture,
+      ShapeEngineResponseDto,
     );
-    imageBytes.set(picture.buffer);
 
-    const response = await fetch(`${engineUrl}/analyze-fabric-boundary`, {
-      method: 'POST',
-      headers: { 'Content-Type': picture.mimetype },
-      body: new Blob([imageBytes], { type: picture.mimetype }),
-      signal: AbortSignal.timeout(30_000),
-    }).catch((error) => {
-      throw new ExternalServiceException(
-        error instanceof Error
-          ? `Shape analysis service is unavailable: ${error.message}`
-          : 'Shape analysis service is unavailable.',
-      );
-    });
-
-    const payload = await response.json().catch(() => {
-      throw new ExternalServiceException(
-        'Shape analysis returned an invalid response.',
-      );
-    });
-
-    if (!response.ok) {
-      const detail =
-        typeof payload?.detail === 'string'
-          ? payload.detail
-          : 'Shape analysis failed.';
-      if (response.status >= 400 && response.status < 500) {
-        throw new RequestValidationException(detail);
-      }
-      throw new ExternalServiceException(detail);
-    }
-
-    if (typeof payload !== 'object' || !payload || Array.isArray(payload)) {
+    if (engineResult.shapes.length !== 1) {
       throw new ExternalServiceException(
         'Shape analysis returned an invalid boundary.',
       );
     }
-
-    const engineResult = plainToInstance(
-      AnalyzeFabricEngineResponseDto,
-      payload,
-    );
-    const validationErrors = await validate(engineResult, {
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    });
-
-    if (
-      !Array.isArray(engineResult.shapes) ||
-      engineResult.shapes.length !== 1
-    ) {
-      throw new ExternalServiceException(
-        'Shape analysis returned an invalid boundary.',
-      );
-    }
-
-    const shapeValidationErrors = await Promise.all(
-      engineResult.shapes.map(async (shape) => {
-        if (!Array.isArray(shape) || shape.length < 3) {
-          return true;
-        }
-
-        const pointValidationErrors = await Promise.all(
-          shape.map(async (point) => {
-            if (
-              typeof point !== 'object' ||
-              point === null ||
-              Array.isArray(point)
-            ) {
-              return true;
-            }
-            const pointDto = plainToInstance(AnalysisPointDto, point);
-            const errors = await validate(pointDto, {
-              whitelist: true,
-              forbidNonWhitelisted: true,
-            });
-            return errors.length > 0;
-          }),
-        );
-        return pointValidationErrors.some(Boolean);
-      }),
-    );
-
-    if (validationErrors.length > 0 || shapeValidationErrors.some(Boolean)) {
-      throw new ExternalServiceException(
-        'Shape analysis returned an invalid boundary.',
-      );
-    }
-
-    return FabricBoundaryMapper.toAnalysisShapesDto(engineResult);
+    return ShapeEngineMapper.toAnalysisShapesDto(engineResult);
   }
 
   async getFabricTags(): Promise<{ id: number; name: string }[]> {
@@ -165,22 +76,7 @@ export class FabricService {
     }
 
     const points = [...createFabricDto.boundary];
-    const first = points[0]!;
-    const last = points.at(-1);
-    if (!first || !last || points.length < 3) {
-      throw new RequestValidationException(
-        'A fabric boundary needs at least three points.',
-      );
-    }
-
-    // closing the polygon
-    if (first.x !== last.x || first.y !== last.y) {
-      points.push(first);
-    }
-
-    const polygonWkt = `POLYGON((${points
-      .map(({ x, y }) => `${x} ${y}`)
-      .join(', ')}))`;
+    const polygonWkt = pointsToWktPolygon(createFabricDto.boundary);
     const geometry = sql`ST_MakeValid(ST_SimplifyPreserveTopology(ST_ForcePolygonCCW(ST_GeomFromText(${polygonWkt}, 0)), 0))`;
     const pictureS3Key = await this.storageService.uploadFile(
       picture,

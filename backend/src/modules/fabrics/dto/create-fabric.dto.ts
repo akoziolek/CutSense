@@ -1,4 +1,4 @@
-import { plainToInstance, Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsOptional,
@@ -14,6 +14,7 @@ import {
   IsPositive,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { TransformJson, TransformJsonToInstance } from '../../../common/decorators/transform-json.decorator.js';
 
 const COORD_LIMIT = 1_000_000;
 
@@ -57,15 +58,7 @@ export class CreateFabricDto {
     example:
       '[{"x":-2500,"y":1250},{"x":2500,"y":1250},{"x":2500,"y":6250},{"x":-2500,"y":6250}]',
   })
-  @Transform(({ value }) => {
-    if (typeof value !== 'string') return value;
-    try {
-      const parsed: unknown = JSON.parse(value);
-      return Array.isArray(parsed) ? plainToInstance(PointDto, parsed) : parsed;
-    } catch {
-      return value;
-    }
-  })
+  @TransformJsonToInstance(PointDto)
   @IsArray()
   @ArrayMinSize(3)
   @ValidateNested({ each: true })
@@ -106,15 +99,7 @@ export class CreateFabricDto {
     example: '[1,2]',
   })
   @IsOptional()
-  @Transform(({ value }) => {
-    if (typeof value !== 'string') return value;
-    try {
-      const parsed: unknown = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed.map(Number) : parsed;
-    } catch {
-      return value;
-    }
-  })
+  @TransformJson()
   @IsArray()
   @IsInt({ each: true })
   @IsPositive({ each: true })

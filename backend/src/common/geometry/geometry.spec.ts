@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rotateAndAnchor } from './geometry.js';
+import { rotateAndAnchor } from './shapes-geometry.js';
 
 const rect = [
   { x: 0, y: 0 },

@@ -3,28 +3,35 @@ import { useAuth } from '../composables/useAuth'
 import { consumeReturnTo } from '../utils/returnTo'
 
 const LandingPage = () => import('../views/LandingPage.vue')
-const ComingSoonPage = () => import('../views/ComingSoonPage.vue') // temporary, to change for correct ones later
+const ComingSoonPage = () => import('../views/ComingSoonPage.vue')
 const FabricPage = () => import('../views/fabrics/FabricView.vue')
 const FabricsPage = () => import('../views/fabrics/FabricsView.vue')
 const NewFabricPage = () => import('../views/fabrics/NewFabricView.vue')
 const FabricEditPage = () => import('../views/fabrics/FabricEditView.vue')
-
 const PatternPage = () => import('../views/patterns/PatternView.vue')
+const PatternsPage = () => import('../views/patterns/PatternsView.vue')
 const NewPatternPage = () => import('../views/patterns/NewPatternView.vue')
+const PatternEditPage = () => import('../views/patterns/PatternEditView.vue')
 
 const routes = [
   { path: '/', name: 'Landing', component: LandingPage, meta: { isPublic: true } },
 
   // public pages (guests can browse public patterns)
-  { path: '/patterns', name: 'Patterns', component: ComingSoonPage, meta: { isPublic: true } },
+  { path: '/patterns', name: 'Patterns', component: PatternsPage, meta: { isPublic: true } },
   {
     path: '/patterns/new',
-    name: 'pattern-new',
+    name: 'PatternNew',
     component: NewPatternPage,
   },
   {
+    path: '/patterns/:id/edit',
+    name: 'PatternEdit',
+    component: PatternEditPage,
+    props: true,
+  },
+  {
     path: '/patterns/:id',
-    name: 'pattern-details',
+    name: 'PatternDetails',
     component: PatternPage,
     props: true,
     meta: { isPublic: true },
@@ -69,13 +76,16 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const { state, loadUser } = useAuth()
-  await loadUser()
+  try {
+    await loadUser()
+  } catch {
+    // API unreachable: treat as guest, the page shows its own error state.
+  }
 
   if (!to.meta.isPublic && !state.user) {
     return { name: 'Landing', query: { login: '1', redirect: to.fullPath } }
   }
 
-  // existing user came back from Google to "/": continue where they wanted to go
   if (state.user && to.name === 'Landing' && !to.query.registration) {
     const target = consumeReturnTo()
     if (target !== '/') return target

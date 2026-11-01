@@ -4,11 +4,21 @@ import type { PatternsService } from './patterns.service.js';
 import type { CreatePatternDto } from './dto/create-pattern.dto.js';
 
 describe('PatternController', () => {
-  let service: { getPatternById: ReturnType<typeof vi.fn>; createPattern: ReturnType<typeof vi.fn> };
+  let service: {
+    getPatternById: ReturnType<typeof vi.fn>;
+    createPattern: ReturnType<typeof vi.fn>;
+    updatePattern: ReturnType<typeof vi.fn>;
+    setFavourite: ReturnType<typeof vi.fn>;
+  };
   let controller: PatternController;
 
   beforeEach(() => {
-    service = { getPatternById: vi.fn(), createPattern: vi.fn() };
+    service = {
+      getPatternById: vi.fn(),
+      createPattern: vi.fn(),
+      updatePattern: vi.fn(),
+      setFavourite: vi.fn(),
+    };
     controller = new PatternController(service as unknown as PatternsService);
   });
 
@@ -40,5 +50,26 @@ describe('PatternController', () => {
     service.getPatternById.mockRejectedValue(error);
 
     await expect(controller.getPatternById(5, { id: 3 })).rejects.toBe(error);
+  });
+
+  it('passes the pattern id, update fields and current user id to the service', async () => {
+    const dto = { id: 5, name: 'Updated pattern' };
+    const editDto = { name: 'Updated pattern' };
+    service.updatePattern.mockResolvedValue(dto);
+
+    await expect(
+      controller.editPattern(5, editDto, { id: 3 }),
+    ).resolves.toBe(dto);
+    expect(service.updatePattern).toHaveBeenCalledWith(5, editDto, 3);
+  });
+
+  it('passes id, flag and current user to the service', async () => {
+    service.setFavourite.mockResolvedValue({ id: 5, isFavourite: true });
+
+    await expect(controller.setFavourite(5, { isFavourite: true }, { id: 3 })).resolves.toEqual({
+      id: 5,
+      isFavourite: true,
+    });
+    expect(service.setFavourite).toHaveBeenCalledWith(5, true, 3);
   });
 });

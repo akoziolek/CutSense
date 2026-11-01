@@ -3,7 +3,7 @@ import { type Component } from 'vue'
 import { Card, CardContent } from '@/components/ui/card'
 import TagsList from '../common/TagsList.vue'
 import { FileText } from 'lucide-vue-next'
-import type { FabricTag } from '@/types/fabric'
+import type { NameTag } from '@/types/fabric'
 
 export interface MetaItem {
   icon?: Component
@@ -14,7 +14,7 @@ export interface MetaItem {
 withDefaults(
   defineProps<{
     metaItems?: MetaItem[]
-    tags?: FabricTag[]
+    tags?: NameTag[]
     description?: string
   }>(),
   {
@@ -52,7 +52,10 @@ withDefaults(
           <h3 class="font-semibold font-inter text-base text-foreground tracking-tight">
             Description
           </h3>
-          <div v-if="description" class="text-sm text-muted-foreground leading-relaxed whitespace-pre-line break-words">
+          <div
+            v-if="description"
+            class="text-sm text-muted-foreground leading-relaxed whitespace-pre-line break-words"
+          >
             {{ description }}
           </div>
           <div
@@ -60,9 +63,7 @@ withDefaults(
             class="bg-white text-xs sm:text-sm border border-muted rounded-md p-3 text-center"
           >
             <p class="text-muted-foreground">
-              <FileText
-                class="inline-block h-4 w-4 align-text-center mr-1.5 text-foreground"
-              />
+              <FileText class="inline-block h-4 w-4 align-text-center mr-1.5 text-foreground" />
               <strong class="text-foreground">No description yet.</strong> Add fabric details or
               instructions.
             </p>

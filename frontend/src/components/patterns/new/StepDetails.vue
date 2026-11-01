@@ -97,7 +97,7 @@ const handleSubmit = async (payload: PatternFormPayload) => {
     })
 
     await patternStore.resetWizard()
-    await router.push({ name: 'pattern-details', params: { id: createdPattern.id } })
+    await router.push({ name: 'PatternDetails', params: { id: createdPattern.id } })
   } catch (error) {
     console.error('Failed to create pattern:', error)
     submitError.value =

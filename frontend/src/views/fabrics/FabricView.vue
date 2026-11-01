@@ -14,6 +14,10 @@ import DetailsActions from '@/components/common/DetailsActions.vue'
 import type { FabricResponse } from '@/types/fabric'
 import type { PolygonEdge } from '@/types/geometry'
 import { toImagePercentBoundary } from '@/utils/fabricBoundary'
+import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
+import FavouriteButton from '@/components/common/FavouriteButton.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
+import { useDeleteFabric } from '@/composables/fabrics/useDeleteFabric'
 
 const props = defineProps<{ id: string }>()
 
@@ -21,6 +25,9 @@ const fabric = ref<FabricResponse | null>(null)
 const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
+
+const { confirmOpen, successOpen, isDeleting, error: deleteError, request: requestDelete,
+  confirm: confirmDelete, closeSuccess } = useDeleteFabric(() => props.id)
 
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -120,6 +127,8 @@ const fetchFabric = async (id: string, activeSignal = { active: true }) => {
   }
 }
 
+const { toggle: toggleFavourite, pending } = useFavouriteToggle()
+
 watch(
   () => props.id,
   (id, _, onCleanup) => {
@@ -139,7 +148,18 @@ watch(
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
       <PageHeader :title="fabric?.name ?? (isFetching ? '' : 'Fabric details')">
         <template #actions>
-          <DetailsActions :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" />
+          <div class="flex items-center gap-2">
+            <FavouriteButton
+              v-if="fabric"
+              :is-favourite="fabric.isFavourite"
+              :disabled="pending.has(fabric.id)"
+              @toggle="toggleFavourite(fabric)"
+            />
+            <DetailsActions 
+              :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" 
+              @delete="requestDelete"  
+            />
+          </div>
         </template>
       </PageHeader>
 
@@ -226,5 +246,49 @@ watch(
         </main>
       </Transition>
     </div>
+
+    <!-- confirm deletion - TODO why not use base modal?-->
+    <BaseModal
+      :open="confirmOpen"
+      :title="`Delete ${fabric?.name ?? 'this fabric'}?`"
+      description="This action cannot be undone and will permanently remove all associated optimizations."
+      @update:open="(open: boolean) => { if (!isDeleting) confirmOpen = open }"
+    >
+      <p v-if="deleteError" class="text-sm font-semibold text-destructive" role="alert">
+        {{ deleteError }}
+      </p>
+
+      <template #footer>
+        <div class="flex items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            class="h-9 rounded-lg text-xs sm:text-sm font-semibold border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive"
+            :disabled="isDeleting"
+            @click="confirmOpen = false"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            class="h-9 rounded-lg px-4 text-xs sm:text-sm font-semibold font-inter bg-zinc-950 text-white hover:bg-zinc-800 disabled:bg-zinc-300 disabled:text-white disabled:opacity-100 disabled:cursor-not-allowed"
+            :disabled="isDeleting"
+            @click="confirmDelete"
+          >
+            Delete
+          </Button>
+        </div>
+      </template>
+    </BaseModal>
+
+    <!-- success -->
+    <BaseModal
+      :open="successOpen"
+      title="Fabric deleted"
+      description="The fabric and its optimizations were deleted."
+      confirm-label="Got it"
+      prevent-close
+      @confirm="closeSuccess"
+    />
   </GridLayout>
 </template>

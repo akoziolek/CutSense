@@ -1,4 +1,4 @@
-export interface FabricTag {
+export interface NameTag {
   id: number
   name: string
 }
@@ -34,17 +34,12 @@ export interface FabricListItem {
 }
 
 export interface FabricListResponse {
-    items: FabricListItem[]
-    total: number
-    page: number
-    limit: number
-    totalPages: number
+  items: FabricListItem[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
 }
 
 export type FabricSort =
-  | 'name_asc'
-  | 'name_desc'
-  | 'date_desc'
-  | 'date_asc'
-  | 'area_asc'
-  | 'area_desc' 
+  'name_asc' | 'name_desc' | 'date_desc' | 'date_asc' | 'area_asc' | 'area_desc'

@@ -1,32 +1,44 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DetailsCard, { type MetaItem } from '@/components/common/DetailsCard.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { CalendarDays, RulerDimensionLine, Lock, Globe, ArrowLeft, RotateCcw } from 'lucide-vue-next'
+import {
+  CalendarDays,
+  RulerDimensionLine,
+  Lock,
+  Globe,
+  ArrowLeft,
+  RotateCcw,
+} from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import PatternPiecesCarousel, {
   type PatternPiece,
 } from '@/components/patterns/PatternPiecesCarousel.vue'
+import type { NameTag } from '@/types/fabric'
+import DetailsActions from '@/components/common/DetailsActions.vue'
 import { useAuth } from '@/composables/useAuth'
-
+import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
+import FavouriteButton from '@/components/common/FavouriteButton.vue'
 
 interface Pattern {
   id: number
+  userId: number
   name: string
   description?: string
   size: string
   visibility: 'PUBLIC' | 'PRIVATE'
   starCount: number
   starAverage: string
-  tags: string[]
+  tags: NameTag[]
   createdAt: string
-  author: { id: number; name: string }
+  author: { id: number; nickname: string }
   pieces: PatternPiece[]
+  isFavourite: boolean
 }
 
 const props = defineProps<{ id: string }>()
@@ -35,13 +47,11 @@ const pattern = ref<Pattern | null>(null)
 const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
-const isForbidden = ref(false)
-
-const route = useRoute()
-const router = useRouter()
-const { state } = useAuth()
+const isNotFound = ref(false)
+const { toggle: toggleFavourite, pending } = useFavouriteToggle('/patterns')
 
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
+const { state: auth } = useAuth()
 
 const clearSkeletonTimer = () => {
   if (skeletonTimer) {
@@ -49,6 +59,8 @@ const clearSkeletonTimer = () => {
     skeletonTimer = null
   }
 }
+
+const isOwner = computed(() => !!pattern.value && auth.user?.id === pattern.value.userId)
 
 const metaItems = computed<MetaItem[]>(() =>
   pattern.value
@@ -76,7 +88,7 @@ const fetchPattern = async (id: string, activeSignal = { active: true }) => {
   clearSkeletonTimer()
   pattern.value = null
   error.value = ''
-  isForbidden.value = false
+  isNotFound.value = false
   isFetching.value = true
   showSkeleton.value = false
 
@@ -91,19 +103,9 @@ const fetchPattern = async (id: string, activeSignal = { active: true }) => {
     if (activeSignal.active) pattern.value = result
   } catch (e) {
     if (activeSignal.active) {
-      if (e instanceof ApiError && e.status === 401) {
-        router.replace({
-          name: 'Landing',
-          query: { login: '1', redirect: route.fullPath },
-        })
-        return
-      }
-      if (e instanceof ApiError) {
-        isForbidden.value = e.status === 403
-        error.value = e.body.message
-      } else {
-        error.value = 'Could not load pattern. Please try again.'
-      }
+      isNotFound.value = e instanceof ApiError && e.status === 404
+      error.value =
+        e instanceof ApiError ? e.body.message : 'Could not load pattern. Please try again.'
     }
   } finally {
     if (activeSignal.active) {
@@ -115,7 +117,7 @@ const fetchPattern = async (id: string, activeSignal = { active: true }) => {
 }
 
 watch(
-  [() => props.id, () => state.user?.id],
+  [() => props.id, () => auth.user?.id],
   ([id], _, onCleanup) => {
     const activeSignal = { active: true }
     onCleanup(() => {
@@ -132,12 +134,23 @@ watch(
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
       <PageHeader :title="pattern?.name ?? (isFetching ? '' : 'Pattern details')">
-        <!-- Place for icons -->
+        <template #actions>
+          <div class="flex items-center gap-2">
+            <FavouriteButton
+              v-if="pattern && auth.user"
+              :is-favourite="pattern.isFavourite"
+              :disabled="pending.has(pattern.id)"
+              @toggle="toggleFavourite(pattern)"
+            />
+            <DetailsActions
+              v-if="isOwner"
+              :edit-to="{ name: 'PatternEdit', params: { id: props.id } }"
+            />
+          </div>
+        </template>
       </PageHeader>
-      <p
-        v-if="pattern"
-        class="-mt-4 text-xs text-muted-foreground"
-      >
+      <!-- TODO - move this to card section?? -->
+      <p v-if="pattern" class="-mt-4 text-sm ml-4 text-muted-foreground">
         Author: {{ pattern.author.nickname }}
       </p>
 
@@ -170,13 +183,17 @@ watch(
 
         <main v-else-if="error" key="error">
           <ErrorState
-            :title="isForbidden ? 'This pattern is private' : 'Unable to load pattern'"
-            :message="error"
-            :code="isForbidden ? 'Access denied' : 'Error'"
+            :title="isNotFound ? 'Pattern not found' : 'Unable to load pattern'"
+            :message="
+              isNotFound
+                ? 'This pattern does not exist or you do not have access to it.'
+                : error
+            "
+            :code="isNotFound ? 'Error 404' : 'Error'"
           >
             <template #actions>
               <Button
-                v-if="!isForbidden"
+                v-if="!isNotFound"
                 variant="outline"
                 class="rounded-lg gap-2"
                 @click="fetchPattern(props.id)"

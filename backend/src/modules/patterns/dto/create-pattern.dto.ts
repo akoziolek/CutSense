@@ -3,7 +3,6 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
-  IsIn,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -13,11 +12,9 @@ import {
   MaxLength,
   Min,
   ValidateNested,
+  IsEnum
 } from 'class-validator';
-import {
-  patternSizeEnum,
-  visibilityLevelEnum,
-} from '../../../db/schema/schema.js';
+import { PatternVisibility, PatternSize } from './pattern.enum.js';
 
 const COORD_LIMIT = 10_000_000; // mm
 
@@ -68,16 +65,20 @@ export class CreatePatternDto {
   @MaxLength(35, { message: 'Pattern name can have at most 35 characters' })
   name!: string;
 
-  @IsIn(patternSizeEnum.enumValues)
-  size!: (typeof patternSizeEnum.enumValues)[number];
+  @IsEnum(PatternSize, {
+    message: 'Visibility must be a valid visibility enum value',
+  })
+  size!: PatternSize;
 
   @IsOptional()
   @IsString()
   @MaxLength(400, { message: 'Description can have at most 400 characters' })
   description?: string;
 
-  @IsIn(visibilityLevelEnum.enumValues)
-  visibility!: (typeof visibilityLevelEnum.enumValues)[number];
+  @IsEnum(PatternVisibility, {
+    message: 'Visibility must be a valid visibility enum value',
+  })
+  visibility!: PatternVisibility;
 
   @IsArray()
   @ArrayMaxSize(20)

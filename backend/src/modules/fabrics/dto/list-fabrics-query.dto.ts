@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, Min } from 'class-validator';
+import { FilterableListQueryDto } from '../../../common/dto/base-list-query.dto.js';
 
 export enum FabricSortOption {
   NAME_ASC = 'name_asc',
@@ -11,30 +12,7 @@ export enum FabricSortOption {
   AREA_DESC = 'area_desc',
 }
 
-export class ListFabricsQueryDto {
-  @ApiPropertyOptional({ 
-    description: 'Page number, starting from 1', 
-    minimum: 1, 
-    default: 1, 
-    example: 1 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page: number = 1;
-
-  @ApiPropertyOptional({ 
-    description: 'Number of fabrics per page', 
-    minimum: 1, 
-    maximum: 50, 
-    default: 12 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(50)
-  limit: number = 12;
-
+export class ListFabricsQueryDto extends FilterableListQueryDto {
   @ApiPropertyOptional({
     description:
       'Sort order: name A-Z / Z-A, newest / oldest first, smallest / biggest area first',
@@ -45,4 +23,24 @@ export class ListFabricsQueryDto {
   @IsOptional()
   @IsEnum(FabricSortOption)
   sort: FabricSortOption = FabricSortOption.DATE_DESC;
+
+  @ApiPropertyOptional({
+    description: 'Minimum area (same unit as returned in "area")',
+    minimum: 0,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(0)
+  areaMin?: number;
+
+  @ApiPropertyOptional({
+    description: 'Maximum area (same unit as returned in "area")',
+    minimum: 0,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(0)
+  areaMax?: number;
 }

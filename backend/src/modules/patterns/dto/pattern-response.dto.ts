@@ -1,4 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PatternTagDto } from './pattern-tag.dto.js';
+import { PatternVisibility, PatternSize } from './pattern.enum.js';
+
 
 class PatternAuthorDto {
   @ApiProperty({ description: 'Unique identifier of the author', example: 42 })
@@ -19,7 +22,11 @@ class PatternPieceDto {
       type: 'array',
       items: { type: 'number' },
     },
-    example: [[0, 0], [15, 0], [15, 9]],
+    example: [
+      [0, 0],
+      [15, 0],
+      [15, 9],
+    ],
   })
   points!: [number, number][];
 }
@@ -39,17 +46,24 @@ export class PatternResponseDto {
 
   @ApiProperty({
     description: 'Size of the pattern',
-    example: 'XS',
-    enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    enum: PatternSize,
+    enumName: 'PatternSize',
+    example: 'S',
   })
-  size!: string;
+  size!: PatternSize;
 
   @ApiProperty({
     description: 'Visibility level of the pattern',
     example: 'PRIVATE',
-    enum: ['PUBLIC', 'PRIVATE'],
+    enum: PatternVisibility,
   })
   visibility!: string;
+
+  @ApiProperty({
+    description: 'Whether the current user marked the pattern as a favourite (always false for guests)',
+    example: false,
+  })
+  isFavourite!: boolean;
 
   @ApiProperty({ description: 'Star count', example: 12 })
   starCount!: number;
@@ -70,14 +84,14 @@ export class PatternResponseDto {
   createdAt!: string;
 
   @ApiProperty({
-    description: 'Names of the tags',
-    example: ['summer', 'tops'],
-    type: [String],
+    description: 'Tags associated with the pattern',
+    example: [{ id: 1, name: 'summer' }],
+    type: [PatternTagDto],
   })
-  tags!: string[];
+  tags!: PatternTagDto[];
 
   @ApiProperty({ type: PatternAuthorDto })
-    author!: PatternAuthorDto;
+  author!: PatternAuthorDto;
 
   @ApiProperty({
     description: 'All pieces that make up the pattern',

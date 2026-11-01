@@ -13,19 +13,21 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
+  Patch,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBody,
+  ApiCookieAuth,
+  ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
-  ApiUnauthorizedResponse,
   ApiTags,
-  ApiCookieAuth,
-  ApiCreatedResponse,
+  ApiUnauthorizedResponse,
   ApiBadGatewayResponse,
-  ApiBody,
   ApiConsumes,
 } from '@nestjs/swagger';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
@@ -39,6 +41,11 @@ import type { AuthUser } from '../../common/decorators/current-user.decorator.js
 import { PatternTagDto } from './dto/pattern-tag.dto.js';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AnalysisShapesDto } from '../shapes-engine/dto/analysis-shapes.dto.js';
+import { EditPatternDto } from './dto/edit-pattern.dto.js';
+import { PatternListResponseDto } from './dto/pattern-list.dto.js';
+import { ListPatternsQueryDto } from './dto/list-patterns-query.dto.js';
+import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
+import { SetFavouriteDto } from '../../common/dto/set-favourite.dto.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')
@@ -110,12 +117,98 @@ export class PatternController {
     return this.patternsService.analyzePatternBoundary(picture);
   }
 
+  @Get()
+  @UseGuards(OptionalSessionGuard)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'List patterns',
+    description:
+      'Guests get public patterns only. A logged-in user gets public patterns plus their own private ones. Supports pagination (page, limit) and sorting (sort).',
+  })
+  @ApiOkResponse({
+    description: 'A page of patterns was returned successfully.',
+    type: PatternListResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description:
+      'Invalid query parameters: page must be an integer >= 1, limit an integer between 1 and 50, sort one of the allowed values.',
+  })
+  async getPatterns(
+    @Query() query: ListPatternsQueryDto,
+    @OptionalUser() user?: AuthUser,
+  ): Promise<PatternListResponseDto> {
+    return this.patternsService.getPatterns(query, user?.id);
+  }
+
+  @Patch(':id/favourite')
+  @UseGuards(SessionGuard)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Add or remove a pattern from favourites',
+    description: 'Sets the favourite flag of a pattern the current user can see (public, or their own). Idempotent.',
+  })
+  @ApiParam({ name: 'id', type: Number, example: 1 })
+  @ApiBody({ type: SetFavouriteDto })
+  @ApiOkResponse({ type: FavouriteStateDto })
+  @ApiBadRequestResponse({ description: 'Invalid ID or body.' })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  @ApiNotFoundResponse({ description: 'The pattern does not exist or is private and owned by someone else.' })
+  async setFavourite(
+    @Param('id', ParseIntPipe) patternId: number,
+    @Body() dto: SetFavouriteDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<FavouriteStateDto> {
+    return this.patternsService.setFavourite(patternId, dto.isFavourite, user.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(SessionGuard)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Update an existing pattern',
+    description:
+      'Updates the supplied pattern fields and optionally replaces its tags. The pattern must belong to the current user.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique identifier of the pattern',
+    type: Number,
+    example: 1,
+  })
+  @ApiBody({ type: EditPatternDto })
+  @ApiOkResponse({
+    description: 'The pattern has been successfully updated.',
+    type: PatternResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid payload or pattern ID.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  @ApiNotFoundResponse({
+    description:
+      'The pattern does not exist or is not owned by the current user.',
+  })
+  async editPattern(
+    @Param('id', ParseIntPipe) patternId: number,
+    @Body() editPatternDto: EditPatternDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<PatternResponseDto> {
+    return this.patternsService.updatePattern(
+      patternId,
+      editPatternDto,
+      user.id,
+    );
+  }
+
   @Get(':id')
   @UseGuards(OptionalSessionGuard)
+  @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Get a pattern by ID',
     description:
-      'Returns a pattern owned by the current user, including the names of its tags.',
+      'Returns a pattern with its tags, author and pieces. Public patterns are visible to everyone; a private pattern only to its owner.',
   })
   @ApiParam({
     name: 'id',
@@ -130,12 +223,9 @@ export class PatternController {
   @ApiBadRequestResponse({
     description: 'The pattern ID is not a valid integer.',
   })
-  @ApiUnauthorizedResponse({
-    description: 'A valid session cookie is required.',
-  })
   @ApiNotFoundResponse({
     description:
-      'The pattern does not exist or is not owned by the current user.',
+      'The pattern does not exist, or it is private and does not belong to the current user.',
   })
   async getPatternById(
     @Param('id', ParseIntPipe) patternId: number,
@@ -164,4 +254,23 @@ export class PatternController {
   ): Promise<{ id: number }> {
     return this.patternsService.createPattern(dto, user.id);
   }
+
+  @Get('tags')
+  @ApiOperation({
+    summary: 'Get available pattern tags',
+    description:
+      'Returns the IDs and names of all tags available for patterns.',
+  })
+  @ApiOkResponse({
+    description: 'The available pattern tags were returned successfully.',
+    type: PatternTagDto,
+    isArray: true,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  async getPatternTags(): Promise<PatternTagDto[]> {
+    return this.patternsService.getPatternTags();
+  }
+
 }

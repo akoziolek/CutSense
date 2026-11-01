@@ -3,7 +3,7 @@ import { defineComponent, h, type PropType } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, api } from '@/api/client'
 import type { MetaItem } from '@/components/common/DetailsCard.vue'
-import type { FabricTag } from '@/types/fabric'
+import type { NameTag } from '@/types/fabric'
 import type { Point2D } from '@/types/geometry'
 import FabricView from './FabricView.vue'
 
@@ -40,7 +40,7 @@ const ImagePreviewStub = defineComponent({
 const DetailsCardStub = defineComponent({
   props: {
     description: String,
-    tags: { type: Array as PropType<FabricTag[]>, default: () => [] },
+    tags: { type: Array as PropType<NameTag[]>, default: () => [] },
     metaItems: { type: Array as PropType<MetaItem[]>, default: () => [] },
   },
   setup(props) {

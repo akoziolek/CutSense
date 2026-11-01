@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsEnum, IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsEnum, IsIn, IsOptional } from 'class-validator';
 import { patternSizeEnum } from '../../../db/schema/schema.js';
 import { FilterableListQueryDto } from '../../../common/dto/base-list-query.dto.js';
 

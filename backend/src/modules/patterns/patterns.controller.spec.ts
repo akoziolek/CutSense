@@ -7,11 +7,13 @@ describe('PatternController', () => {
     getPatternById: ReturnType<typeof vi.fn>;
     updatePattern: ReturnType<typeof vi.fn>;
     setFavourite: ReturnType<typeof vi.fn>;
+    deletePattern: ReturnType<typeof vi.fn>;
+    deletePatterns: ReturnType<typeof vi.fn>;
   };
   let controller: PatternController;
 
   beforeEach(() => {
-    service = { getPatternById: vi.fn(), updatePattern: vi.fn(), setFavourite: vi.fn() };
+    service = { getPatternById: vi.fn(), updatePattern: vi.fn(), setFavourite: vi.fn(), deletePattern: vi.fn(), deletePatterns: vi.fn() };
     controller = new PatternController(service as unknown as PatternsService);
   });
 
@@ -49,5 +51,20 @@ describe('PatternController', () => {
       isFavourite: true,
     });
     expect(service.setFavourite).toHaveBeenCalledWith(5, true, 3);
+  });
+
+  it('passes id and current user to deletePattern', async () => {
+    service.deletePattern.mockResolvedValue(undefined);
+
+    await controller.deletePattern(5, { id: 3 });
+
+    expect(service.deletePattern).toHaveBeenCalledWith(5, 3);
+  });
+
+  it('passes ids and current user to deletePatterns', async () => {
+    service.deletePatterns.mockResolvedValue({ deletedIds: [1] });
+
+    await expect(controller.deletePatterns({ ids: [1, 2] }, { id: 3 })).resolves.toEqual({ deletedIds: [1] });
+    expect(service.deletePatterns).toHaveBeenCalledWith([1, 2], 3);
   });
 });

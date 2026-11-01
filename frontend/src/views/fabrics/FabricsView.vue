@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, RotateCcw, Search, Shirt, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, RotateCcw, Search, Shirt, X } from 'lucide-vue-next'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
@@ -261,7 +261,7 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
           </button>
         </div>
 
-        <!-- Universal Filter Popover with Area slot -->
+        <!-- Filter Popover -->
         <ListFilterPopover
           :model-value="filters"
           :empty-filters="emptyFilters"

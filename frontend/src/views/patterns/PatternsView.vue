@@ -253,8 +253,10 @@ watch(
               :title="pattern.name"
               :meta="`${formatCardDate(pattern.createdAt)} • ${pattern.size}`"
               :is-favourite="pattern.isFavourite"
-              :selectable="selectionMode && pattern.isOwner"
+              :selectable="selectionMode"
               :selected="isSelected(pattern.id)"
+              :disabled="selectionMode && !pattern.isOwner"
+              disabled-reason="Only your own patterns can be selected for bulk actions"
               toggleable
               @toggle-favourite="toggleFavourite(pattern)"
               @toggle-select="toggleSelect(pattern.id)"

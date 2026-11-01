@@ -15,6 +15,7 @@ const props = defineProps<{
   selected?: boolean
   disabled?: boolean
   disabledReason?: string
+  showFavourite?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -125,24 +126,26 @@ const wrapperProps = computed(() => {
         <div v-else class="flex h-full items-center justify-center text-muted-foreground">
           <slot name="placeholder"><ImageOff class="size-8" /></slot>
         </div>
-
-        <button
-          v-if="toggleable"
-          type="button"
-          class="absolute right-2 top-2 rounded-md bg-background p-1 shadow-sm transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-          :aria-label="isFavourite ? 'Remove from favourites' : 'Add to favourites'"
-          :aria-pressed="isFavourite"
-          @click.prevent.stop="emit('toggleFavourite')"
-        >
-          <Heart class="size-6" :class="{ 'fill-current': isFavourite }" />
-        </button>
-        <span
-          v-else
-          class="absolute right-2 top-2 rounded-md bg-background p-1 shadow-sm"
-          :aria-label="isFavourite ? 'Favourite' : 'Not favourite'"
-        >
-          <Heart class="size-6" :class="{ 'fill-current': isFavourite }" />
-        </span>
+        
+        <template v-if="showFavourite ?? true">
+          <button
+            v-if="toggleable"
+            type="button"
+            class="absolute right-2 top-2 rounded-md bg-background p-1 shadow-sm transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+            :aria-label="isFavourite ? 'Remove from favourites' : 'Add to favourites'"
+            :aria-pressed="isFavourite"
+            @click.prevent.stop="emit('toggleFavourite')"
+          >
+            <Heart class="size-6" :class="{ 'fill-current': isFavourite }" />
+          </button>
+          <span
+            v-else
+            class="absolute right-2 top-2 rounded-md bg-background p-1 shadow-sm"
+            :aria-label="isFavourite ? 'Favourite' : 'Not favourite'"
+          >
+            <Heart class="size-6" :class="{ 'fill-current': isFavourite }" />
+          </span>
+        </template>
       </div>
 
       <div class="space-y-0.5">

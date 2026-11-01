@@ -2,6 +2,13 @@ import { ApiProperty } from '@nestjs/swagger';
 import { PatternSize } from './pattern.enum.js';
 
 export class PatternListItemDto {
+  @ApiProperty({
+    description:
+      'Whether the current user owns the pattern (always false for guests)',
+    example: false,
+  })
+  isOwner!: boolean;
+
   @ApiProperty({ description: 'Unique identifier of the pattern', example: 1 })
   id!: number;
 

@@ -13,6 +13,8 @@ const props = defineProps<{
   toggleable?: boolean
   selectable?: boolean
   selected?: boolean
+  disabled?: boolean
+  disabledReason?: string
 }>()
 
 const emit = defineEmits<{
@@ -34,6 +36,7 @@ const cancelPress = () => {
 }
 
 const startPress = (e: PointerEvent) => {
+  if (props.disabled) return
   suppressNextClick = false
   cancelPress()
   if ((e.target as HTMLElement).closest('button')) return
@@ -47,6 +50,11 @@ const startPress = (e: PointerEvent) => {
 }
 
 const onClickCapture = (e: MouseEvent) => {
+  if (props.disabled) {
+    e.preventDefault()
+    e.stopImmediatePropagation()
+    return
+  }
   if (!suppressNextClick) return
   suppressNextClick = false
   e.preventDefault()
@@ -55,8 +63,16 @@ const onClickCapture = (e: MouseEvent) => {
 
 onBeforeUnmount(cancelPress)
 
-const wrapperProps = computed(() =>
-  props.selectable
+const wrapperProps = computed(() => {
+  if (props.disabled) {
+    return {
+      role: 'button',
+      'aria-disabled': true,
+      title: props.disabledReason,
+    }
+  }
+
+  return props.selectable
     ? {
         role: 'button',
         tabindex: 0,
@@ -68,18 +84,22 @@ const wrapperProps = computed(() =>
             emit('toggleSelect')
           }
         },
+        title: props.disabledReason,
       }
-    : { to: props.to },
-)
+    : { to: props.to }
+})
 </script>
 
 <template>
   <component
-    :is="selectable ? 'div' : RouterLink"
+    :is="selectable || disabled ? 'div' : RouterLink"
     v-bind="wrapperProps"
     data-resource-card
     class="group block rounded-xl focus-visible:outline-none select-none"
-    :class="{ 'cursor-pointer': selectable }"
+    :class="{ 
+      'cursor-pointer': selectable && !disabled, 
+      'cursor-not-allowed': disabled 
+    }"
     @pointerdown="startPress"
     @pointerup="cancelPress"
     @pointerleave="cancelPress"
@@ -87,8 +107,12 @@ const wrapperProps = computed(() =>
     @click.capture="onClickCapture"
   >
     <Card
-      class="relative gap-2 px-4 py-4 bg-[var(--card-fabrics)] border-muted shadow-md transition-all duration-200 group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring"
-      :class="{ 'border-2 !border-primary shadow-lg scale-[1.02]': selected }"
+      class="relative gap-2 px-4 py-4 bg-[var(--card-fabrics)] border-muted shadow-md transition-all duration-200"
+      :class="{ 
+        'border-2 !border-primary shadow-lg scale-[1.02]': selected,
+        'opacity-60 grayscale-[30%]/50': disabled,
+        'group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring': !disabled
+      }"
     >
       <div class="relative aspect-square overflow-hidden rounded-md bg-muted">
         <img

@@ -10,6 +10,7 @@ interface PatternListRow {
   size: `${PatternSize}`;
   isFavourite: boolean;
   createdAt: Date;
+  userId: number;
 }
 
 interface PatternWithRelations {
@@ -36,13 +37,17 @@ interface PatternTag {
 }
 
 export class PatternsMapper {
-  static toListItemDto(row: PatternListRow): PatternListItemDto {
+  static toListItemDto(
+    row: PatternListRow,
+    currentUserId?: number,
+  ): PatternListItemDto {
     return Object.assign(new PatternListItemDto(), {
       id: row.id,
       name: row.name,
       size: row.size,
       isFavourite: row.isFavourite,
       createdAt: row.createdAt.toISOString(),
+      isOwner: currentUserId !== undefined && row.userId === currentUserId,
     });
   }
 

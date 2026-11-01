@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, RotateCcw, Search, Shirt, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, RotateCcw, Search, Shirt } from 'lucide-vue-next'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
@@ -9,7 +9,6 @@ import FloatingButton from '@/components/common/FloatingButton.vue'
 import SortMenu from '@/components/common/SortMenu.vue'
 import ResourceCard from '@/components/common/ResourceCard.vue'
 import ListPagination from '@/components/common/ListPagination.vue'
-import BaseModal from '@/components/common/BaseModal.vue'
 import FilterSection from '@/components/common/FilterSection.vue'
 import ListFilterPopover from '@/components/common/ListFilterPopover.vue'
 import { Button } from '@/components/ui/button'
@@ -19,11 +18,12 @@ import { api, ApiError } from '@/api/client'
 import type { FabricListResponse, FabricSort, NameTag } from '@/types/fabric'
 import { formatCardDate } from '@/utils/formatCardDate'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
-import { useBulkDeleteFabrics } from '@/composables/fabrics/useBulkDeleteFabrics'
 import { SearchX } from 'lucide-vue-next'
 import {
   countActiveFilters, emptyFilters, filtersFromQuery, filtersToApiParams, filtersToQuery, areaRangeError, type FabricFilters,
 } from '@/utils/fabricFilters'
+import { useSelection } from '@/composables/useSelection'
+import BulkDeleteControls from '@/components/common/BulkDeleteControls.vue'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: FabricSort = 'date_desc'
@@ -196,81 +196,21 @@ const fetchFabrics = async (activeSignal = { active: true }) => {
   }
 }
 
-// ---------- selection ----------
-const selectionMode = ref(false)
-const selectedIds = ref<number[]>([])
-const selectedCount = computed(() => selectedIds.value.length)
-const isSelected = (id: number) => selectedIds.value.includes(id)
 
-const toggleSelect = (id: number) => {
-  selectedIds.value = isSelected(id)
-    ? selectedIds.value.filter((x) => x !== id)
-    : [...selectedIds.value, id]
 
-  if (selectedIds.value.length === 0) selectionMode.value = false
-}
-const selectFromGesture = (id: number) => {
-  selectionMode.value = true
-  if (!isSelected(id)) toggleSelect(id)
-}
-
-const stopSelecting = () => {
-  selectionMode.value = false
-  selectedIds.value = []
-}
-
-const bulk = useBulkDeleteFabrics(
-  () => selectedIds.value,
-  () => {
-    stopSelecting()
-    fetchFabrics()
-  },
-)
-
-const showTrash = computed(() => data.value?.total !== 0)
-const confirmCount = ref(0)
-
-const requestBulkDelete = () => {
-  if (selectedCount.value === 0) return
-  confirmCount.value = selectedCount.value
-  bulk.request()
-}
-
-const cancelBulkDelete = () => {
-  if (bulk.isDeleting.value) return
-  bulk.confirmOpen.value = false
-  stopSelecting()
-}
-
-const onConfirmOpenChange = (open: boolean) => {
-  if (!open) cancelBulkDelete()
-}
 
 const { toggle: toggleFavourite } = useFavouriteToggle()
 
 const contentRef = ref<HTMLElement | null>(null)
+const { selectionMode, selectedIds, isSelected, toggleSelect, selectFromGesture, stopSelecting } =
+  useSelection(contentRef)
 
-const handleGlobalClick = (e: MouseEvent) => {
-  if (!selectionMode.value) return
-  const target = e.target as HTMLElement
-  if (!contentRef.value?.contains(target)) return
-  if (target.closest('[data-resource-card]')) return
+const showTrash = computed(() => data.value?.total !== 0)
+
+const onBulkDeleted = () => {
   stopSelecting()
+  fetchFabrics()
 }
-
-const handleKeyDown = (e: KeyboardEvent) => {
-  if (e.key === 'Escape' && selectionMode.value) stopSelecting()
-}
-
-onMounted(() => {
-  window.addEventListener('keydown', handleKeyDown)
-  window.addEventListener('click', handleGlobalClick)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeyDown)
-  window.removeEventListener('click', handleGlobalClick)
-})
 
 watch(
   [page, sort, filtersKey, search],
@@ -481,75 +421,15 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
     </div>
 
     <FloatingButton :to="{ name: 'AddFabric' }" />
-
-    <!-- trash button -->
-    <div v-if="showTrash" class="fixed bottom-28 right-6 sm:bottom-32 md:right-10 z-50">
-      <Button
-        type="button"
-        data-testid="bulk-delete"
-        :aria-label="`Delete ${selectedCount} selected`"
-        :aria-disabled="selectedCount === 0"
-        :title="selectedCount === 0 ? 'Long press or right-click a fabric to select it' : undefined"
-        :class="[
-          'h-12 w-12 sm:h-14 sm:w-14 rounded-xl p-0 shadow-lg transition-all duration-200',
-          selectedCount > 0
-            ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:scale-105 active:scale-95 cursor-pointer'
-            : 'bg-muted text-muted-foreground cursor-not-allowed',
-        ]"
-        @click="requestBulkDelete"
-      >
-        <Trash2 class="!h-6 !w-6 sm:!h-7 sm:!w-7 stroke-[2] shrink-0" />
-      </Button>
-      <span
-        v-if="selectedCount > 0"
-        class="pointer-events-none absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1 text-[10px] font-bold text-background"
-      >
-        {{ selectedCount }}
-      </span>
-    </div>
-
-    <!-- confirm deletion -->
-    <BaseModal
-      :open="bulk.confirmOpen.value"
-      :title="`Delete ${confirmCount} ${confirmCount === 1 ? 'fabric' : 'fabrics'}?`"
-      description="This action cannot be undone and will permanently remove all associated optimizations."
-      @update:open="onConfirmOpenChange"
-    >
-      <p v-if="bulk.error.value" class="text-sm font-semibold text-destructive" role="alert">
-        {{ bulk.error.value }}
-      </p>
-
-      <template #footer>
-        <div class="flex items-center justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            class="h-9 rounded-lg text-xs sm:text-sm font-semibold border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive"
-            :disabled="bulk.isDeleting.value"
-            @click="cancelBulkDelete"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            class="h-9 rounded-lg px-4 text-xs sm:text-sm font-semibold font-inter bg-zinc-950 text-white hover:bg-zinc-800 disabled:bg-zinc-300 disabled:text-white disabled:opacity-100 disabled:cursor-not-allowed"
-            :disabled="bulk.isDeleting.value"
-            @click="bulk.confirm"
-          >
-            Delete
-          </Button>
-        </div>
-      </template>
-    </BaseModal>
-
-    <!-- success -->
-    <BaseModal
-      :open="bulk.successOpen.value"
-      title="Fabrics deleted"
-      :description="`${bulk.deletedCount.value} ${bulk.deletedCount.value === 1 ? 'fabric was' : 'fabrics were'} deleted together with their optimizations.`"
-      confirm-label="Got it"
-      prevent-close
-      @confirm="bulk.closeSuccess"
+    <BulkDeleteControls
+      base-path="/fabrics"
+      noun="fabric"
+      :ids="selectedIds"
+      :visible="showTrash"
+      @cancelled="stopSelecting"
+      @finished="onBulkDeleted"
     />
+
+
   </GridLayout>
 </template>

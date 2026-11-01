@@ -284,4 +284,37 @@ describe('PatternsService', () => {
       expect(insert).not.toHaveBeenCalled();
     });
   });
+
+  describe('deletePattern', () => {
+    const deleteReturning = (rows: unknown[]) =>
+      deleteFn.mockReturnValue({ where: () => ({ returning: vi.fn().mockResolvedValue(rows) }) });
+
+    it('deletes a pattern owned by the user', async () => {
+      deleteReturning([{ id: 5 }]);
+
+      await expect(service.deletePattern(5, 3)).resolves.toBeUndefined();
+    });
+
+    it('reports a missing or foreign pattern as not found', async () => {
+      deleteReturning([]);
+
+      await expect(service.deletePattern(5, 3)).rejects.toBeInstanceOf(ResourceNotFoundException);
+    });
+  });
+
+  describe('deletePatterns', () => {
+    it('returns only the ids that were actually deleted', async () => {
+      deleteFn.mockReturnValue({
+        where: () => ({ returning: vi.fn().mockResolvedValue([{ id: 1 }, { id: 2 }]) }),
+      });
+
+      await expect(service.deletePatterns([1, 2, 3], 3)).resolves.toEqual({ deletedIds: [1, 2] });
+    });
+
+    it('returns an empty list when nothing is owned', async () => {
+      deleteFn.mockReturnValue({ where: () => ({ returning: vi.fn().mockResolvedValue([]) }) });
+
+      await expect(service.deletePatterns([9], 3)).resolves.toEqual({ deletedIds: [] });
+    });
+  });
 });

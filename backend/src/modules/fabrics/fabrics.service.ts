@@ -21,7 +21,7 @@ import {
 import { ShapesEngineClient } from '../shapes-engine/shapes-engine.client.js';
 import { ShapeEngineResponseDto } from '../shapes-engine/dto/shapes-engine-response.dto.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
-import { BulkDeleteFabricsResponseDto } from './dto/bulk-delete-fabrics.dto.js';
+import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 import { gte, lte, ilike } from 'drizzle-orm';
 
 @Injectable()
@@ -349,10 +349,7 @@ export class FabricService {
     }
   }
 
-  async deleteFabrics(
-    ids: number[],
-    currentUserId: number,
-  ): Promise<BulkDeleteFabricsResponseDto> {
+  async deleteFabrics(ids: number[], currentUserId: number): Promise<BulkDeleteResponseDto> {
     const deleted = await this.db
       .delete(fabrics)
       .where(and(inArray(fabrics.id, ids), eq(fabrics.userId, currentUserId)))

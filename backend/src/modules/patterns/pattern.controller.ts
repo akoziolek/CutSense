@@ -15,12 +15,14 @@ import {
   FileTypeValidator,
   Patch,
   Query,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
   ApiCookieAuth,
   ApiCreatedResponse,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -46,6 +48,7 @@ import { PatternListResponseDto } from './dto/pattern-list.dto.js';
 import { ListPatternsQueryDto } from './dto/list-patterns-query.dto.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { SetFavouriteDto } from '../../common/dto/set-favourite.dto.js';
+import { BulkDeleteDto, BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')
@@ -273,4 +276,44 @@ export class PatternController {
     return this.patternsService.getPatternTags();
   }
 
+
+  @Delete(':id')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Delete a pattern',
+    description: 'Permanently deletes a pattern owned by the current user, with its pieces and optimizations.',
+  })
+  @ApiParam({ name: 'id', description: 'Unique identifier of the pattern', type: Number, example: 1 })
+  @ApiNoContentResponse({ description: 'The pattern and its optimizations were deleted.' })
+  @ApiBadRequestResponse({ description: 'The pattern ID is not a valid integer.' })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  @ApiNotFoundResponse({ description: 'The pattern does not exist or is not owned by the current user.' })
+  async deletePattern(
+    @Param('id', ParseIntPipe) patternId: number,
+    @CurrentUser() user: { id: number },
+  ): Promise<void> {
+    return this.patternsService.deletePattern(patternId, user.id);
+  }
+
+  @Post('bulk-delete')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Delete several patterns',
+    description:
+      'Permanently deletes the listed patterns owned by the current user. IDs that do not exist or belong to someone else are skipped.',
+  })
+  @ApiBody({ type: BulkDeleteDto })
+  @ApiOkResponse({ type: BulkDeleteResponseDto })
+  @ApiBadRequestResponse({ description: 'ids must be 1–100 unique positive integers.' })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  async deletePatterns(
+    @Body() dto: BulkDeleteDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<BulkDeleteResponseDto> {
+    return this.patternsService.deletePatterns(dto.ids, user.id);
+  }
 }

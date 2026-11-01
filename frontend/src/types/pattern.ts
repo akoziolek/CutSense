@@ -7,6 +7,7 @@ export interface PatternListItem {
   size: PatternSize
   isFavourite: boolean
   createdAt: string
+  isOwner: boolean
 }
 
 export interface PatternListResponse {

@@ -17,6 +17,9 @@ import ResourceCard from '@/components/common/ResourceCard.vue'
 import ListPagination from '@/components/common/ListPagination.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
+import { useSelection } from '@/composables/useSelection'
+import BulkDeleteControls from '@/components/common/BulkDeleteControls.vue'
+import type { PatternListItem } from '@/types/pattern'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: PatternSort = 'name_asc'
@@ -39,6 +42,31 @@ watch(
     fetchPatterns()
   },
 )
+
+const contentRef = ref<HTMLElement | null>(null)
+const { selectionMode, selectedIds, isSelected, toggleSelect, selectFromGesture, stopSelecting } =
+  useSelection(contentRef)
+
+const showTrash = computed(
+  () => isLoggedIn.value && !!data.value?.items.some((p) => p.isOwner),
+)
+
+// long press and right click only work on own patterns; other cards keep the normal behaviour
+const onGesture = (pattern: PatternListItem) => {
+  if (pattern.isOwner) selectFromGesture(pattern.id)
+}
+const onContextMenu = (e: MouseEvent, pattern: PatternListItem) => {
+  if (!pattern.isOwner) return // leave the browser menu alone
+  e.preventDefault()
+  selectFromGesture(pattern.id)
+}
+
+const onBulkDeleted = () => {
+  stopSelecting()
+  fetchPatterns()
+}
+
+const isLoggedIn = computed(() => !!authState.user)
 
 const { toggle: toggleFavourite } = useFavouriteToggle('/patterns')
 
@@ -137,7 +165,10 @@ watch(
 
 <template>
   <GridLayout>
-    <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-10">
+    <div 
+      ref="contentRef"
+      class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-10"
+    >
       <PageHeader>
         <span>Patterns</span>
         <span v-if="data" class="ml-3 text-sm font-semibold">({{ data.total }} found)</span>
@@ -222,8 +253,15 @@ watch(
               :title="pattern.name"
               :meta="`${formatCardDate(pattern.createdAt)} • ${pattern.size}`"
               :is-favourite="pattern.isFavourite"
+              :selectable="selectionMode"
+              :selected="isSelected(pattern.id)"
+              :disabled="selectionMode && !pattern.isOwner"
+              disabled-reason="Only your own patterns can be selected for bulk actions"
               toggleable
               @toggle-favourite="toggleFavourite(pattern)"
+              @toggle-select="toggleSelect(pattern.id)"
+              @long-press="onGesture(pattern)"
+              @contextmenu="(e: MouseEvent) => onContextMenu(e, pattern)"
             >
               <template #placeholder><Scissors class="size-8" /></template>
             </ResourceCard>
@@ -241,5 +279,14 @@ watch(
     </div>
 
     <FloatingButton :to="{ name: 'PatternNew' }" />
+
+    <BulkDeleteControls
+      base-path="/patterns"
+      noun="pattern"
+      :ids="selectedIds"
+      :visible="showTrash"
+      @cancelled="stopSelecting"
+      @finished="onBulkDeleted"
+    />
   </GridLayout>
 </template>

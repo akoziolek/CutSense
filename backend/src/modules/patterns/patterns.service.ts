@@ -43,21 +43,10 @@ import {
 import { assertDateRange, likePattern } from '../../common/utils/list-query.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { patternFavourites } from '../../db/schema/schema.js';
+import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 
 // identity ids start at 1, so this never matches a favourite row (used for guests)
 const NO_USER_ID = 0;
-
-// TODO -  use function from geometry
-const toWkt = (points: { x: number; y: number }[]): string => {
-  const ring = [...points];
-  const first = ring[0];
-  const last = ring[ring.length - 1];
-  if (first.x !== last.x || first.y !== last.y) ring.push(first);
-  return `POLYGON((${ring.map((p) => `${p.x} ${p.y}`).join(', ')}))`;
-};
-
-const ringOf = (geojson: string): [number, number][] =>
-  (JSON.parse(geojson) as { coordinates: [number, number][][] }).coordinates[0];
 
 @Injectable()
 export class PatternsService {
@@ -286,6 +275,7 @@ export class PatternsService {
           size: patterns.size,
           createdAt: patterns.createdAt,
           isFavourite: sql<boolean>`${patternFavourites.userId} is not null`,
+          userId: patterns.userId,
         })
         .from(patterns)
         .leftJoin(
@@ -303,7 +293,9 @@ export class PatternsService {
     ]);
 
     return {
-      items: rows.map((row) => PatternsMapper.toListItemDto(row)),
+      items: rows.map((row) =>
+        PatternsMapper.toListItemDto(row, currentUserId),
+      ),
       total,
       page,
       limit,
@@ -397,5 +389,23 @@ export class PatternsService {
           )
         : undefined,
     )!;
+  }
+
+    async deletePattern(patternId: number, currentUserId: number): Promise<void> {
+    const [deleted] = await this.db
+      .delete(patterns)
+      .where(and(eq(patterns.id, patternId), eq(patterns.userId, currentUserId)))
+      .returning({ id: patterns.id });
+
+    if (!deleted) throw new ResourceNotFoundException('Pattern', patternId);
+  }
+
+  async deletePatterns(ids: number[], currentUserId: number): Promise<BulkDeleteResponseDto> {
+    const deleted = await this.db
+      .delete(patterns)
+      .where(and(inArray(patterns.id, ids), eq(patterns.userId, currentUserId)))
+      .returning({ id: patterns.id });
+
+    return { deletedIds: deleted.map((p) => p.id) };
   }
 }

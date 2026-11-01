@@ -1,6 +1,5 @@
 import { computed, onMounted, onUnmounted, ref, type Ref } from 'vue'
 
-// selection mode of a card list; clicks outside the content and Esc leave it
 export function useSelection(contentRef: Ref<HTMLElement | null>) {
   const selectionMode = ref(false)
   const selectedIds = ref<number[]>([])
@@ -16,17 +15,14 @@ export function useSelection(contentRef: Ref<HTMLElement | null>) {
     selectedIds.value = isSelected(id)
       ? selectedIds.value.filter((x) => x !== id)
       : [...selectedIds.value, id]
-    // deselecting the last card ends selection mode, so cards open their details again
     if (selectedIds.value.length === 0) selectionMode.value = false
   }
 
-  // long press and right click: enter selection mode and select
   const selectFromGesture = (id: number) => {
     selectionMode.value = true
     if (!isSelected(id)) toggleSelect(id)
   }
 
-  // dialogs are portaled and the floating buttons are outside the content container
   const onClick = (e: MouseEvent) => {
     if (!selectionMode.value) return
     const target = e.target as HTMLElement

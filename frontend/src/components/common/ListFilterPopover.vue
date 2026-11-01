@@ -20,9 +20,13 @@ const props = withDefaults(
     tagsError?: string
     active: boolean
     showFavourites?: boolean
+    showCommunity?: boolean
     extraError?: (filters: F) => string
   }>(),
-  { showFavourites: true },
+  { showFavourites: true,
+    showCommunity: false
+  },
+  
 )
 
 const emit = defineEmits<{
@@ -152,6 +156,17 @@ const apply = () => {
           <div class="flex items-center gap-2">
             <span class="text-xs">{{ draft.favouriteOnly ? 'Yes' : 'No' }}</span>
             <Switch id="filter-fav-only" v-model="draft.favouriteOnly" data-testid="fav-only" />
+          </div>
+        </div>
+
+        <!-- Only community toggle -->
+        <div v-if="showCommunity" class="flex items-center justify-between border-t border-border/60 px-4 py-3">
+          <Label for="filter-community" class="cursor-pointer text-sm font-semibold font-inter">
+            Community
+          </Label>
+          <div class="flex items-center gap-2">
+            <span class="text-xs">{{ (draft as any).communityOnly ? 'Yes' : 'No' }}</span>
+            <Switch id="filter-community" v-model="(draft as any).communityOnly" data-testid="community-only" />
           </div>
         </div>
 

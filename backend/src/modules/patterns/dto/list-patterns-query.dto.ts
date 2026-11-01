@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsEnum, IsIn, IsOptional } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsEnum, IsIn, IsOptional } from 'class-validator';
 import { patternSizeEnum } from '../../../db/schema/schema.js';
 import { FilterableListQueryDto } from '../../../common/dto/base-list-query.dto.js';
 
@@ -33,4 +33,13 @@ export class ListPatternsQueryDto extends FilterableListQueryDto {
   })
   @IsArray() @ArrayMaxSize(6) @IsIn(patternSizeEnum.enumValues, { each: true })
   sizes?: PatternSize[];
+
+  @ApiPropertyOptional({
+    description: 'Whether to include community (public) patterns',
+    example: true,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === '1' || value === true)
+  @IsBoolean()
+  community?: boolean;
 }

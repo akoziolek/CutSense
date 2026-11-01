@@ -351,13 +351,15 @@ export class PatternsService {
   }
 
   private buildWhere(query: ListPatternsQueryDto, currentUserId?: number): SQL {
-    const { createdFrom, createdTo, favourite, tagIds, sizes } = query;
+    const { createdFrom, createdTo, favourite, tagIds, sizes, community } = query;
     assertDateRange(createdFrom, createdTo);
 
     const visible =
       currentUserId === undefined
         ? eq(patterns.visibility, 'PUBLIC')
-        : or(eq(patterns.visibility, 'PUBLIC'), eq(patterns.userId, currentUserId));
+        : community === false
+        ? eq(patterns.userId, currentUserId)
+          : or(eq(patterns.visibility, 'PUBLIC'), eq(patterns.userId, currentUserId));
 
     const favouriteIds =
       currentUserId !== undefined && favourite !== undefined

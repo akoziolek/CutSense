@@ -292,6 +292,7 @@ watch(
           :model-value="filters"
           :empty-filters="emptyFilters"
           :show-favourites="isLoggedIn"
+          :show-community="isLoggedIn"
           :tags="availableTags"
           :tags-loading="tagsLoading"
           :tags-error="tagsError"

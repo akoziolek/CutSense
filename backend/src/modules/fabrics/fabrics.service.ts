@@ -19,7 +19,7 @@ import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';
 import { FabricSortOption, ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
-import { BulkDeleteFabricsResponseDto } from './dto/bulk-delete-fabrics.dto.js';
+import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 
 @Injectable()
 export class FabricService {
@@ -408,7 +408,7 @@ export class FabricService {
     }
   }
 
-  async deleteFabrics(ids: number[], currentUserId: number): Promise<BulkDeleteFabricsResponseDto> {
+  async deleteFabrics(ids: number[], currentUserId: number): Promise<BulkDeleteResponseDto> {
     const deleted = await this.db
       .delete(fabrics)
       .where(and(inArray(fabrics.id, ids), eq(fabrics.userId, currentUserId)))

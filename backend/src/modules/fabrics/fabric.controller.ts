@@ -45,7 +45,7 @@ import { FabricListResponseDto } from './dto/fabric-list.dto.js';
 import { ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
 import { SetFavouriteDto } from '../../common/dto/set-favourite.dto.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
-import { BulkDeleteFabricsDto, BulkDeleteFabricsResponseDto } from './dto/bulk-delete-fabrics.dto.js';
+import { BulkDeleteDto, BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 
 @Controller('fabrics')
 @ApiTags('Fabrics')
@@ -337,14 +337,14 @@ export class FabricController {
   summary: 'Delete several fabrics',
   description: 'Permanently deletes the listed fabrics owned by the current user, with their optimizations and photos. IDs that do not exist or belong to someone else are skipped.',
   })
-  @ApiBody({ type: BulkDeleteFabricsDto })
-  @ApiOkResponse({ type: BulkDeleteFabricsResponseDto })
+  @ApiBody({ type: BulkDeleteDto })
+  @ApiOkResponse({ type: BulkDeleteResponseDto })
   @ApiBadRequestResponse({ description: 'ids must be 1–100 unique positive integers.' })
   @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
   async deleteFabrics(
-    @Body() dto: BulkDeleteFabricsDto,
+    @Body() dto: BulkDeleteDto,
     @CurrentUser() user: { id: number },
-  ): Promise<BulkDeleteFabricsResponseDto> {
+  ): Promise<BulkDeleteResponseDto> {
     return this.fabricService.deleteFabrics(dto.ids, user.id);
   }
   

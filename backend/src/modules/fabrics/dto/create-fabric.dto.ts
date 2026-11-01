@@ -1,4 +1,4 @@
-import { plainToInstance, Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsOptional,
@@ -14,13 +14,14 @@ import {
   IsPositive,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { TransformJson, TransformJsonToInstance } from '../../../common/decorators/transform-json.decorator.js';
 
 const COORD_LIMIT = 1_000_000;
 
 export class PointDto {
   @ApiProperty({
-    description: 'X coordinate in calibrated centimeters.',
-    example: -250,
+    description: 'X coordinate in calibrated millimeters.',
+    example: -2500,
     minimum: -COORD_LIMIT,
     maximum: COORD_LIMIT,
   })
@@ -31,8 +32,8 @@ export class PointDto {
   x!: number;
 
   @ApiProperty({
-    description: 'Y coordinate in calibrated centimeters.',
-    example: 125,
+    description: 'Y coordinate in calibrated millimeters.',
+    example: 1250,
     minimum: -COORD_LIMIT,
     maximum: COORD_LIMIT,
   })
@@ -52,20 +53,12 @@ export class CreateFabricDto {
 
   @ApiProperty({
     description:
-      'JSON-encoded array of boundary points in calibrated centimeters. Provide at least three points; the boundary is closed automatically.',
+      'JSON-encoded array of boundary points in calibrated millimeters. Provide at least three points; the boundary is closed automatically.',
     type: String,
     example:
-      '[{"x":-250,"y":125},{"x":250,"y":125},{"x":250,"y":625},{"x":-250,"y":625}]',
+      '[{"x":-2500,"y":1250},{"x":2500,"y":1250},{"x":2500,"y":6250},{"x":-2500,"y":6250}]',
   })
-  @Transform(({ value }) => {
-    if (typeof value !== 'string') return value;
-    try {
-      const parsed: unknown = JSON.parse(value);
-      return Array.isArray(parsed) ? plainToInstance(PointDto, parsed) : parsed;
-    } catch {
-      return value;
-    }
-  })
+  @TransformJsonToInstance(PointDto)
   @IsArray()
   @ArrayMinSize(3)
   @ValidateNested({ each: true })
@@ -73,22 +66,22 @@ export class CreateFabricDto {
   boundary!: PointDto[];
 
   @ApiProperty({
-    description: 'Image width in the same calibrated units as the boundary.',
-    example: 60,
+    description: 'Image width in calibrated millimeters.',
+    example: 600,
   })
   @Type(() => Number)
-  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @IsInt()
   @IsPositive()
-  imageWidthCm!: number;
+  imageWidthMm!: number;
 
   @ApiProperty({
-    description: 'Image height in the same calibrated units as the boundary.',
-    example: 40,
+    description: 'Image height in calibrated millimeters.',
+    example: 400,
   })
   @Type(() => Number)
-  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @IsInt()
   @IsPositive()
-  imageHeightCm!: number;
+  imageHeightMm!: number;
 
   @ApiPropertyOptional({
     description: 'Description of the fabric',
@@ -106,15 +99,7 @@ export class CreateFabricDto {
     example: '[1,2]',
   })
   @IsOptional()
-  @Transform(({ value }) => {
-    if (typeof value !== 'string') return value;
-    try {
-      const parsed: unknown = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed.map(Number) : parsed;
-    } catch {
-      return value;
-    }
-  })
+  @TransformJson()
   @IsArray()
   @IsInt({ each: true })
   @IsPositive({ each: true })

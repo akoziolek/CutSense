@@ -1,12 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { patternSizeEnum } from '../../../db/schema/schema.js';
-
-export type PatternSize = (typeof patternSizeEnum.enumValues)[number];
+import { PatternSize } from './pattern.enum.js';
 
 export class PatternListItemDto {
   @ApiProperty({
-  description: 'Whether the current user owns the pattern (always false for guests)',
-  example: false,
+    description:
+      'Whether the current user owns the pattern (always false for guests)',
+    example: false,
   })
   isOwner!: boolean;
 
@@ -18,7 +17,7 @@ export class PatternListItemDto {
 
   @ApiProperty({
     description: 'Size of the pattern',
-    enum: patternSizeEnum.enumValues,
+    enum: PatternSize,
     enumName: 'PatternSize',
     example: 'S',
   })

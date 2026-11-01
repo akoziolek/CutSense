@@ -11,38 +11,30 @@ import { Button } from '@/components/ui/button'
 import { CalendarDays, RulerDimensionLine, ArrowLeft, RotateCcw } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import DetailsActions from '@/components/common/DetailsActions.vue'
-import type { NameTag } from '@/types/fabric'
+import type { FabricResponse } from '@/types/fabric'
 import type { PolygonEdge } from '@/types/geometry'
-import { toImagePercentBoundary, type CartesianPoint } from '@/utils/fabricBoundary'
+import { toImagePercentBoundary } from '@/utils/fabricBoundary'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 import FavouriteButton from '@/components/common/FavouriteButton.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
 import { useDeleteResource } from '@/composables/useDeleteResource'
 
-interface Fabric {
-  id: number
-  name: string
-  description?: string
-  pictureUrl?: string
-  tags: NameTag[]
-  createdAt: string
-  area: number
-  boundary: CartesianPoint[]
-  imageWidthCm?: number
-  imageHeightCm?: number
-  isFavourite: boolean
-  optimizationCount: number
-}
-
 const props = defineProps<{ id: string }>()
 
-const fabric = ref<Fabric | null>(null)
+const fabric = ref<FabricResponse | null>(null)
 const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
 
-const { confirmOpen, successOpen, isDeleting, error: deleteError, request: requestDelete,
-  confirm: confirmDelete, closeSuccess } = useDeleteResource({
+const {
+  confirmOpen,
+  successOpen,
+  isDeleting,
+  error: deleteError,
+  request: requestDelete,
+  confirm: confirmDelete,
+  closeSuccess,
+} = useDeleteResource({
   basePath: '/fabrics',
   noun: 'fabric',
   redirectTo: '/fabrics',
@@ -58,35 +50,38 @@ const clearSkeletonTimer = () => {
   }
 }
 
-const normalizedPoints = computed(() => {
+const normalizedShapes = computed(() => {
+  const currentFabric = fabric.value
+  const imageWidthMm = currentFabric?.imageWidthMm
+  const imageHeightMm = currentFabric?.imageHeightMm
   if (
-    !fabric.value ||
-    fabric.value.imageWidthCm === undefined ||
-    fabric.value.imageHeightCm === undefined
+    !currentFabric ||
+    imageWidthMm === undefined ||
+    imageHeightMm === undefined
   ) {
     return []
   }
 
-  return toImagePercentBoundary(
-    fabric.value.boundary,
-    fabric.value.imageWidthCm,
-    fabric.value.imageHeightCm,
+  return currentFabric.shapes.map((shape) =>
+    toImagePercentBoundary(shape, imageWidthMm, imageHeightMm),
   )
 })
+
+const normalizedPoints = computed(() => normalizedShapes.value[0] ?? [])
 
 const edges = computed<PolygonEdge[]>(() => {
   const pts = normalizedPoints.value
   if (pts.length < 2) return []
-
-  const imageWidthCm = fabric.value?.imageWidthCm ?? 0
-  const imageHeightCm = fabric.value?.imageHeightCm ?? 0
+  
+    const imageWidthMm = fabric.value?.imageWidthMm ?? 0
+    const imageHeightMm = fabric.value?.imageHeightMm ?? 0
 
   return pts.map((p1, index) => {
     const p2 = pts[(index + 1) % pts.length]!
 
-    const dx = ((p2.pctX - p1.pctX) / 100) * imageWidthCm
-    const dy = ((p2.pctY - p1.pctY) / 100) * imageHeightCm
-    const distanceCm = Math.hypot(dx, dy).toFixed(1).toString()
+    const dx = ((p2.pctX - p1.pctX) / 100) * imageWidthMm
+    const dy = ((p2.pctY - p1.pctY) / 100) * imageHeightMm
+    const distanceCm = (Math.hypot(dx, dy) / 10).toFixed(1)
 
     return {
       index,
@@ -108,7 +103,7 @@ const metaItems = computed<MetaItem[]>(() =>
         {
           icon: RulerDimensionLine,
           label: 'Area',
-          value: `${(fabric.value.area / 10000).toFixed(2)} m²`,
+          value: `${(fabric.value.areaMm2 / 1_000_000).toFixed(2)} m²`,
         },
       ]
     : [],
@@ -128,7 +123,7 @@ const fetchFabric = async (id: string, activeSignal = { active: true }) => {
   }, 150)
 
   try {
-    const result = await api<Fabric>(`/fabrics/${encodeURIComponent(id)}`)
+    const result = await api<FabricResponse>(`/fabrics/${encodeURIComponent(id)}`)
     if (activeSignal.active) fabric.value = result
   } catch (e) {
     if (activeSignal.active) {
@@ -235,8 +230,8 @@ watch(
                 v-if="fabric.pictureUrl"
                 :src="fabric.pictureUrl"
                 :alt="fabric.name"
-                :points="normalizedPoints"
-                :edges="edges"
+                :shapes="normalizedShapes"
+                :all-shapes-edges="[edges]"
               />
               <div
                 v-else
@@ -246,7 +241,7 @@ watch(
               </div>
             </div>
             <p
-              v-if="fabric.boundary?.length > 0 && normalizedPoints?.length === 0"
+              v-if="fabric.shapes.length > 0 && normalizedPoints.length === 0"
               class="mt-2 text-sm text-muted-foreground"
             >
               Boundary preview is unavailable because calibrated image dimensions are missing.

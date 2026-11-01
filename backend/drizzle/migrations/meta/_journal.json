@@ -78,6 +78,20 @@
       "when": 1793019791908,
       "tag": "0010_make_fabric_image_size_mandatory",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793109429151,
+      "tag": "0011_add_normal_mirrored_pieces_count_col",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793366194995,
+      "tag": "0012_fabric_dimensions_mm",
+      "breakpoints": true
     }
   ]
 }

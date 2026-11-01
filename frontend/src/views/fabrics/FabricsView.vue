@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, RotateCcw, Search, Shirt, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, RotateCcw, Search, Shirt } from 'lucide-vue-next'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
@@ -174,7 +174,10 @@ const fetchFabrics = async (activeSignal = { active: true }) => {
 
     if (result.totalPages > 0 && page.value > result.totalPages) {
       await router.replace({
-        query: { ...route.query, page: result.totalPages === 1 ? undefined : String(result.totalPages) },
+        query: {
+          ...route.query,
+          page: result.totalPages === 1 ? undefined : String(result.totalPages),
+        },
       })
       return
     }
@@ -393,7 +396,7 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
               :key="fabric.id"
               :to="{ name: 'FabricDetails', params: { id: fabric.id } }"
               :title="fabric.name"
-              :meta="`${formatCardDate(fabric.createdAt)} • ${(fabric.area / 10000).toFixed(2)} m²`"
+              :meta="`${formatCardDate(fabric.createdAt)} • ${(fabric.areaMm2 / 1_000_000).toFixed(1)} m²`"
               :image-url="fabric.pictureUrl"
               :is-favourite="fabric.isFavourite"
               :selectable="selectionMode"

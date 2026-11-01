@@ -1,116 +1,71 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { consumeReturnTo } from '../utils/returnTo'
-import { useFabricAddingStore } from '@/stores/addingFabricStore.ts'
-
-declare module 'vue-router' {
-  interface RouteMeta {
-    requiresAuth?: boolean
-  }
-}
-
-async function ensureWizardHydrated() {
-  const wizardStore = useFabricAddingStore()
-  if (!wizardStore.isHydrated) {
-    await wizardStore.initFromIndexedDB()
-  }
-  return wizardStore
-}
 
 const LandingPage = () => import('../views/LandingPage.vue')
-const ComingSoonPage = () => import('../views/ComingSoonPage.vue') // temporary, to change for correct ones later
-
+const ComingSoonPage = () => import('../views/ComingSoonPage.vue')
 const FabricPage = () => import('../views/fabrics/FabricView.vue')
 const FabricsPage = () => import('../views/fabrics/FabricsView.vue')
-const FabricPhotoConfigPage = () => import('../views/fabrics/new/FabricConfigView.vue')
-const UploadImagePage = () => import('../views/fabrics/new/FabricUploadView.vue')
-const FabricDescritptionPage = () => import('../views/fabrics/new/FabricDescriptionView.vue')
-const FabricEditPage = () => import('../views/fabrics/FabricEdit.vue')
-const PatternEditPage = () => import('../views/patterns/PatternEdit.vue')
+const NewFabricPage = () => import('../views/fabrics/NewFabricView.vue')
+const FabricEditPage = () => import('../views/fabrics/FabricEditView.vue')
 const PatternPage = () => import('../views/patterns/PatternView.vue')
-const NewPatternPage = () => import('../views/patterns/NewPatternView.vue')
 const PatternsPage = () => import('../views/patterns/PatternsView.vue')
+const NewPatternPage = () => import('../views/patterns/NewPatternView.vue')
+const PatternEditPage = () => import('../views/patterns/PatternEditView.vue')
 
 const routes = [
-  { path: '/', name: 'Landing', component: LandingPage },
+  { path: '/', name: 'Landing', component: LandingPage, meta: { isPublic: true } },
 
-  // pattern pages
-  { path: '/patterns', name: 'Patterns', component: PatternsPage },
-  { path: '/patterns/:id', name: 'PatternDetails', component: PatternPage, props: true },
-  { path: '/patterns/new', name: 'pattern-new', component: NewPatternPage, meta: { requiresAuth: true } },
-  { path: '/patterns/:id', name: 'pattern-details', component: PatternPage , props: true },
-  
-
-  // pages that need a logged-in user
-  { path: '/home', name: 'Home', component: ComingSoonPage, meta: { requiresAuth: true } },
+  // public pages (guests can browse public patterns)
+  { path: '/patterns', name: 'Patterns', component: PatternsPage, meta: { isPublic: true } },
   {
-    path: '/optimizations',
-    name: 'Optimizations',
-    component: ComingSoonPage,
-    meta: { requiresAuth: true },
-  },
-  { path: '/fabrics', name: 'Fabrics', component: FabricsPage, meta: { requiresAuth: true } },
-  {
-    path: '/fabrics/:id',
-    name: 'FabricDetails',
-    component: FabricPage,
-    props: true,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/fabrics/:id/edit',
-    name: 'FabricEdit',
-    component: FabricEditPage,
-    props: true,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/fabrics/new',
-    name: 'AddFabric',
-    component: UploadImagePage,
-    meta: { requiresAuth: true },
-    beforeEnter: async () => {
-      await ensureWizardHydrated()
-    },
-  },
-  {
-    path: '/fabrics/configure',
-    name: 'FabricPhotoConfig',
-    component: FabricPhotoConfigPage,
-    beforeEnter: async () => {
-      const wizardStore = await ensureWizardHydrated()
-      if (!wizardStore.isFileLoaded) {
-        return { name: 'AddFabric' }
-      }
-    },
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/fabrics/describe',
-    name: 'FabricDescription',
-    component: FabricDescritptionPage,
-    beforeEnter: async () => {
-      const wizardStore = await ensureWizardHydrated()
-      if (!wizardStore.isShapeConfigured) {
-        return { name: wizardStore.file ? 'FabricPhotoConfig' : 'AddFabric' }
-      }
-    },
-    meta: { requiresAuth: true },
+    path: '/patterns/new',
+    name: 'PatternNew',
+    component: NewPatternPage,
   },
   {
     path: '/patterns/:id/edit',
     name: 'PatternEdit',
     component: PatternEditPage,
     props: true,
-    meta: { requiresAuth: true },
   },
-  { path: '/account', name: 'Account', component: ComingSoonPage, meta: { requiresAuth: true } },
+  {
+    path: '/patterns/:id',
+    name: 'PatternDetails',
+    component: PatternPage,
+    props: true,
+    meta: { isPublic: true },
+  },
+
+  // pages that are private unless explicitly marked public above
+  { path: '/home', name: 'Home', component: ComingSoonPage },
+  { path: '/optimizations', name: 'Optimizations', component: ComingSoonPage },
+  { path: '/fabrics', name: 'Fabrics', component: FabricsPage },
+  {
+    path: '/fabrics/:id',
+    name: 'FabricDetails',
+    component: FabricPage,
+    props: true,
+  },
+  {
+    path: '/fabrics/:id/edit',
+    name: 'FabricEdit',
+    component: FabricEditPage,
+    props: true,
+  },
+  {
+    path: '/fabrics/new',
+    name: 'AddFabric',
+    component: NewFabricPage,
+  },
+  { path: '/account', name: 'Account', component: ComingSoonPage },
 
   // needs to stay last, so that it does not override other routes
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../views/NotFoundPage.vue'),
+    meta: { isPublic: true },
   },
 ]
 
@@ -124,15 +79,13 @@ router.beforeEach(async (to) => {
   try {
     await loadUser()
   } catch {
-    // API unreachable: treat as guest, the page shows its own error state
+    // API unreachable: treat as guest, the page shows its own error state.
   }
 
-  if (to.meta.requiresAuth && !state.user) {
+  if (!to.meta.isPublic && !state.user) {
     return { name: 'Landing', query: { login: '1', redirect: to.fullPath } }
   }
 
-
-  // existing user came back from Google to "/": continue where they wanted to go
   if (state.user && to.name === 'Landing' && !to.query.registration) {
     const target = consumeReturnTo()
     if (target !== '/') return target

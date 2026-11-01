@@ -107,12 +107,14 @@ describe('FabricService', () => {
     vi.unstubAllGlobals();
   });
 
-  it('forwards image bytes to the shape engine and returns the detected boundary', async () => {
+  it('forwards image bytes and returns the fabric boundary as one shape', async () => {
     const result = {
-      points: [
-        { pctX: 20, pctY: 20 },
-        { pctX: 80, pctY: 20 },
-        { pctX: 80, pctY: 80 },
+      shapes: [
+        [
+          { pctX: 20, pctY: 20 },
+          { pctX: 80, pctY: 20 },
+          { pctX: 80, pctY: 80 },
+        ],
       ],
       imageWidth: 800,
       imageHeight: 600,
@@ -124,7 +126,11 @@ describe('FabricService', () => {
         buffer: Buffer.from('image-data'),
         mimetype: 'image/png',
       } as Express.Multer.File),
-    ).resolves.toEqual(result);
+    ).resolves.toEqual({
+      shapes: result.shapes,
+      imageWidth: result.imageWidth,
+      imageHeight: result.imageHeight,
+    });
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:8000/analyze-fabric-boundary',
@@ -140,11 +146,52 @@ describe('FabricService', () => {
   it('rejects an invalid boundary returned by the shape engine', async () => {
     fetchMock.mockResolvedValue(
       Response.json({
-        points: [
-          { pctX: 20, pctY: 20 },
-          { pctX: 120, pctY: 20 },
-          { pctX: 80, pctY: 80 },
+        shapes: [
+          [
+            { pctX: 20, pctY: 20 },
+            { pctX: 120, pctY: 20 },
+            { pctX: 80, pctY: 80 },
+          ],
         ],
+        imageWidth: 800,
+        imageHeight: 600,
+      }),
+    );
+
+    await expect(
+      service.analyzeFabricBoundary({
+        buffer: Buffer.from('image-data'),
+        mimetype: 'image/png',
+      } as Express.Multer.File),
+    ).rejects.toBeInstanceOf(ExternalServiceException);
+  });
+
+  it('rejects detected shapes with fewer than three points', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({
+        shapes: [[{ pctX: 20, pctY: 20 }, { pctX: 80, pctY: 20 }]],
+        imageWidth: 800,
+        imageHeight: 600,
+      }),
+    );
+
+    await expect(
+      service.analyzeFabricBoundary({
+        buffer: Buffer.from('image-data'),
+        mimetype: 'image/png',
+      } as Express.Multer.File),
+    ).rejects.toBeInstanceOf(ExternalServiceException);
+  });
+
+  it('rejects multiple boundaries from the fabric analyzer', async () => {
+    const shape = [
+      { pctX: 20, pctY: 20 },
+      { pctX: 80, pctY: 20 },
+      { pctX: 80, pctY: 80 },
+    ];
+    fetchMock.mockResolvedValue(
+      Response.json({
+        shapes: [shape, shape],
         imageWidth: 800,
         imageHeight: 600,
       }),
@@ -195,9 +242,9 @@ describe('FabricService', () => {
         description: undefined,
         pictureS3Key: 'users/3/fabrics/uploaded.jpg',
         isFavourite: false,
-        area: 3600,
-        imageWidthCm: 50,
-        imageHeightCm: 25,
+        areaMm2: 125_000,
+        imageWidthMm: 500,
+        imageHeightMm: 250,
         userId: 3,
         createdAt: new Date('2025-01-15T10:30:00.000Z'),
       },
@@ -207,13 +254,13 @@ describe('FabricService', () => {
       service.createFabric(
         {
           name: 'Cotton canvas',
-          imageWidthCm: 50,
-          imageHeightCm: 25,
+          imageWidthMm: 500,
+          imageHeightMm: 250,
           boundary: [
-            { x: -250, y: 125 },
+            { x: -250, y: -125 },
+            { x: 250, y: -125 },
             { x: 250, y: 125 },
-            { x: 250, y: 625 },
-            { x: -250, y: 625 },
+            { x: -250, y: 125 },
           ],
         },
         {
@@ -237,16 +284,18 @@ describe('FabricService', () => {
       pictureS3Key: 'users/3/fabrics/uploaded.jpg',
       pictureUrl: 'https://example.com/signed.jpg',
       isFavourite: false,
-      area: 3600,
+      areaMm2: 125_000,
       userId: 3,
       createdAt: '2025-01-15T10:30:00.000Z',
-      imageWidthCm: 50,
-      imageHeightCm: 25,
-      boundary: [
-        { x: -250, y: 125 },
-        { x: 250, y: 125 },
-        { x: 250, y: 625 },
-        { x: -250, y: 625 },
+      imageWidthMm: 500,
+      imageHeightMm: 250,
+      shapes: [
+        [
+          { x: -250, y: -125 },
+          { x: 250, y: -125 },
+          { x: 250, y: 125 },
+          { x: -250, y: 125 },
+        ],
       ],
       tags: [],
     });
@@ -262,11 +311,11 @@ describe('FabricService', () => {
       name: 'Cotton canvas',
       pictureS3Key: 'users/3/fabrics/uploaded.jpg',
       userId: 3,
-      imageWidthCm: 50,
-      imageHeightCm: 25,
+      imageWidthMm: 500,
+      imageHeightMm: 250,
     });
     expect(insertedFabric.boundary).toBeDefined();
-    expect(insertedFabric.area).toBeDefined();
+    expect(insertedFabric.areaMm2).toBeDefined();
     expect(generatePresignedUrl).toHaveBeenCalledWith(
       'users/3/fabrics/uploaded.jpg',
     );
@@ -280,12 +329,12 @@ describe('FabricService', () => {
       service.createFabric(
         {
           name: 'Cotton canvas',
-          imageWidthCm: 50,
-          imageHeightCm: 25,
+          imageWidthMm: 500,
+          imageHeightMm: 250,
           boundary: [
-            { x: -250, y: 125 },
-            { x: 250, y: 125 },
-            { x: 250, y: 625 },
+            { x: -2500, y: 1250 },
+            { x: 2500, y: 1250 },
+            { x: 2500, y: 6250 },
           ],
         },
         {
@@ -314,13 +363,13 @@ describe('FabricService', () => {
       description: 'Medium-weight cotton',
       pictureS3Key: 'users/3/fabrics/fabric.jpg',
       isFavourite: true,
-      area: 4.32,
-      imageWidthCm: 50,
-      imageHeightCm: 25,
+      areaMm2: 4_320_000,
+      imageWidthMm: 500,
+      imageHeightMm: 250,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
       boundaryGeoJson:
-        '{"type":"Polygon","coordinates":[[[-250,125],[250,125],[250,625],[-250,625],[-250,125]]]}',
+        '{"type":"Polygon","coordinates":[[[-2500,1250],[2500,1250],[2500,6250],[-2500,6250],[-2500,1250]]]}',
       tags: [
         { tag: { id: 2, name: 'cotton' } },
         { tag: { id: 5, name: 'canvas' } },
@@ -334,16 +383,18 @@ describe('FabricService', () => {
       pictureS3Key: 'users/3/fabrics/fabric.jpg',
       pictureUrl: 'https://example.com/signed.jpg',
       isFavourite: true,
-      area: 4.32,
-      imageWidthCm: 50,
-      imageHeightCm: 25,
+      areaMm2: 4_320_000,
+      imageWidthMm: 500,
+      imageHeightMm: 250,
       userId: 3,
       createdAt: '2025-01-15T10:30:00.000Z',
-      boundary: [
-        { x: -250, y: 125 },
-        { x: 250, y: 125 },
-        { x: 250, y: 625 },
-        { x: -250, y: 625 },
+      shapes: [
+        [
+          { x: -2500, y: 1250 },
+          { x: 2500, y: 1250 },
+          { x: 2500, y: 6250 },
+          { x: -2500, y: 6250 },
+        ],
       ],
       tags: [
         { id: 2, name: 'cotton' },
@@ -371,11 +422,11 @@ describe('FabricService', () => {
       description: null,
       pictureS3Key: null,
       isFavourite: false,
-      area: 2.1,
+      areaMm2: 2_100_000,
       userId: 3,
       createdAt: new Date('2025-02-01T00:00:00.000Z'),
       boundaryGeoJson:
-        '{"type":"Polygon","coordinates":[[[-250,125],[250,125],[250,625],[-250,625],[-250,125]]]}',
+        '{"type":"Polygon","coordinates":[[[-2500,1250],[2500,1250],[2500,6250],[-2500,6250],[-2500,1250]]]}',
       tags: [],
     });
 
@@ -388,8 +439,8 @@ describe('FabricService', () => {
 
   it('returns a paginated page of the user fabrics with presigned URLs', async () => {
   findManyFabrics.mockResolvedValue([
-    { id: 2, name: 'Silk', pictureS3Key: 'users/3/fabrics/a.jpg', isFavourite: true, area: 0.9, createdAt: new Date('2026-03-01T00:00:00.000Z') },
-    { id: 1, name: 'Linen', pictureS3Key: null, isFavourite: false, area: 1.5, createdAt: new Date('2026-03-21T00:00:00.000Z') },
+    { id: 2, name: 'Silk', pictureS3Key: 'users/3/fabrics/a.jpg', isFavourite: true, areaMm2: 900_000, createdAt: new Date('2026-03-01T00:00:00.000Z') },
+    { id: 1, name: 'Linen', pictureS3Key: null, isFavourite: false, areaMm2: 1_500_000, createdAt: new Date('2026-03-21T00:00:00.000Z') },
   ]);
   selectWhere.mockResolvedValue([{ total: 25 }]);
 
@@ -397,8 +448,8 @@ describe('FabricService', () => {
     service.getFabrics({ page: 2, limit: 12, sort: FabricSortOption.NAME_ASC }, 3),
   ).resolves.toEqual({
     items: [
-      { id: 2, name: 'Silk', pictureUrl: 'https://example.com/signed.jpg', isFavourite: true, area: 0.9, createdAt: '2026-03-01T00:00:00.000Z' },
-      { id: 1, name: 'Linen', pictureUrl: undefined, isFavourite: false, area: 1.5, createdAt: '2026-03-21T00:00:00.000Z' },
+      { id: 2, name: 'Silk', pictureUrl: 'https://example.com/signed.jpg', isFavourite: true, areaMm2: 900_000, createdAt: '2026-03-01T00:00:00.000Z' },
+      { id: 1, name: 'Linen', pictureUrl: undefined, isFavourite: false, areaMm2: 1_500_000, createdAt: '2026-03-21T00:00:00.000Z' },
     ],
     total: 25,
     page: 2,
@@ -428,7 +479,7 @@ describe('FabricService', () => {
         description: 'Heavy linen',
         pictureS3Key: 'users/3/fabrics/fabric.jpg',
         isFavourite: false,
-        area: 4.32,
+        areaMm2: 4_320_000,
         userId: 3,
         createdAt: new Date('2025-01-15T10:30:00.000Z'),
       },
@@ -440,7 +491,7 @@ describe('FabricService', () => {
       description: 'Heavy linen',
       pictureS3Key: 'users/3/fabrics/fabric.jpg',
       isFavourite: false,
-      area: 4.32,
+      areaMm2: 4_320_000,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
       boundaryGeoJson:
@@ -488,7 +539,7 @@ describe('FabricService', () => {
         name: 'New name',
         pictureS3Key: null,
         isFavourite: false,
-        area: 4.32,
+        areaMm2: 4_320_000,
         userId: 3,
         createdAt: new Date('2025-01-15T10:30:00.000Z'),
       },
@@ -498,7 +549,7 @@ describe('FabricService', () => {
       name: 'New name',
       pictureS3Key: null,
       isFavourite: false,
-      area: 4.32,
+      areaMm2: 4_320_000,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
       boundaryGeoJson:
@@ -521,7 +572,7 @@ describe('FabricService', () => {
         name: 'Cotton',
         pictureS3Key: null,
         isFavourite: false,
-        area: 4.32,
+        areaMm2: 4_320_000,
         userId: 3,
         createdAt: new Date('2025-01-15T10:30:00.000Z'),
       },
@@ -531,7 +582,7 @@ describe('FabricService', () => {
       name: 'Cotton',
       pictureS3Key: null,
       isFavourite: false,
-      area: 4.32,
+      areaMm2: 4_320_000,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
       boundaryGeoJson:

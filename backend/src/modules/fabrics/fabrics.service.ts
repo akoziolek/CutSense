@@ -1,6 +1,5 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { eq, and, or, inArray, sql, asc, desc, count, type SQL, gte, lte, ilike } from 'drizzle-orm';
+import { eq, and, or, inArray, sql, asc, desc, count, type SQL } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import { fabrics, fabricTags, tagsForFabrics } from '../../db/schema/schema.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
@@ -10,16 +9,20 @@ import { RequestValidationException } from '../../common/exceptions/request-vali
 import { StoragePaths, StorageService } from '../storage/storage.service.js';
 import { FabricMapper } from './fabric.mapper.js';
 import { CreateFabricDto } from './dto/create-fabric.dto.js';
-import { plainToInstance } from 'class-transformer';
-import { validate } from 'class-validator';
-import { AnalyzeFabricDto } from './dto/analyze-fabric.dto.js';
-import { AnalyzeFabricEngineResponseDto } from './dto/analyze-fabric-engine-response.dto.js';
-import { FabricBoundaryMapper } from './fabric-boundary.mapper.js';
+import { AnalysisShapesDto } from '../shapes-engine/dto/analysis-shapes.dto.js';
+import { ShapeEngineMapper } from '../shapes-engine/shapes-engine.mapper.js';
 import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';
-import { FabricSortOption, ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
+import { pointsToWktPolygon } from '../../common/geometry/shapes-geometry.js';
+import {
+  FabricSortOption,
+  ListFabricsQueryDto,
+} from './dto/list-fabrics-query.dto.js';
+import { ShapesEngineClient } from '../shapes-engine/shapes-engine.client.js';
+import { ShapeEngineResponseDto } from '../shapes-engine/dto/shapes-engine-response.dto.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
+import { gte, lte, ilike } from 'drizzle-orm';
 
 @Injectable()
 export class FabricService {
@@ -27,73 +30,24 @@ export class FabricService {
     @Inject(DRIZZLE)
     private readonly db: DrizzleDB,
     private readonly storageService: StorageService,
-    private readonly configService: ConfigService,
+    private readonly shapesEngineClient: ShapesEngineClient,
   ) {}
 
   async analyzeFabricBoundary(
     picture: Express.Multer.File,
-  ): Promise<AnalyzeFabricDto> {
-    const engineUrl = this.configService
-      .get<string>('SHAPES_ENGINE_URL', 'http://localhost:8000')
-      .replace(/\/$/, '');
-
-    const imageBytes = new Uint8Array(
-      new ArrayBuffer(picture.buffer.byteLength),
+  ): Promise<AnalysisShapesDto> {
+    const engineResult = await this.shapesEngineClient.analyzeBoundary(
+      'analyze-fabric-boundary',
+      picture,
+      ShapeEngineResponseDto,
     );
-    imageBytes.set(picture.buffer);
 
-    const response = await fetch(`${engineUrl}/analyze-fabric-boundary`, {
-      method: 'POST',
-      headers: { 'Content-Type': picture.mimetype },
-      body: new Blob([imageBytes], { type: picture.mimetype }),
-      signal: AbortSignal.timeout(30_000),
-    }).catch((error) => {
-      throw new ExternalServiceException(
-        error instanceof Error
-          ? `Shape analysis service is unavailable: ${error.message}`
-          : 'Shape analysis service is unavailable.',
-      );
-    });
-
-    const payload = await response.json().catch(() => {
-      throw new ExternalServiceException(
-        'Shape analysis returned an invalid response.',
-      );
-    });
-
-    if (!response.ok) {
-      const detail =
-        typeof payload?.detail === 'string'
-          ? payload.detail
-          : 'Shape analysis failed.';
-      if (response.status >= 400 && response.status < 500) {
-        throw new RequestValidationException(detail);
-      }
-      throw new ExternalServiceException(detail);
-    }
-
-    if (typeof payload !== 'object' || !payload || Array.isArray(payload)) {
+    if (engineResult.shapes.length !== 1) {
       throw new ExternalServiceException(
         'Shape analysis returned an invalid boundary.',
       );
     }
-
-    const engineResult = plainToInstance(
-      AnalyzeFabricEngineResponseDto,
-      payload,
-    );
-    const validationErrors = await validate(engineResult, {
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    });
-
-    if (validationErrors.length > 0) {
-      throw new ExternalServiceException(
-        'Shape analysis returned an invalid boundary.',
-      );
-    }
-
-    return FabricBoundaryMapper.toAnalyzeFabricDto(engineResult);
+    return ShapeEngineMapper.toAnalysisShapesDto(engineResult);
   }
 
   async getFabricTags(): Promise<{ id: number; name: string }[]> {
@@ -125,21 +79,8 @@ export class FabricService {
     }
 
     const points = [...createFabricDto.boundary];
-    const first = points[0];
-    const last = points.at(-1);
-    if (!first || !last || points.length < 3) {
-      throw new RequestValidationException(
-        'A fabric boundary needs at least three points.',
-      );
-    }
-    if (first.x !== last.x || first.y !== last.y) {
-      points.push(first);
-    }
-
-    const polygonWkt = `POLYGON((${points
-      .map(({ x, y }) => `${x} ${y}`)
-      .join(', ')}))`;
-    const geometry = sql`ST_GeomFromText(${polygonWkt}, 0)`;
+    const polygonWkt = pointsToWktPolygon(createFabricDto.boundary);
+    const geometry = sql`ST_MakeValid(ST_SimplifyPreserveTopology(ST_ForcePolygonCCW(ST_GeomFromText(${polygonWkt}, 0)), 0))`;
     const pictureS3Key = await this.storageService.uploadFile(
       picture,
       StoragePaths.fabrics(currentUserId),
@@ -155,9 +96,9 @@ export class FabricService {
             description: createFabricDto.description,
             pictureS3Key,
             boundary: geometry,
-            imageWidthCm: createFabricDto.imageWidthCm,
-            imageHeightCm: createFabricDto.imageHeightCm,
-            area: sql<number>`ST_Area(${geometry})`,
+            imageWidthMm: createFabricDto.imageWidthMm,
+            imageHeightMm: createFabricDto.imageHeightMm,
+            areaMm2: sql<number>`ROUND(ST_Area(${geometry}))::bigint`,
             userId: currentUserId,
           })
           .returning();
@@ -320,9 +261,9 @@ export class FabricService {
       case FabricSortOption.DATE_ASC:
         return [asc(fabrics.createdAt), asc(fabrics.id)];
       case FabricSortOption.AREA_ASC:
-        return [asc(fabrics.area), asc(fabrics.id)];
+        return [asc(fabrics.areaMm2), asc(fabrics.id)];
       case FabricSortOption.AREA_DESC:
-        return [desc(fabrics.area), desc(fabrics.id)];
+        return [desc(fabrics.areaMm2), desc(fabrics.id)];
       case FabricSortOption.DATE_DESC:
       default:
         return [desc(fabrics.createdAt), desc(fabrics.id)];
@@ -344,7 +285,7 @@ export class FabricService {
           name: true,
           pictureS3Key: true,
           isFavourite: true,
-          area: true,
+          areaMm2: true,
           createdAt: true,
         },
         orderBy: this.getOrderBy(sort),
@@ -381,13 +322,13 @@ export class FabricService {
       .update(fabrics)
       .set({ isFavourite })
       .where(and(eq(fabrics.id, fabricId), eq(fabrics.userId, currentUserId)))
-      .returning({ id: fabrics.id, isFavourite: fabrics.isFavourite});
+      .returning({ id: fabrics.id, isFavourite: fabrics.isFavourite });
 
     if (!updated) throw new ResourceNotFoundException('Fabric', fabricId);
     return updated;
-    }
+  }
 
-    private readonly logger = new Logger(FabricService.name);
+  private readonly logger = new Logger(FabricService.name);
 
   async deleteFabric(fabricId: number, currentUserId: number): Promise<void> {
     const [deleted] = await this.db
@@ -415,23 +356,35 @@ export class FabricService {
       .returning({ id: fabrics.id, pictureS3Key: fabrics.pictureS3Key });
 
     const results = await Promise.allSettled(
-      deleted.flatMap((f) => (f.pictureS3Key ? [this.storageService.deleteFile(f.pictureS3Key)] : [])),
+      deleted.flatMap((f) =>
+        f.pictureS3Key ? [this.storageService.deleteFile(f.pictureS3Key)] : [],
+      ),
     );
     results.forEach((r) => {
-      if (r.status === 'rejected') this.logger.warn(`Picture was not removed: ${String(r.reason)}`);
+      if (r.status === 'rejected')
+        this.logger.warn(`Picture was not removed: ${String(r.reason)}`);
     });
 
     return { deletedIds: deleted.map((f) => f.id) };
   }
 
   private buildWhere(query: ListFabricsQueryDto, currentUserId: number): SQL {
-    const { createdFrom, createdTo, favourite, tagIds, areaMin, areaMax } = query;
+    const { createdFrom, createdTo, favourite, tagIds, areaMin, areaMax } =
+      query;
 
-    if (createdFrom && createdTo && new Date(createdFrom) > new Date(createdTo)) {
-      throw new RequestValidationException('createdFrom must not be later than createdTo.');
+    if (
+      createdFrom &&
+      createdTo &&
+      new Date(createdFrom) > new Date(createdTo)
+    ) {
+      throw new RequestValidationException(
+        'createdFrom must not be later than createdTo.',
+      );
     }
     if (areaMin !== undefined && areaMax !== undefined && areaMin > areaMax) {
-      throw new RequestValidationException('areaMin must not be greater than areaMax.');
+      throw new RequestValidationException(
+        'areaMin must not be greater than areaMax.',
+      );
     }
 
     const withAllTags = tagIds?.length
@@ -451,10 +404,12 @@ export class FabricService {
       createdFrom ? gte(fabrics.createdAt, new Date(createdFrom)) : undefined,
       createdTo ? lte(fabrics.createdAt, new Date(createdTo)) : undefined,
       favourite === undefined ? undefined : eq(fabrics.isFavourite, favourite),
-      areaMin === undefined ? undefined : gte(fabrics.area, areaMin),
-      areaMax === undefined ? undefined : lte(fabrics.area, areaMax),
+      areaMin === undefined ? undefined : gte(fabrics.areaMm2, areaMin),
+      areaMax === undefined ? undefined : lte(fabrics.areaMm2, areaMax),
       withAllTags ? inArray(fabrics.id, withAllTags) : undefined,
-      pattern ? or(ilike(fabrics.name, pattern), ilike(fabrics.description, pattern)) : undefined,
+      pattern
+        ? or(ilike(fabrics.name, pattern), ilike(fabrics.description, pattern))
+        : undefined,
     )!;
   }
 }

@@ -21,10 +21,10 @@ export class FabricListItemDto {
     example: false })
   isFavourite!: boolean;
 
-  @ApiProperty({ 
-    description: 'Fabric area',
-    example: 4.32 })
-  area!: number;
+  @ApiProperty({
+    description: 'Fabric area in square millimeters.',
+    example: 4_320_000 })
+  areaMm2!: number;
 
   @ApiProperty({ 
     description: 'Date and time when created',

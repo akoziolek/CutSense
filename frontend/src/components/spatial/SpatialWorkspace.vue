@@ -2,8 +2,8 @@
 import { ref } from 'vue'
 import { Button } from '@/components/ui/button'
 import { ImageOff } from 'lucide-vue-next'
-import type { Point2D, PolygonEdge } from '@/types/geometry.ts'
-import SpatialCanvas from '../spatial/SpatialCanvas.vue'
+import type { Point2D, PolygonEdge } from '@/types/geometry'
+import SpatialCanvas from './SpatialCanvas.vue'
 import SpatialFloatingToolbar from './SpatialFloatingToolbar.vue'
 
 const spatialCanvasRef = ref<InstanceType<typeof SpatialCanvas> | null>(null)
@@ -12,9 +12,12 @@ const showLabels = ref(true)
 const props = withDefaults(
   defineProps<{
     imageUrl?: string | null
-    points: Point2D[]
-    edges: PolygonEdge[]
-    previewPoint?: Point2D | null // preview is during addition of new point
+    shapes: Point2D[][]
+    hiddenShapes?: boolean[]
+    activeShapeIndex?: number
+    hoveredShapeIndex?: number | null
+    allShapesEdges?: PolygonEdge[][]
+    previewPoint?: Point2D | null
     previewNeighbors?: { p1: Point2D; p2: Point2D } | null
     selectedEdgeIndex?: number | null
     selectedPointIndex?: number | null
@@ -26,9 +29,16 @@ const props = withDefaults(
     isMoveMode?: boolean
     isDraggingCanvas?: boolean
     isInteractiveDragging?: boolean
+    showLabelToggle?: boolean
+    drawingPoints?: Point2D[]
+    isNearStartPoint?: boolean
   }>(),
   {
     imageUrl: null,
+    hiddenShapes: () => [],
+    activeShapeIndex: 0,
+    hoveredShapeIndex: null,
+    allShapesEdges: () => [],
     previewPoint: null,
     previewNeighbors: null,
     selectedEdgeIndex: null,
@@ -40,24 +50,33 @@ const props = withDefaults(
     activeTool: 'select',
     isMoveMode: false,
     isDraggingCanvas: false,
-    isInteractiveDragging: false
+    isInteractiveDragging: false,
+    showLabelToggle: true,
+    drawingPoints: () => [],
+    isNearStartPoint: false,
   },
 )
 
 const emit = defineEmits<{
+  (e: 'activateShape', shapeIndex: number): void
+  (
+    e: 'activateAndDragPoint',
+    payload: { shapeIndex: number; pointIndex: number; event: MouseEvent },
+  ): void
+  (
+    e: 'activateAndSelectEdge',
+    payload: { shapeIndex: number; edgeIndex: number; event: MouseEvent },
+  ): void
+  (e: 'selectPoint', index: number): void
   (e: 'imageClick', point: Point2D, event: MouseEvent): void
   (e: 'canvasDragStart', event: MouseEvent): void
   (e: 'update:activeTool', tool: 'select' | 'pan'): void
   (e: 'update:zoomLevel', zoom: number): void
-  (e: 'selectEdge', index: number, event: MouseEvent): void
-  (e: 'selectPoint', index: number): void
-  (e: 'startDragPoint', index: number, event: MouseEvent): void
   (e: 'deleteSelected'): void
   (e: 'cancel'): void
   (e: 'imageLoaded', image: HTMLImageElement): void
   (e: 'update:canvasOffset', offset: { x: number; y: number }): void
 }>()
-
 
 defineExpose({
   getPointFromEvent: (e: MouseEvent) => spatialCanvasRef.value?.getPointFromEvent(e) ?? null,
@@ -66,7 +85,6 @@ defineExpose({
 
 <template>
   <div
-    ref="workspaceRef"
     class="flex-1 w-full h-[520px] max-h-[520px] bg-card border border-muted rounded-md p-4 relative overflow-hidden flex items-center justify-center select-none"
   >
     <div
@@ -84,9 +102,11 @@ defineExpose({
       <SpatialCanvas
         ref="spatialCanvasRef"
         :image-url="props.imageUrl"
-        :points="props.points"
-        :edges="props.edges"
-        :read-only="false"
+        :shapes="props.shapes"
+        :hidden-shapes="props.hiddenShapes"
+        :active-shape-index="props.activeShapeIndex"
+        :hovered-shape-index="props.hoveredShapeIndex"
+        :all-shapes-edges="props.allShapesEdges"
         :zoom-level="props.zoomLevel"
         :rotation="props.rotation"
         :canvas-offset="props.canvasOffset"
@@ -98,12 +118,14 @@ defineExpose({
         :is-move-mode="isMoveMode"
         :is-dragging-canvas="isDraggingCanvas"
         :is-interactive-dragging="isInteractiveDragging"
+        :drawing-points="props.drawingPoints"
+        :is-near-start-point="props.isNearStartPoint"
+        @activate-shape="(idx) => emit('activateShape', idx)"
+        @activate-and-drag-point="emit('activateAndDragPoint', $event)"
+        @activate-and-select-edge="emit('activateAndSelectEdge', $event)"
         @update:zoom-level="(z) => emit('update:zoomLevel', z)"
         @canvas-drag-start="(e) => emit('canvasDragStart', e)"
         @click-image="(point, ev) => emit('imageClick', point, ev)"
-        @select-point="(idx) => emit('selectPoint', idx)"
-        @select-edge="(idx, ev) => emit('selectEdge', idx, ev)"
-        @start-drag-point="(idx, ev) => emit('startDragPoint', idx, ev)"
         @image-loaded="(img) => emit('imageLoaded', img)"
         @update:canvas-offset="(offset) => emit('update:canvasOffset', offset)"
       >
@@ -113,6 +135,7 @@ defineExpose({
             v-model:show-labels="showLabels"
             :is-move-mode="props.isMoveMode"
             :can-delete="props.canDelete"
+            :show-label-toggle="props.showLabelToggle"
             @update:active-tool="(tool) => emit('update:activeTool', tool)"
             @delete-selected="emit('deleteSelected')"
           />

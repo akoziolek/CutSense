@@ -35,7 +35,7 @@ const router = useRouter()
 
 const { state: authState } = useAuth()
 
-// odświeżenie listy po zalogowaniu lub wylogowaniu
+// reaload after login/logout
 watch(
   () => authState.user,
   () => {
@@ -239,7 +239,7 @@ watch(
             Bring your designs to life. Upload a PDF or image file to add it to your library.
           </p>
           <Button as-child size="sm" class="mt-2 rounded-lg">
-            <RouterLink :to="{ name: 'pattern-new' }">Add your first pattern</RouterLink>
+            <RouterLink :to="{ name: 'PatternNew' }">Add your first pattern</RouterLink>
           </Button>
         </div>
 
@@ -249,7 +249,7 @@ watch(
             <ResourceCard
               v-for="pattern in data.items"
               :key="pattern.id"
-              :to="{ name: 'pattern-details', params: { id: pattern.id } }"
+              :to="{ name: 'PatternDetails', params: { id: pattern.id } }"
               :title="pattern.name"
               :meta="`${formatCardDate(pattern.createdAt)} • ${pattern.size}`"
               :is-favourite="pattern.isFavourite"
@@ -278,7 +278,7 @@ watch(
       </Transition>
     </div>
 
-    <FloatingButton :to="{ name: 'pattern-new' }" />
+    <FloatingButton :to="{ name: 'PatternNew' }" />
 
     <BulkDeleteControls
       base-path="/patterns"

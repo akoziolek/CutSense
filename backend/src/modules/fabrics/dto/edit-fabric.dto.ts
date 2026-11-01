@@ -1,4 +1,3 @@
-import { Transform } from 'class-transformer';
 import {
   IsArray,
   IsInt,
@@ -9,6 +8,7 @@ import {
   IsOptional,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { TransformJson } from '../../../common/decorators/transform-json.decorator.js';
 
 export class EditFabricDto {
   @ApiPropertyOptional({ example: 'Cotton canvas', maxLength: 35 })
@@ -34,15 +34,7 @@ export class EditFabricDto {
     example: '[1,2]',
   })
   @IsOptional()
-  @Transform(({ value }) => {
-    if (typeof value !== 'string') return value;
-    try {
-      const parsed: unknown = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed.map(Number) : parsed;
-    } catch {
-      return value;
-    }
-  })
+  @TransformJson()
   @IsArray()
   @IsInt({ each: true })
   @IsPositive({ each: true })

@@ -20,16 +20,21 @@ import {
   patternTags,
   patterns,
   tagsForPatterns,
-  patternFavourites,
 } from '../../db/schema/schema.js';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
+import { PatternTagDto } from './dto/pattern-tag.dto.js';
 import type { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { EditPatternDto } from './dto/edit-pattern.dto.js';
-import { PatternTagDto } from './dto/pattern-tag.dto.js';
 import { PatternsMapper } from './patterns.mapper.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
+import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
+import { rotateAndAnchor } from '../../common/geometry/shapes-geometry.js';
+import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';
+import { AnalysisShapesDto } from '../shapes-engine/dto/analysis-shapes.dto.js';
+import { ShapeEngineMapper } from '../shapes-engine/shapes-engine.mapper.js';
+import { ShapesEngineClient } from '../shapes-engine/shapes-engine.client.js';
+import { ShapeEngineResponseDto } from '../shapes-engine/dto/shapes-engine-response.dto.js';
 import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
-import { rotateAndAnchor } from './geometry.js';
 import { PatternListResponseDto } from './dto/pattern-list.dto.js';
 import {
   ListPatternsQueryDto,
@@ -37,28 +42,31 @@ import {
 } from './dto/list-patterns-query.dto.js';
 import { assertDateRange, likePattern } from '../../common/utils/list-query.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
+import { patternFavourites } from '../../db/schema/schema.js';
 import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 
 // identity ids start at 1, so this never matches a favourite row (used for guests)
 const NO_USER_ID = 0;
-
-const toWkt = (points: { x: number; y: number }[]): string => {
-  const ring = [...points];
-  const first = ring[0];
-  const last = ring[ring.length - 1];
-  if (first.x !== last.x || first.y !== last.y) ring.push(first);
-  return `POLYGON((${ring.map((p) => `${p.x} ${p.y}`).join(', ')}))`;
-};
-
-const ringOf = (geojson: string): [number, number][] =>
-  (JSON.parse(geojson) as { coordinates: [number, number][][] }).coordinates[0];
 
 @Injectable()
 export class PatternsService {
   constructor(
     @Inject(DRIZZLE)
     private readonly db: DrizzleDB,
+    private readonly shapesEngineClient: ShapesEngineClient,
   ) {}
+
+  async analyzePatternBoundary(
+    picture: Express.Multer.File,
+  ): Promise<AnalysisShapesDto> {
+    const engineResult = await this.shapesEngineClient.analyzeBoundary(
+      'analyze-pattern-boundary',
+      picture,
+      ShapeEngineResponseDto,
+    );
+
+    return ShapeEngineMapper.toAnalysisShapesDto(engineResult);
+  }
 
   async updatePattern(
     patternId: number,
@@ -173,40 +181,7 @@ export class PatternsService {
     if (pattern.visibility === 'PRIVATE' && pattern.userId !== currentUserId) {
       throw new ResourceNotFoundException('Pattern', patternId);
     }
-
-    return {
-      id: pattern.id,
-      name: pattern.name,
-      description: pattern.description ?? undefined,
-      size: pattern.size,
-      visibility: pattern.visibility,
-      isFavourite: pattern.favoritedBy.length > 0,
-      starCount: pattern.starCount,
-      starAverage: pattern.starAverage,
-      userId: pattern.userId,
-      createdAt: pattern.createdAt.toISOString(),
-      tags: pattern.tags.map((item) => ({
-        id: item.tag.id,
-        name: item.tag.name,
-      })),
-      author: {
-        id: pattern.user.id,
-        nickname: pattern.user.nickname ?? pattern.user.name,
-      },
-      pieces: pattern.pieces.map((piece) => ({
-        id: piece.id,
-        points: ringOf(piece.geojson),
-      })),
-    };
-  }
-
-  async getPatternTags(): Promise<PatternTagDto[]> {
-    const tags = await this.db.query.tagsForPatterns.findMany({
-      columns: { id: true, name: true },
-      orderBy: (tag, { asc }) => [asc(tag.name)],
-    });
-
-    return PatternsMapper.toTagDtos(tags);
+    return PatternsMapper.toResponseDto(pattern);
   }
 
   async createPattern(
@@ -251,7 +226,7 @@ export class PatternsService {
       await tx.insert(patternPieces).values(
         dto.pieces.map((piece) => ({
           patternId: created.id,
-          boundary: sql`ST_GeomFromText(${toWkt(rotateAndAnchor(piece.points, piece.grainline))}, 0)`,
+          boundary: sql`ST_GeomFromText(${PatternsMapper.pieceBoundaryToWkt(rotateAndAnchor(piece.points, piece.grainline))}, 0)`,
           normalCount: piece.normal,
           mirroredCount: piece.mirrored,
         })),
@@ -259,6 +234,15 @@ export class PatternsService {
 
       return { id: created.id };
     });
+  }
+
+  async getPatternTags(): Promise<PatternTagDto[]> {
+    const tags = await this.db.query.tagsForPatterns.findMany({
+      columns: { id: true, name: true },
+      orderBy: (tag, { asc }) => [asc(tag.name)],
+    });
+
+    return PatternsMapper.toTagDtos(tags);
   }
 
   private getOrderBy(sort: PatternSortOption): SQL[] {
@@ -309,14 +293,9 @@ export class PatternsService {
     ]);
 
     return {
-      items: rows.map((row) => ({
-        id: row.id,
-        name: row.name,
-        size: row.size,
-        isFavourite: row.isFavourite,
-        createdAt: row.createdAt.toISOString(),
-        isOwner: currentUserId !== undefined && row.userId === currentUserId,
-      })),
+      items: rows.map((row) =>
+        PatternsMapper.toListItemDto(row, currentUserId),
+      ),
       total,
       page,
       limit,
@@ -333,7 +312,10 @@ export class PatternsService {
       where: eq(patterns.id, patternId),
       columns: { id: true, userId: true, visibility: true },
     });
-    if (!pattern || (pattern.visibility === 'PRIVATE' && pattern.userId !== currentUserId)) {
+    if (
+      !pattern ||
+      (pattern.visibility === 'PRIVATE' && pattern.userId !== currentUserId)
+    ) {
       throw new ResourceNotFoundException('Pattern', patternId);
     }
 
@@ -345,7 +327,12 @@ export class PatternsService {
     } else {
       await this.db
         .delete(patternFavourites)
-        .where(and(eq(patternFavourites.patternId, patternId), eq(patternFavourites.userId, currentUserId)));
+        .where(
+          and(
+            eq(patternFavourites.patternId, patternId),
+            eq(patternFavourites.userId, currentUserId),
+          ),
+        );
     }
     return { id: patternId, isFavourite };
   }
@@ -357,7 +344,10 @@ export class PatternsService {
     const visible =
       currentUserId === undefined
         ? eq(patterns.visibility, 'PUBLIC')
-        : or(eq(patterns.visibility, 'PUBLIC'), eq(patterns.userId, currentUserId));
+        : or(
+            eq(patterns.visibility, 'PUBLIC'),
+            eq(patterns.userId, currentUserId),
+          );
 
     const favouriteIds =
       currentUserId !== undefined && favourite !== undefined
@@ -369,7 +359,9 @@ export class PatternsService {
 
     let favouriteFilter: SQL | undefined;
     if (favourite === true) {
-      favouriteFilter = favouriteIds ? inArray(patterns.id, favouriteIds) : sql`false`;
+      favouriteFilter = favouriteIds
+        ? inArray(patterns.id, favouriteIds)
+        : sql`false`;
     } else if (favourite === false && favouriteIds) {
       favouriteFilter = notInArray(patterns.id, favouriteIds);
     }
@@ -390,11 +382,16 @@ export class PatternsService {
       favouriteFilter,
       sizes?.length ? inArray(patterns.size, sizes) : undefined,
       withAnyTag ? inArray(patterns.id, withAnyTag) : undefined,
-      pattern ? or(ilike(patterns.name, pattern), ilike(patterns.description, pattern)) : undefined,
+      pattern
+        ? or(
+            ilike(patterns.name, pattern),
+            ilike(patterns.description, pattern),
+          )
+        : undefined,
     )!;
   }
 
-  async deletePattern(patternId: number, currentUserId: number): Promise<void> {
+    async deletePattern(patternId: number, currentUserId: number): Promise<void> {
     const [deleted] = await this.db
       .delete(patterns)
       .where(and(eq(patterns.id, patternId), eq(patterns.userId, currentUserId)))

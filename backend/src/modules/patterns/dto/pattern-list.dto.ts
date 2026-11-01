@@ -4,6 +4,8 @@ import { patternSizeEnum } from '../../../db/schema/schema.js';
 export type PatternSize = (typeof patternSizeEnum.enumValues)[number];
 
 export class PatternListItemDto {
+  isOwner!: boolean;
+  
   @ApiProperty({ description: 'Unique identifier of the pattern', example: 1 })
   id!: number;
 

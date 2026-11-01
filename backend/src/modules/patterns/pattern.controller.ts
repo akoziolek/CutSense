@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -37,6 +38,7 @@ import { PatternListResponseDto } from './dto/pattern-list.dto.js';
 import { ListPatternsQueryDto } from './dto/list-patterns-query.dto.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { SetFavouriteDto } from '../../common/dto/set-favourite.dto.js';
+import { BulkDeleteDto, BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')
@@ -195,5 +197,25 @@ export class PatternController {
     @OptionalUser() user?: AuthUser,
   ): Promise<PatternResponseDto> {
     return this.patternsService.getPatternById(patternId, user?.id ?? null);
+  }
+
+  @Delete(':id')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deletePattern(
+    @Param('id', ParseIntPipe) patternId: number,
+    @CurrentUser() user: { id: number },
+  ): Promise<void> {
+    return this.patternsService.deletePattern(patternId, user.id);
+  }
+
+  @Post('bulk-delete')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.OK)
+  async deletePatterns(
+    @Body() dto: BulkDeleteDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<BulkDeleteResponseDto> {
+    return this.patternsService.deletePatterns(dto.ids, user.id);
   }
 }

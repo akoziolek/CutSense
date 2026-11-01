@@ -37,6 +37,7 @@ import {
 } from './dto/list-patterns-query.dto.js';
 import { assertDateRange, likePattern } from '../../common/utils/list-query.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
+import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 
 // identity ids start at 1, so this never matches a favourite row (used for guests)
 const NO_USER_ID = 0;
@@ -290,6 +291,7 @@ export class PatternsService {
           size: patterns.size,
           createdAt: patterns.createdAt,
           isFavourite: sql<boolean>`${patternFavourites.userId} is not null`,
+          userId: patterns.userId,
         })
         .from(patterns)
         .leftJoin(
@@ -313,6 +315,7 @@ export class PatternsService {
         size: row.size,
         isFavourite: row.isFavourite,
         createdAt: row.createdAt.toISOString(),
+        isOwner: currentUserId !== undefined && row.userId === currentUserId,
       })),
       total,
       page,
@@ -389,5 +392,23 @@ export class PatternsService {
       withAnyTag ? inArray(patterns.id, withAnyTag) : undefined,
       pattern ? or(ilike(patterns.name, pattern), ilike(patterns.description, pattern)) : undefined,
     )!;
+  }
+
+  async deletePattern(patternId: number, currentUserId: number): Promise<void> {
+    const [deleted] = await this.db
+      .delete(patterns)
+      .where(and(eq(patterns.id, patternId), eq(patterns.userId, currentUserId)))
+      .returning({ id: patterns.id });
+
+    if (!deleted) throw new ResourceNotFoundException('Pattern', patternId);
+  }
+
+  async deletePatterns(ids: number[], currentUserId: number): Promise<BulkDeleteResponseDto> {
+    const deleted = await this.db
+      .delete(patterns)
+      .where(and(inArray(patterns.id, ids), eq(patterns.userId, currentUserId)))
+      .returning({ id: patterns.id });
+
+    return { deletedIds: deleted.map((p) => p.id) };
   }
 }

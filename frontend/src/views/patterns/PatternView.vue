@@ -24,6 +24,8 @@ import DetailsActions from '@/components/common/DetailsActions.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 import FavouriteButton from '@/components/common/FavouriteButton.vue'
+import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
+import { useDeleteResource } from '@/composables/useDeleteResource'
 
 interface Pattern {
   id: number
@@ -40,6 +42,11 @@ interface Pattern {
   pieces: PatternPiece[]
   isFavourite: boolean
 }
+
+const { confirmOpen, successOpen, isDeleting, error: deleteError, request: requestDelete,
+  confirm: confirmDelete, closeSuccess } = useDeleteResource({
+  basePath: '/patterns', noun: 'pattern', redirectTo: '/patterns', getId: () => props.id,
+})
 
 const props = defineProps<{ id: string }>()
 
@@ -145,6 +152,7 @@ watch(
             <DetailsActions
               v-if="isOwner"
               :edit-to="{ name: 'PatternEdit', params: { id: props.id } }"
+              @delete="requestDelete"
             />
           </div>
         </template>
@@ -230,5 +238,19 @@ watch(
         </main>
       </Transition>
     </div>
+
+    <DeleteDialogs
+      :confirm-open="confirmOpen"
+      :success-open="successOpen"
+      :is-deleting="isDeleting"
+      :error="deleteError"
+      :title="`Delete ${pattern?.name ?? 'this pattern'}?`"
+      description="This action cannot be undone and will permanently remove all associated optimizations."
+      success-title="Pattern deleted"
+      success-description="The pattern and its optimizations were deleted."
+      @confirm="confirmDelete"
+      @cancel="confirmOpen = false"
+      @close-success="closeSuccess"
+    />
   </GridLayout>
 </template>

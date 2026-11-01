@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { api, ApiError } from '@/api/client'
 
-export function useBulkDeleteFabrics(getIds: () => number[], onFinished: () => void) {
+export function useBulkDelete(basePath: string, getIds: () => number[], onFinished: () => void) {
   const confirmOpen = ref(false)
   const successOpen = ref(false)
   const isDeleting = ref(false)
@@ -19,20 +19,19 @@ export function useBulkDeleteFabrics(getIds: () => number[], onFinished: () => v
     isDeleting.value = true
     error.value = ''
     try {
-      const { deletedIds } = await api<{ deletedIds: number[] }>('/fabrics/bulk-delete', {
+      const { deletedIds } = await api<{ deletedIds: number[] }>(`${basePath}/bulk-delete`, {
         method: 'POST',
         body: JSON.stringify({ ids: getIds() }),
       })
       if (!deletedIds.length) {
-        error.value = 'None of the selected fabrics could be deleted. They may have been removed already.'
+        error.value = 'None of the selected items could be deleted. They may have been removed already.'
         return
       }
       deletedCount.value = deletedIds.length
       confirmOpen.value = false
       successOpen.value = true
     } catch (e) {
-      error.value =
-        e instanceof ApiError ? e.body.message : 'Could not delete the fabrics. Please try again.'
+      error.value = e instanceof ApiError ? e.body.message : 'Could not delete the items. Please try again.'
     } finally {
       isDeleting.value = false
     }

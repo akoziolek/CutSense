@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import { ApiError, api } from '@/api/client'
-import { useDeleteFabric } from './useDeleteFabric'
+import { useDeleteFabric } from '../useDeleteResource'
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }))
 vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }))

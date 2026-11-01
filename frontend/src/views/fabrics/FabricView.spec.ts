@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, api } from '@/api/client'
 import type { MetaItem } from '@/components/common/DetailsCard.vue'
 import type { NameTag } from '@/types/fabric'
+import type { Point2D } from '@/types/geometry'
 import FabricView from './FabricView.vue'
 
 vi.mock('@/api/client', async (importOriginal) => {
@@ -24,14 +25,14 @@ const ImagePreviewStub = defineComponent({
   props: {
     src: String,
     alt: String,
-    points: { type: Array as PropType<{ pctX: number; pctY: number }[]>, default: () => [] },
+    shapes: { type: Array as PropType<Point2D[][]>, default: () => [] },
   },
   setup(props) {
     return () =>
       h('img', {
         src: props.src,
         alt: props.alt,
-        'data-points': JSON.stringify(props.points),
+        'data-shapes': JSON.stringify(props.shapes),
       })
   },
 })
@@ -112,15 +113,17 @@ const fabric = {
     { id: 2, name: 'natural' },
   ],
   createdAt: '2025-02-03T00:00:00.000Z',
-  area: 12.5,
-  boundary: [
-    { x: 10, y: 40 },
-    { x: 50, y: 40 },
-    { x: 50, y: 20 },
-    { x: 10, y: 20 },
+  areaMm2: 12_500_000,
+  shapes: [
+    [
+      { x: 100, y: 400 },
+      { x: 500, y: 400 },
+      { x: 500, y: 200 },
+      { x: 100, y: 200 },
+    ],
   ],
-  imageWidthCm: 100,
-  imageHeightCm: 80,
+  imageWidthMm: 1000,
+  imageHeightMm: 800,
 }
 
 afterEach(() => {
@@ -141,11 +144,13 @@ describe('FabricView', () => {
       src: fabric.pictureUrl,
       alt: fabric.name,
     })
-    expect(JSON.parse(wrapper.get('img').attributes('data-points') ?? '[]')).toEqual([
-      { pctX: 10, pctY: 50 },
-      { pctX: 50, pctY: 50 },
-      { pctX: 50, pctY: 75 },
-      { pctX: 10, pctY: 75 },
+    expect(JSON.parse(wrapper.get('img').attributes('data-shapes') ?? '[]')).toEqual([
+      [
+        { pctX: 10, pctY: 50 },
+        { pctX: 50, pctY: 50 },
+        { pctX: 50, pctY: 75 },
+        { pctX: 10, pctY: 75 },
+      ],
     ])
     expect(wrapper.findComponent(DetailsCardStub).props('tags')).toEqual(fabric.tags)
     expect(wrapper.text()).toContain(fabric.description)

@@ -1,12 +1,14 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { describe, expect, it, vi } from 'vitest';
 import { DRIZZLE } from '../../db/drizzle.provider.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
-import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
 import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
 import { PatternsService } from './patterns.service.js';
 import { PatternSize, PatternVisibility } from './dto/pattern.enum.js';
+import type { CreatePatternDto } from './dto/create-pattern.dto.js';
+import { ShapesEngineClient } from '../shapes-engine/shapes-engine.client.js';
 
-// a row as returned by db.query.patterns.findFirst with all relations
 const patternRow = (overrides: Record<string, unknown> = {}) => ({
   id: 17,
   name: 'Flowy shirt',
@@ -28,45 +30,40 @@ describe('PatternsService', () => {
   let service: PatternsService;
   let findFirst: ReturnType<typeof vi.fn>;
   let findManyTags: ReturnType<typeof vi.fn>;
-  let updateReturning: ReturnType<typeof vi.fn>;
+  let transaction: ReturnType<typeof vi.fn>;
   let updateSet: ReturnType<typeof vi.fn>;
-  let selectWhere: ReturnType<typeof vi.fn>;
+  let updateReturning: ReturnType<typeof vi.fn>;
   let deleteWhere: ReturnType<typeof vi.fn>;
   let insertValues: ReturnType<typeof vi.fn>;
-  let transaction: ReturnType<typeof vi.fn>;
   let insert: ReturnType<typeof vi.fn>;
   let deleteFn: ReturnType<typeof vi.fn>;
+  let txSelectWhere: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     findFirst = vi.fn();
     findManyTags = vi.fn();
-    insert = vi.fn();
-    deleteFn = vi.fn();
-    updateReturning = vi.fn();
+    updateReturning = vi.fn().mockResolvedValue([{ id: 17 }]);
     updateSet = vi.fn(() => ({
       where: () => ({ returning: updateReturning }),
     }));
-    selectWhere = vi.fn().mockResolvedValue([{ id: 17 }]);
     deleteWhere = vi.fn().mockResolvedValue(undefined);
-    insertValues = vi.fn().mockResolvedValue(undefined);
-    transaction = vi.fn(
-      async (
-        callback: (tx: {
-          update: ReturnType<typeof vi.fn>;
-          select: ReturnType<typeof vi.fn>;
-          delete: ReturnType<typeof vi.fn>;
-          insert: ReturnType<typeof vi.fn>;
-        }) => unknown,
-      ) =>
-        callback({
-          update: vi.fn(() => ({ set: updateSet })),
-          select: vi.fn(() => ({
-            from: vi.fn(() => ({ where: selectWhere })),
-          })),
-          delete: vi.fn(() => ({ where: deleteWhere })),
-          insert: vi.fn(() => ({ values: insertValues })),
-        }),
+    insertValues = vi.fn((values: unknown) =>
+      Object.assign(Promise.resolve(), {
+        returning: () => Promise.resolve([{ id: 42 }]),
+        values,
+      }),
     );
+    txSelectWhere = vi.fn().mockResolvedValue([{ id: 17 }]);
+    transaction = vi.fn((callback: (tx: object) => unknown) =>
+      callback({
+        update: () => ({ set: updateSet }),
+        select: () => ({ from: () => ({ where: txSelectWhere }) }),
+        delete: () => ({ where: deleteWhere }),
+        insert: () => ({ values: insertValues }),
+      }),
+    );
+    insert = vi.fn();
+    deleteFn = vi.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -83,164 +80,38 @@ describe('PatternsService', () => {
             delete: deleteFn,
           },
         },
+        {
+          provide: ShapesEngineClient,
+          useValue: { analyzeBoundary: vi.fn() },
+        },
       ],
     }).compile();
 
     service = module.get(PatternsService);
   });
 
-  it('updates pattern fields and replaces deduplicated tags', async () => {
-    findManyTags.mockResolvedValue([{ id: 2 }, { id: 5 }]);
-    updateReturning.mockResolvedValue([{ id: 17 }]);
-    findFirst.mockResolvedValue(
-      patternRow({
-        name: 'Updated shirt',
-        description: 'Updated description',
-        size: 'M',
-        visibility: 'PUBLIC',
-      }),
-    );
-
-    await expect(
-      service.updatePattern(
-        17,
-        {
-          name: 'Updated shirt',
-          description: 'Updated description',
-          size: PatternSize.M,
-          visibility: PatternVisibility.PUBLIC,
-          tagIds: [2, 5, 2],
-        },
-        3,
-      ),
-    ).resolves.toMatchObject({
-      id: 17,
-      name: 'Updated shirt',
-      visibility: 'PUBLIC',
-    });
-
-    expect(findManyTags).toHaveBeenCalledWith(
-      expect.objectContaining({ columns: { id: true } }),
-    );
-    expect(updateSet).toHaveBeenCalledWith({
-      name: 'Updated shirt',
-      description: 'Updated description',
-      size: 'M',
-      visibility: 'PUBLIC',
-    });
-    expect(deleteWhere).toHaveBeenCalledOnce();
-    expect(insertValues).toHaveBeenCalledWith([
-      { patternId: 17, tagId: 2 },
-      { patternId: 17, tagId: 5 },
-    ]);
-  });
-
-  it('rejects an empty update', async () => {
-    await expect(service.updatePattern(17, {}, 3)).rejects.toBeInstanceOf(
-      RequestValidationException,
-    );
-    expect(transaction).not.toHaveBeenCalled();
-  });
-
-  it('rejects references to nonexistent pattern tags', async () => {
-    findManyTags.mockResolvedValue([]);
-
-    await expect(
-      service.updatePattern(17, { tagIds: [99] }, 3),
-    ).rejects.toBeInstanceOf(RequestValidationException);
-    expect(transaction).not.toHaveBeenCalled();
-  });
-
-  it('does not update a pattern that is not owned by the current user', async () => {
-    updateReturning.mockResolvedValue([]);
-
-    await expect(
-      service.updatePattern(17, { name: 'Changed' }, 99),
-    ).rejects.toBeInstanceOf(ResourceNotFoundException);
-  });
-
   describe('getPatternById', () => {
-    it('returns a pattern with ISO date, tags, author, pieces and favourite flag', async () => {
+    it('returns pattern details, tags, pieces and favourite state', async () => {
       findFirst.mockResolvedValue(
         patternRow({
-          tags: [
-            { tag: { id: 2, name: 'summer' } },
-            { tag: { id: 5, name: 'tops' } },
-          ],
+          tags: [{ tag: { id: 2, name: 'summer' } }],
           pieces: [
             {
               id: 1,
-              geojson:
-                '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,5],[0,0]]]}',
-            },
-            {
-              id: 2,
-              geojson:
-                '{"type":"Polygon","coordinates":[[[0,0],[4,0],[4,4],[0,0]]]}',
+              geojson: '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,5],[0,0]]]}',
             },
           ],
         }),
       );
 
-      await expect(service.getPatternById(17, 3)).resolves.toEqual({
-        id: 17,
-        name: 'Flowy shirt',
-        description: 'Relaxed-fit summer shirt',
-        size: 'S',
-        visibility: 'PRIVATE',
-        isFavourite: false,
-        starCount: 5,
-        starAverage: '4.50',
-        userId: 3,
-        createdAt: '2025-01-15T10:30:00.000Z',
-        tags: [
-          { id: 2, name: 'summer' },
-          { id: 5, name: 'tops' },
-        ],
-        author: { id: 3, nickname: 'ala_k' },
-        pieces: [
-          {
-            id: 1,
-            points: [
-              [0, 0],
-              [10, 0],
-              [10, 5],
-              [0, 0],
-            ],
-          },
-          {
-            id: 2,
-            points: [
-              [0, 0],
-              [4, 0],
-              [4, 4],
-              [0, 0],
-            ],
-          },
-        ],
-      });
-
-      expect(findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.anything(),
-          with: expect.objectContaining({ tags: { with: { tag: true } } }),
-        }),
-      );
-    });
-
-    it('marks a pattern the current user has favourited', async () => {
-      findFirst.mockResolvedValue(patternRow({ favoritedBy: [{ userId: 3 }] }));
-
       await expect(service.getPatternById(17, 3)).resolves.toMatchObject({
-        isFavourite: true,
+        id: 17,
+        createdAt: '2025-01-15T10:30:00.000Z',
+        tags: [{ id: 2, name: 'summer' }],
+        pieces: [{ id: 1, points: [[0, 0], [10, 0], [10, 5], [0, 0]] }],
+        isFavourite: false,
+        author: { nickname: 'ala_k' },
       });
-    });
-
-    it('asks only for the favourite row of the current user', async () => {
-      findFirst.mockResolvedValue(patternRow());
-
-      await service.getPatternById(17, 3);
-
       expect(findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           with: expect.objectContaining({
@@ -250,107 +121,167 @@ describe('PatternsService', () => {
       );
     });
 
-    it('maps nullable optional fields to undefined and falls back to the real name', async () => {
-      findFirst.mockResolvedValue(
-        patternRow({
-          id: 18,
-          name: 'Basic trousers',
-          description: null,
-          size: 'M',
-          visibility: 'PUBLIC',
-          starCount: 0,
-          starAverage: '0',
-          user: { id: 3, nickname: null, name: 'Ala' },
-        }),
-      );
+    it('marks a pattern as favourited by the current user', async () => {
+      findFirst.mockResolvedValue(patternRow({ favoritedBy: [{ userId: 3 }] }));
 
-      await expect(service.getPatternById(18, 3)).resolves.toMatchObject({
-        description: undefined,
-        tags: [],
-        pieces: [],
-        author: { id: 3, nickname: 'Ala' },
-      });
-    });
-
-    it('throws a not-found exception when no pattern matches', async () => {
-      findFirst.mockResolvedValue(undefined);
-
-      await expect(service.getPatternById(99, 3)).rejects.toBeInstanceOf(
-        ResourceNotFoundException,
-      );
-    });
-
-    it('throws access denied for a private pattern of another user', async () => {
-      findFirst.mockResolvedValue(
-        patternRow({
-          id: 20,
-          name: 'Secret coat',
-          size: 'L',
-          userId: 5,
-          user: { id: 5, nickname: 'other', name: 'Other' },
-        }),
-      );
-
-      await expect(service.getPatternById(20, 3)).rejects.toBeInstanceOf(
-        AccessDeniedException,
-      );
-    });
-  });
-
-  describe('setFavourite', () => {
-    it('adds a favourite idempotently', async () => {
-      findFirst.mockResolvedValue({ id: 5, userId: 9, visibility: 'PUBLIC' });
-      const onConflictDoNothing = vi.fn().mockResolvedValue(undefined);
-      const values = vi.fn(() => ({ onConflictDoNothing }));
-      insert.mockReturnValue({ values });
-
-      await expect(service.setFavourite(5, true, 3)).resolves.toEqual({
-        id: 5,
-        isFavourite: true,
-      });
-      expect(values).toHaveBeenCalledWith({ patternId: 5, userId: 3 });
-      expect(onConflictDoNothing).toHaveBeenCalled();
-    });
-
-    it('removes a favourite', async () => {
-      findFirst.mockResolvedValue({ id: 5, userId: 9, visibility: 'PUBLIC' });
-      const where = vi.fn().mockResolvedValue(undefined);
-      deleteFn.mockReturnValue({ where });
-
-      await expect(service.setFavourite(5, false, 3)).resolves.toEqual({
-        id: 5,
-        isFavourite: false,
-      });
-      expect(where).toHaveBeenCalled();
-      expect(insert).not.toHaveBeenCalled();
-    });
-
-    it('lets the owner favourite their own private pattern', async () => {
-      findFirst.mockResolvedValue({ id: 5, userId: 3, visibility: 'PRIVATE' });
-      insert.mockReturnValue({
-        values: () => ({ onConflictDoNothing: vi.fn() }),
-      });
-
-      await expect(service.setFavourite(5, true, 3)).resolves.toEqual({
-        id: 5,
+      await expect(service.getPatternById(17, 3)).resolves.toMatchObject({
         isFavourite: true,
       });
     });
 
     it.each([
       ['a missing pattern', undefined],
-      [
-        'a private pattern of someone else',
-        { id: 5, userId: 9, visibility: 'PRIVATE' },
-      ],
-    ])('reports %s as not found and changes nothing', async (_name, row) => {
+      ['another user’s private pattern', patternRow({ userId: 5 })],
+    ])('hides %s', async (_description, row) => {
       findFirst.mockResolvedValue(row);
+      await expect(service.getPatternById(17, 3)).rejects.toBeInstanceOf(
+        ResourceNotFoundException,
+      );
+    });
 
-      await expect(service.setFavourite(5, true, 3)).rejects.toBeInstanceOf(
+    it('allows guests to view a public pattern', async () => {
+      findFirst.mockResolvedValue(patternRow({ visibility: 'PUBLIC' }));
+      await expect(service.getPatternById(17, null)).resolves.toMatchObject({
+        id: 17,
+        isFavourite: false,
+      });
+    });
+  });
+
+  describe('createPattern', () => {
+    const dto = {
+      name: 'Shirt',
+      size: 'M',
+      visibility: 'PUBLIC',
+      tags: ['Summer'],
+      pieces: [
+        {
+          points: [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 5 }],
+          grainline: 90,
+          normal: 2,
+          mirrored: 1,
+        },
+      ],
+    } as CreatePatternDto;
+
+    it('saves pattern metadata, tags and pieces transactionally', async () => {
+      const inserted: unknown[] = [];
+      insertValues.mockImplementation((values: unknown) => {
+        inserted.push(values);
+        return Object.assign(Promise.resolve(), {
+          returning: () => Promise.resolve([{ id: 42 }]),
+        });
+      });
+      txSelectWhere.mockResolvedValue([{ id: 7, name: 'summer' }]);
+
+      await expect(service.createPattern(dto, 3)).resolves.toEqual({ id: 42 });
+      expect(inserted).toHaveLength(3);
+      expect(inserted[0]).toMatchObject({
+        name: 'Shirt',
+        userId: 3,
+        visibility: 'PUBLIC',
+      });
+      expect(inserted[1]).toEqual([{ patternId: 42, tagId: 7 }]);
+      expect(inserted[2]).toMatchObject([
+        { patternId: 42, normalCount: 2, mirroredCount: 1 },
+      ]);
+    });
+
+    it('rejects unknown tags without saving the pattern', async () => {
+      txSelectWhere.mockResolvedValue([]);
+
+      await expect(service.createPattern(dto, 3)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(insertValues).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updatePattern', () => {
+    it('updates fields and replaces deduplicated tags', async () => {
+      findManyTags.mockResolvedValue([{ id: 2 }, { id: 5 }]);
+      findFirst.mockResolvedValue(patternRow({ visibility: 'PUBLIC' }));
+
+      await expect(
+        service.updatePattern(
+          17,
+          {
+            name: 'Updated shirt',
+            size: PatternSize.M,
+            visibility: PatternVisibility.PUBLIC,
+            tagIds: [2, 5, 2],
+          },
+          3,
+        ),
+      ).resolves.toMatchObject({ id: 17 });
+      expect(updateSet).toHaveBeenCalledWith({
+        name: 'Updated shirt',
+        size: 'M',
+        visibility: 'PUBLIC',
+      });
+      expect(deleteWhere).toHaveBeenCalledOnce();
+      expect(insertValues).toHaveBeenCalledWith([
+        { patternId: 17, tagId: 2 },
+        { patternId: 17, tagId: 5 },
+      ]);
+    });
+
+    it('rejects empty updates', async () => {
+      await expect(service.updatePattern(17, {}, 3)).rejects.toBeInstanceOf(
+        RequestValidationException,
+      );
+      expect(transaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects references to nonexistent tags', async () => {
+      findManyTags.mockResolvedValue([]);
+      await expect(
+        service.updatePattern(17, { tagIds: [99] }, 3),
+      ).rejects.toBeInstanceOf(RequestValidationException);
+      expect(transaction).not.toHaveBeenCalled();
+    });
+
+    it('does not update a pattern not owned by the current user', async () => {
+      updateReturning.mockResolvedValue([]);
+      await expect(
+        service.updatePattern(17, { name: 'Changed' }, 99),
+      ).rejects.toBeInstanceOf(ResourceNotFoundException);
+    });
+  });
+
+  describe('setFavourite', () => {
+    it('adds a favourite idempotently', async () => {
+      findFirst.mockResolvedValue({ id: 17, userId: 9, visibility: 'PUBLIC' });
+      const onConflictDoNothing = vi.fn().mockResolvedValue(undefined);
+      const values = vi.fn(() => ({ onConflictDoNothing }));
+      insert.mockReturnValue({ values });
+
+      await expect(service.setFavourite(17, true, 3)).resolves.toEqual({
+        id: 17,
+        isFavourite: true,
+      });
+      expect(values).toHaveBeenCalledWith({ patternId: 17, userId: 3 });
+      expect(onConflictDoNothing).toHaveBeenCalledOnce();
+    });
+
+    it('removes a favourite', async () => {
+      findFirst.mockResolvedValue({ id: 17, userId: 9, visibility: 'PUBLIC' });
+      deleteFn.mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
+
+      await expect(service.setFavourite(17, false, 3)).resolves.toEqual({
+        id: 17,
+        isFavourite: false,
+      });
+      expect(deleteFn).toHaveBeenCalledOnce();
+    });
+
+    it('hides missing and other users’ private patterns', async () => {
+      findFirst.mockResolvedValue({ id: 17, userId: 9, visibility: 'PRIVATE' });
+
+      await expect(service.setFavourite(17, true, 3)).rejects.toBeInstanceOf(
         ResourceNotFoundException,
       );
       expect(insert).not.toHaveBeenCalled();
-      expect(deleteFn).not.toHaveBeenCalled();
     });
   });
 

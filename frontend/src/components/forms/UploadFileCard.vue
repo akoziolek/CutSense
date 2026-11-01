@@ -1,14 +1,42 @@
 <script setup lang="ts">
-import { ref, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
-import { UploadCloud, FileImage, RefreshCw } from 'lucide-vue-next'
+import {
+  UploadCloud,
+  FileImage,
+  RefreshCw,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+} from 'lucide-vue-next'
 
-const file = defineModel<File | null>({ default: null })
+interface Props {
+  multiple?: boolean
+  maxSizeMb?: number
+  maxFiles?: number
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  multiple: false,
+  maxSizeMb: 5,
+  maxFiles: 10,
+})
+
+const model = defineModel<File | File[] | null>({ default: null })
 
 const fileInputRef = ref<HTMLInputElement | null>(null)
-const previewUrl = ref<string | null>(null)
 const isDragging = ref(false)
+const activeIndex = ref(0)
+const previewUrls = ref<string[]>([])
+
+const files = computed<File[]>(() => {
+  if (!model.value) return []
+  return Array.isArray(model.value) ? model.value : [model.value]
+})
+
+const currentFile = computed<File | null>(() => files.value[activeIndex.value] ?? null)
 
 const formatBytes = (bytes: number) => {
   if (bytes === 0) return '0 Bytes'
@@ -18,59 +46,110 @@ const formatBytes = (bytes: number) => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
 }
 
-watch(
-  file,
-  (newFile) => {
-    const oldUrl = previewUrl.value
-    if (newFile) {
-      previewUrl.value = URL.createObjectURL(newFile)
-    } else {
-      previewUrl.value = null
-    }
+const cleanupUrls = () => {
+  previewUrls.value.forEach((url) => URL.revokeObjectURL(url))
+  previewUrls.value = []
+}
 
-    if (oldUrl) {
-      URL.revokeObjectURL(oldUrl)
+watch(
+  files,
+  (newFiles) => {
+    cleanupUrls()
+    previewUrls.value = newFiles.map((file) => URL.createObjectURL(file))
+
+    if (activeIndex.value >= newFiles.length) {
+      activeIndex.value = Math.max(0, newFiles.length - 1)
     }
   },
-  { immediate: true },
+  { immediate: true, deep: true },
 )
 
-const processFile = (selectedFile: File) => {
-  if (!selectedFile.type.startsWith('image/')) {
-    toast.error('Invalid file format', {
-      description: 'Selected file must be an image (JPG, PNG, WEBP).',
-    })
-    return
+const updateModel = (updatedFiles: File[]) => {
+  if (props.multiple) {
+    model.value = updatedFiles
+  } else {
+    model.value = updatedFiles[0] ?? null
   }
+}
 
-  if (selectedFile.size > 5 * 1024 * 1024) {
-    toast.error('File too large', {
-      description: 'Maximum allowed file size is 5 MB.',
-    })
-    return
+const processFiles = (incomingFiles: FileList | File[]) => {
+  const validFiles: File[] = []
+  const maxBytes = props.maxSizeMb * 1024 * 1024
+
+  Array.from(incomingFiles).forEach((file) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Invalid file format', {
+        description: `${file.name} is not an image (JPG, PNG, WEBP).`,
+      })
+      return
+    }
+
+    if (file.size > maxBytes) {
+      toast.error('File too large', {
+        description: `${file.name} exceeds allowed limit of ${props.maxSizeMb} MB.`,
+      })
+      return
+    }
+
+    validFiles.push(file)
+  })
+
+  if (validFiles.length === 0) return
+
+  if (props.multiple) {
+    const isInitialUpload = files.value.length === 0
+    const combined = [...files.value, ...validFiles]
+    if (combined.length > props.maxFiles) {
+      toast.error('Too many files', {
+        description: `Maximum allowed files limit is ${props.maxFiles}.`,
+      })
+      updateModel(combined.slice(0, props.maxFiles))
+    } else {
+      updateModel(combined)
+    }
+    if (isInitialUpload) {
+      activeIndex.value = 0
+    }
+  } else {
+    const firstFile = validFiles[0]
+    if (!firstFile) return
+    updateModel([firstFile])
+    activeIndex.value = 0
   }
-
-  file.value = selectedFile
 }
 
 const handleFileChange = (e: Event) => {
   const target = e.target as HTMLInputElement
-  if (target.files && target.files[0]) {
-    processFile(target.files[0])
+  if (target.files && target.files.length > 0) {
+    processFiles(target.files)
+    target.value = ''
   }
 }
 
 const handleDrop = (e: DragEvent) => {
   isDragging.value = false
-  if (e.dataTransfer?.files && e.dataTransfer.files[0]) {
-    processFile(e.dataTransfer.files[0])
+  if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+    processFiles(e.dataTransfer.files)
   }
 }
 
+const removeImage = (indexToRemove: number) => {
+  const updated = files.value.filter((_, idx) => idx !== indexToRemove)
+  updateModel(updated)
+}
+
+const prevImage = () => {
+  if (files.value.length === 0) return
+  activeIndex.value = (activeIndex.value - 1 + files.value.length) % files.value.length
+}
+
+const nextImage = () => {
+  if (files.value.length === 0) return
+  activeIndex.value = (activeIndex.value + 1) % files.value.length
+}
+
 onUnmounted(() => {
-  if (previewUrl.value) {
-    URL.revokeObjectURL(previewUrl.value)
-  }
+  cleanupUrls()
 })
 </script>
 
@@ -80,12 +159,13 @@ onUnmounted(() => {
       ref="fileInputRef"
       type="file"
       accept="image/*"
+      :multiple="props.multiple"
       class="hidden"
       @change="handleFileChange"
     />
 
     <div
-      v-if="!file"
+      v-if="files.length === 0"
       @dragover.prevent="isDragging = true"
       @dragleave.prevent="isDragging = false"
       @drop.prevent="handleDrop"
@@ -111,7 +191,8 @@ onUnmounted(() => {
           Click to upload <span class="font-normal text-muted-foreground">or drag & drop</span>
         </p>
         <p class="text-xs text-muted-foreground">
-          High-resolution fabric photo (PNG, JPG, WEBP up to 5MB)
+          {{ props.multiple ? 'High-resolution photos' : 'High-resolution photo' }}
+          (PNG, JPG, WEBP up to {{ props.maxSizeMb }}MB)
         </p>
       </div>
     </div>
@@ -121,41 +202,116 @@ onUnmounted(() => {
       class="relative w-full rounded-2xl border border-muted bg-card shadow-sm overflow-hidden"
     >
       <div
-        class="relative w-full min-h-[250px] max-h-[40vh] bg-muted/20 overflow-hidden flex items-center justify-center group"
+        class="relative w-full h-[280px] sm:h-[360px] md:h-[340px] bg-muted/20 overflow-hidden flex items-center justify-center group select-none shrink-0"
       >
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          class="absolute top-3 right-3 z-10 p-5 h-8 w-8 bg-destructive/10 rounded-lg transition-colors cursor-pointer text-destructive hover:bg-destructive/15 hover:text-destructive"
+          title="Remove image"
+          @click.stop="removeImage(activeIndex)"
+        >
+          <Trash2 class="h-4 w-4" />
+          <span class="sr-only">Delete selected</span>
+        </Button>
+        <div
+          v-if="props.multiple && files.length > 1"
+          class="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-lg bg-background/80 backdrop-blur-md shadow-sm text-xs font-semibold text-foreground"
+        >
+          {{ activeIndex + 1 }} / {{ files.length }}
+        </div>
+
+        <template v-if="files.length > 1">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            class="absolute left-3 z-10 h-9 w-9 bg-secondary hover:bg-(--secondary)/80 text-foreground border-none shadow-none rounded-full cursor-pointer"
+            @click.stop="prevImage"
+          >
+            <ChevronLeft class="w-5 h-5" />
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            class="absolute right-3 z-10 h-9 w-9 bg-secondary hover:bg-(--secondary)/80 text-foreground border-none shadow-none rounded-full cursor-pointer"
+            @click.stop="nextImage"
+          >
+            <ChevronRight class="w-5 h-5" />
+          </Button>
+        </template>
+
         <img
-          v-if="previewUrl"
-          :src="previewUrl"
-          :alt="file.name"
-          class="max-w-full max-h-[55vh] w-auto h-auto object-contain rounded-lg block"
+          v-if="previewUrls[activeIndex]"
+          :src="previewUrls[activeIndex]"
+          :alt="currentFile?.name"
+          class="w-full h-full object-contain p-3 block"
         />
         <div v-else class="flex flex-col items-center text-muted-foreground p-6">
           <FileImage class="h-12 w-12 mb-2 stroke-1" />
           <span class="text-xs">No preview available</span>
         </div>
       </div>
-
       <div class="p-4 sm:p-5 flex items-center justify-between gap-4 border-t border-muted bg-card">
-        <div class="flex items-center gap-3 min-w-0">
+        <div v-if="currentFile" class="flex items-center gap-3 min-w-0">
           <div class="p-2.5 rounded-xl bg-muted/30 text-primary shrink-0">
             <FileImage class="h-5 w-5" />
           </div>
           <div class="truncate">
-            <p class="text-sm font-semibold text-foreground truncate">{{ file.name }}</p>
-            <p class="text-xs text-muted-foreground">{{ formatBytes(file.size) }}</p>
+            <p class="text-sm font-semibold text-foreground truncate">
+              {{ currentFile.name }}
+            </p>
+            <p class="text-xs text-muted-foreground">{{ formatBytes(currentFile.size) }}</p>
           </div>
         </div>
 
-        <Button
+        <div class="flex items-center gap-2 shrink-0">
+          <Button
+            v-if="props.multiple && files.length < props.maxFiles"
+            type="button"
+            variant="outline"
+            size="sm"
+            class="text-xs font-medium font-inter rounded-md bg-white hover:bg-white hover:-translate-y-0.5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer"
+            @click="fileInputRef?.click()"
+          >
+            <Plus class="w-3.5 h-3.5" />
+            Add photos
+          </Button>
+
+          <Button
+            v-else-if="!props.multiple"
+            type="button"
+            variant="outline"
+            size="sm"
+            class="text-xs font-medium rounded-md bg-white hover:bg-white hover:-translate-y-0.5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer"
+            @click="fileInputRef?.click()"
+          >
+            <RefreshCw class="w-3.5 h-3.5 mr-1.5" />
+            Change photo
+          </Button>
+        </div>
+      </div>
+      <div
+        v-if="props.multiple && files.length > 1"
+        class="flex items-center gap-2 p-3 overflow-x-auto border-t border-muted bg-muted/10 scrollbar-thin"
+      >
+        <button
+          v-for="(url, idx) in previewUrls"
+          :key="idx"
           type="button"
-          variant="outline"
-          size="sm"
-          class="shrink-0 text-xs font-medium rounded-md bg-white hover:bg-white hover:-translate-y-0.5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer"
-          @click="fileInputRef?.click()"
+          @click="activeIndex = idx"
+          :class="[
+            'relative h-14 w-14 rounded-lg overflow-hidden shrink-0 border-2 transition-all cursor-pointer',
+            activeIndex === idx
+              ? 'border-primary ring-2 ring-primary/20 scale-105'
+              : 'border-transparent opacity-60 hover:opacity-100',
+          ]"
         >
-          <RefreshCw class="w-3.5 h-3.5 mr-1.5" />
-          Change photo
-        </Button>
+          <img :src="url" :alt="files[idx]?.name" class="w-full h-full object-cover" />
+        </button>
       </div>
     </div>
   </div>

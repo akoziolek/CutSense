@@ -3,8 +3,8 @@ import { Transform } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsBoolean, IsEnum, IsIn, IsOptional } from 'class-validator';
 import { patternSizeEnum } from '../../../db/schema/schema.js';
 import { FilterableListQueryDto } from '../../../common/dto/base-list-query.dto.js';
+import { PatternSize } from './pattern.enum.js';
 
-export type PatternSize = (typeof patternSizeEnum.enumValues)[number];
 
 export enum PatternSortOption {
   NAME_ASC = 'name_asc',
@@ -16,22 +16,32 @@ export enum PatternSortOption {
 export class ListPatternsQueryDto extends FilterableListQueryDto {
   @ApiPropertyOptional({
     description: 'Sort order: name A-Z / Z-A, newest / oldest first',
-    enum: PatternSortOption, enumName: 'PatternSortOption', default: PatternSortOption.NAME_ASC,
+    enum: PatternSortOption,
+    enumName: 'PatternSortOption',
+    default: PatternSortOption.NAME_ASC,
   })
-  @IsOptional() @IsEnum(PatternSortOption)
+  @IsOptional()
+  @IsEnum(PatternSortOption)
   sort: PatternSortOption = PatternSortOption.NAME_ASC;
 
   @ApiPropertyOptional({
-    description: 'Only these sizes. Comma-separated (S,M) or repeated (sizes=S&sizes=M).',
-    enum: patternSizeEnum.enumValues, isArray: true, example: 'S,M',
+    description:
+      'Only these sizes. Comma-separated (S,M) or repeated (sizes=S&sizes=M).',
+    enum: PatternSize,
+    isArray: true,
+    example: 'S,M',
   })
   @IsOptional()
   @Transform(({ value }) => {
     if (value === undefined) return value;
-    const raw: unknown[] = Array.isArray(value) ? value : String(value).split(',');
+    const raw: unknown[] = Array.isArray(value)
+      ? value
+      : String(value).split(',');
     return [...new Set(raw.map(String))];
   })
-  @IsArray() @ArrayMaxSize(6) @IsIn(patternSizeEnum.enumValues, { each: true })
+  @IsArray()
+  @ArrayMaxSize(6)
+  @IsEnum(PatternSize, { message: 'Size must be a valid size enum value' })
   sizes?: PatternSize[];
 
   @ApiPropertyOptional({

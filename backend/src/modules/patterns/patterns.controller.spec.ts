@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PatternController } from './pattern.controller.js';
 import type { PatternsService } from './patterns.service.js';
+import type { CreatePatternDto } from './dto/create-pattern.dto.js';
 
 describe('PatternController', () => {
   let service: {
     getPatternById: ReturnType<typeof vi.fn>;
+    createPattern: ReturnType<typeof vi.fn>;
     updatePattern: ReturnType<typeof vi.fn>;
     setFavourite: ReturnType<typeof vi.fn>;
     deletePattern: ReturnType<typeof vi.fn>;
@@ -17,15 +19,30 @@ describe('PatternController', () => {
     controller = new PatternController(service as unknown as PatternsService);
   });
 
-  it('passes the pattern id and current user id to the service', async () => {
-    const dto = { id: 5, name: 'Flowy shirt' };
-    service.getPatternById.mockResolvedValue(dto);
+  it('passes the pattern id and the current user id to the service', async () => {
+    const result = { id: 5 };
+    service.getPatternById.mockResolvedValue(result);
 
-    await expect(controller.getPatternById(5, { id: 3 })).resolves.toBe(dto);
+    await expect(controller.getPatternById(5, { id: 3 })).resolves.toBe(result);
     expect(service.getPatternById).toHaveBeenCalledWith(5, 3);
   });
 
-  it('propagates errors from the service', async () => {
+  it('passes null for a guest', async () => {
+    service.getPatternById.mockResolvedValue({ id: 5 });
+
+    await controller.getPatternById(5, undefined);
+    expect(service.getPatternById).toHaveBeenCalledWith(5, null);
+  });
+
+  it('creates a pattern for the current user', async () => {
+    const dto = { name: 'Shirt' } as CreatePatternDto;
+    service.createPattern.mockResolvedValue({ id: 9 });
+
+    await expect(controller.createPattern(dto, { id: 3 })).resolves.toEqual({ id: 9 });
+    expect(service.createPattern).toHaveBeenCalledWith(dto, 3);
+  });
+
+  it('propagates service errors', async () => {
     const error = new Error('boom');
     service.getPatternById.mockRejectedValue(error);
 

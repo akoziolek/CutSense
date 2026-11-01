@@ -36,13 +36,13 @@ describe('Fabrics endpoint (integration)', () => {
       description: 'Medium-weight cotton',
       pictureS3Key: 'https://example.com/fabric.jpg',
       isFavourite: true,
-      area: 4.32,
-      imageWidthCm: 50,
-      imageHeightCm: 25,
+      areaMm2: 4_320_000,
+      imageWidthMm: 500,
+      imageHeightMm: 250,
       userId: 1,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
       boundaryGeoJson:
-        '{"type":"Polygon","coordinates":[[[-250,125],[250,125],[250,625],[-250,625],[-250,125]]]}',
+        '{"type":"Polygon","coordinates":[[[-2500,1250],[2500,1250],[2500,6250],[-2500,6250],[-2500,1250]]]}',
       tags: [{ tag: { name: 'cotton' } }, { tag: { name: 'canvas' } }],
     });
 
@@ -145,11 +145,11 @@ describe('Fabrics endpoint (integration)', () => {
 
   it('returns the detected fabric boundary through the authenticated backend', async () => {
     const analysis = {
-      points: [
+      shapes: [[
         { pctX: 20, pctY: 20 },
         { pctX: 80, pctY: 20 },
         { pctX: 80, pctY: 80 },
-      ],
+      ]],
       imageWidth: 800,
       imageHeight: 600,
     };
@@ -187,9 +187,9 @@ describe('Fabrics endpoint (integration)', () => {
         description: 'Medium-weight cotton',
         pictureS3Key: 'users/1/fabrics/uploaded.png',
         isFavourite: false,
-        area: 3600,
-        imageWidthCm: 50,
-        imageHeightCm: 25,
+        areaMm2: 125_000,
+        imageWidthMm: 500,
+        imageHeightMm: 250,
         userId: 1,
         createdAt: new Date('2025-01-15T10:30:00.000Z'),
       },
@@ -200,16 +200,16 @@ describe('Fabrics endpoint (integration)', () => {
       .set('Cookie', `session=${sessionCookie}`)
       .field('name', 'Cotton canvas')
       .field('description', 'Medium-weight cotton')
-      .field('imageWidthCm', '50')
-      .field('imageHeightCm', '25')
+      .field('imageWidthMm', '500')
+      .field('imageHeightMm', '250')
       .field('tagIds', JSON.stringify([2, 5]))
       .field(
         'boundary',
         JSON.stringify([
+          { x: -250, y: -125 },
           { x: -250, y: 125 },
           { x: 250, y: 125 },
-          { x: 250, y: 625 },
-          { x: -250, y: 625 },
+          { x: 250, y: -125 },
         ]),
       )
       .attach(
@@ -228,14 +228,16 @@ describe('Fabrics endpoint (integration)', () => {
           description: 'Medium-weight cotton',
           pictureS3Key: 'users/1/fabrics/uploaded.png',
           pictureUrl: 'https://example.com/signed.jpg',
-          area: 3600,
-          imageWidthCm: 50,
-          imageHeightCm: 25,
-          boundary: [
-            { x: -250, y: 125 },
-            { x: 250, y: 125 },
-            { x: 250, y: 625 },
-            { x: -250, y: 625 },
+          areaMm2: 125_000,
+          imageWidthMm: 500,
+          imageHeightMm: 250,
+          shapes: [
+            [
+              { x: 250, y: -125 },
+              { x: 250, y: 125 },
+              { x: -250, y: 125 },
+              { x: -250, y: -125 },
+            ],
           ],
           userId: 1,
           tags: [
@@ -278,16 +280,18 @@ describe('Fabrics endpoint (integration)', () => {
         pictureS3Key: 'https://example.com/fabric.jpg',
         pictureUrl: 'https://example.com/signed.jpg',
         isFavourite: true,
-        area: 4.32,
-        imageWidthCm: 50,
-        imageHeightCm: 25,
+        areaMm2: 4_320_000,
+        imageWidthMm: 500,
+        imageHeightMm: 250,
         userId: 1,
         createdAt: '2025-01-15T10:30:00.000Z',
-        boundary: [
-          { x: -250, y: 125 },
-          { x: 250, y: 125 },
-          { x: 250, y: 625 },
-          { x: -250, y: 625 },
+        shapes: [
+          [
+            { x: -2500, y: 1250 },
+            { x: 2500, y: 1250 },
+            { x: 2500, y: 6250 },
+            { x: -2500, y: 6250 },
+          ],
         ],
         tags: [{ name: 'cotton' }, { name: 'canvas' }],
       });

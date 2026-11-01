@@ -1,8 +1,3 @@
-export interface NameTag {
-  id: number
-  name: string
-}
-
 export enum PatternSize {
   XS = 'XS',
   S = 'S',
@@ -15,4 +10,9 @@ export enum PatternSize {
 export enum PatternVisibility {
   PUBLIC = 'PUBLIC',
   PRIVATE = 'PRIVATE',
+}
+
+export interface NameTag {
+  id: number
+  name: string
 }

@@ -38,7 +38,7 @@ import { FabricService } from './fabrics.service.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { SessionGuard } from '../../auth/guards/session.guard.js';
 import { CreateFabricDto } from './dto/create-fabric.dto.js';
-import { AnalyzeFabricDto } from './dto/analyze-fabric.dto.js';
+import { AnalysisShapesDto } from '../shapes-engine/dto/analysis-shapes.dto.js';
 import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricTagDto } from './dto/fabric-tags.dto.js';
 import { FabricListResponseDto } from './dto/fabric-list.dto.js';
@@ -111,11 +111,11 @@ export class FabricController {
   @ApiOperation({
     summary: 'Detect the fabric boundary in a photo',
     description:
-      'Analyzes the uploaded photo and returns a normalized boundary and the original image dimensions.',
+      'Analyzes the uploaded photo and returns normalized detected shapes and the original image dimensions.',
   })
   @ApiOkResponse({
-    description: 'The fabric boundary was detected.',
-    type: AnalyzeFabricDto,
+    description: 'The detected fabric shape was returned.',
+    type: AnalysisShapesDto,
   })
   @ApiBadRequestResponse({
     description: 'The uploaded image could not be analyzed.',
@@ -137,7 +137,7 @@ export class FabricController {
       }),
     )
     picture: Express.Multer.File,
-  ): Promise<AnalyzeFabricDto> {
+  ): Promise<AnalysisShapesDto> {
     return this.fabricService.analyzeFabricBoundary(picture);
   }
 
@@ -153,8 +153,8 @@ export class FabricController {
         'name',
         'picture',
         'boundary',
-        'imageWidthCm',
-        'imageHeightCm',
+        'imageWidthMm',
+        'imageHeightMm',
       ],
       properties: {
         name: { type: 'string', maxLength: 35, example: 'Cotton canvas' },
@@ -167,19 +167,19 @@ export class FabricController {
         boundary: {
           type: 'string',
           description:
-            'JSON-encoded array of { x, y } points in calibrated centimeters.',
+            'JSON-encoded array of { x, y } points in calibrated millimeters.',
           example:
-            '[{"x":-250,"y":125},{"x":250,"y":125},{"x":250,"y":625},{"x":-250,"y":625}]',
+            '[{"x":-2500,"y":1250},{"x":2500,"y":1250},{"x":2500,"y":6250},{"x":-2500,"y":6250}]',
         },
-        imageWidthCm: {
+        imageWidthMm: {
           type: 'number',
-          description: 'Image width in calibrated centimeters.',
-          example: 60,
+          description: 'Image width in calibrated millimeters.',
+          example: 600,
         },
-        imageHeightCm: {
+        imageHeightMm: {
           type: 'number',
-          description: 'Image height in calibrated centimeters.',
-          example: 40,
+          description: 'Image height in calibrated millimeters.',
+          example: 400,
         },
         picture: {
           type: 'string',
@@ -192,7 +192,7 @@ export class FabricController {
   @ApiOperation({
     summary: 'Add a fabric',
     description:
-      'Uploads a fabric photo to the current user’s S3 folder and creates a fabric using boundary points in calibrated centimeters.',
+      'Uploads a fabric photo to the current user’s S3 folder and creates a fabric using counter-clockwise boundary points in calibrated millimeters.',
   })
   @ApiCreatedResponse({
     description: 'The fabric was created successfully.',
@@ -283,7 +283,7 @@ export class FabricController {
   @ApiOperation({
     summary: 'Get a fabric by ID',
     description:
-      'Returns a fabric owned by the current user, including its boundary points and tags.',
+      'Returns a fabric owned by the current user, including its shapes and tags. Fabric shape data is a list containing one boundary.',
   })
   @ApiParam({
     name: 'id',

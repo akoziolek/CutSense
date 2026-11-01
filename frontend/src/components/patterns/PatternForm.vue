@@ -131,8 +131,6 @@ const filteredTags = computed(() =>
 const loadAvailableTags = async () => {
   tagLoadError.value = ''
   try {
-    console.log(availableTags.value)
-
     availableTags.value = await api<NameTag[]>('/patterns/tags')
   } catch (error) {
     tagLoadError.value =
@@ -292,7 +290,12 @@ onMounted(() => {
         <SelectContent class="rounded-md border-border bg-popover font-inter">
           <SelectGroup>
             <SelectLabel>Size</SelectLabel>
-            <SelectItem v-for="size in SIZES" :key="size" :value="size" class="rounded-md cursor-pointer">
+            <SelectItem
+              v-for="size in SIZES"
+              :key="size"
+              :value="size"
+              class="rounded-md cursor-pointer"
+            >
               {{ size }}
             </SelectItem>
           </SelectGroup>

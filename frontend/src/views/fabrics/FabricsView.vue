@@ -174,7 +174,10 @@ const fetchFabrics = async (activeSignal = { active: true }) => {
 
     if (result.totalPages > 0 && page.value > result.totalPages) {
       await router.replace({
-        query: { ...route.query, page: result.totalPages === 1 ? undefined : String(result.totalPages) },
+        query: {
+          ...route.query,
+          page: result.totalPages === 1 ? undefined : String(result.totalPages),
+        },
       })
       return
     }
@@ -393,7 +396,7 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
               :key="fabric.id"
               :to="{ name: 'FabricDetails', params: { id: fabric.id } }"
               :title="fabric.name"
-              :meta="`${formatCardDate(fabric.createdAt)} • ${(fabric.area / 10000).toFixed(2)} m²`"
+              :meta="`${formatCardDate(fabric.createdAt)} • ${(fabric.areaMm2 / 1_000_000).toFixed(1)} m²`"
               :image-url="fabric.pictureUrl"
               :is-favourite="fabric.isFavourite"
               :selectable="selectionMode"

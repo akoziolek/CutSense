@@ -11,7 +11,6 @@ import {
   primaryKey,
   geometry,
   index,
-  doublePrecision
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { postgisPolygon } from './custom-types.js';
@@ -109,8 +108,8 @@ export const patterns = pgTable(
   (table) => [index('patterns_user_id_idx').on(table.userId)],
 );
 
-export const patternPieces = pgTable(
-  'pattern_pieces',
+export const patternImages = pgTable(
+  'pattern_images',
   {
     id: bigint('id', { mode: 'number' })
       .primaryKey()
@@ -118,6 +117,27 @@ export const patternPieces = pgTable(
     patternId: bigint('pattern_id', { mode: 'number' })
       .notNull()
       .references(() => patterns.id, { onDelete: 'cascade' }),
+    pictureS3Key: varchar('picture_s3_key', { length: 512 }).notNull().unique(),
+    imageWidthMm: integer('image_width_mm').notNull(),
+    imageHeightMm: integer('image_height_mm').notNull(),
+    orderIndex: smallint('order_index').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [index('pattern_images_pattern_id_idx').on(table.patternId)],
+);
+
+export const patternPieces = pgTable(
+  'pattern_pieces',
+  {
+    id: bigint('id', { mode: 'number' })
+      .primaryKey()
+      .generatedByDefaultAsIdentity(),
+    patternImageId: bigint('pattern_image_id', { mode: 'number' })
+      .notNull()
+      .references(() => patternImages.id, { onDelete: 'cascade' }),
     // polygon on Cartesian coordinate system
     boundary: postgisPolygon('boundary').notNull(),
     normalCount: integer('normal_count').notNull().default(1),
@@ -128,7 +148,7 @@ export const patternPieces = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => [
-    index('pattern_pieces_pattern_id_idx').on(table.patternId),
+    index('pattern_pieces_pattern_image_id_idx').on(table.patternImageId),
     index('pattern_pieces_boundary_idx').using('gist', table.boundary),
   ],
 );
@@ -324,19 +344,30 @@ export const patternsRelations = relations(patterns, ({ one, many }) => ({
     fields: [patterns.userId],
     references: [users.id],
   }),
-  pieces: many(patternPieces),
+  images: many(patternImages),
   tags: many(patternTags),
   stars: many(patternStars),
   optimizationResults: many(optimizationResults),
   favoritedBy: many(patternFavourites),
 }));
 
+export const patternImagesRelations = relations(
+  patternImages,
+  ({ one, many }) => ({
+    pattern: one(patterns, {
+      fields: [patternImages.patternId],
+      references: [patterns.id],
+    }),
+    pieces: many(patternPieces),
+  }),
+);
+
 export const patternPiecesRelations = relations(
   patternPieces,
   ({ one, many }) => ({
-    pattern: one(patterns, {
-      fields: [patternPieces.patternId],
-      references: [patterns.id],
+    image: one(patternImages, {
+      fields: [patternPieces.patternImageId],
+      references: [patternImages.id],
     }),
     placedPieces: many(placedPieces),
   }),

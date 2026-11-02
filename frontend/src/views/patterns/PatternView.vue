@@ -40,6 +40,13 @@ interface Pattern {
   createdAt: string
   author: { id: number; nickname: string }
   pieces: PatternPiece[]
+  images: {
+    id: number
+    url: string
+    imageWidthMm: number
+    imageHeightMm: number
+    orderIndex: number
+  }[]
   isFavourite: boolean
 }
 

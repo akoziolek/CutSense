@@ -173,7 +173,7 @@ export class PatternsService {
           orderBy: (img, { asc }) => [asc(img.orderIndex), asc(img.id)],
           with: {
             pieces: {
-              columns: { id: true },
+              columns: { id: true, grainline: true },
               extras: (piece, { sql }) => ({
                 geojson: sql<string>`ST_AsGeoJSON(${piece.boundary})`.as(
                   'geojson',
@@ -312,9 +312,10 @@ export class PatternsService {
 
             return {
               patternImageId,
-              boundary: sql`ST_GeomFromText(${PatternsMapper.pieceBoundaryToWkt(rotateAndAnchor(piece.points, piece.grainline))}, 0)`,
+              boundary: sql`ST_GeomFromText(${PatternsMapper.pieceBoundaryToWkt(piece.points)}, 0)`,
               normalCount: piece.normal,
               mirroredCount: piece.mirrored,
+              grainline: piece.grainline,
             };
           }),
         );

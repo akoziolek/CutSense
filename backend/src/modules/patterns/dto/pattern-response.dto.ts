@@ -41,6 +41,14 @@ class PatternPieceDto {
   patternImageId!: number;
 
   @ApiProperty({
+    description: 'Grainline angle in degrees [0, 359]',
+    example: 90,
+    minimum: 0,
+    maximum: 359,
+  })
+  grainline!: number;
+
+  @ApiProperty({
     description: 'Outer ring of the piece polygon as [x, y] pairs',
     type: 'array',
     items: {

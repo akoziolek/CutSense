@@ -13,13 +13,14 @@ import {
   Min,
   ValidateNested,
   IsEnum,
-  IsPositive
+  IsPositive,
 } from 'class-validator';
 import { PatternVisibility, PatternSize } from './pattern.enum.js';
 import {
   TransformJson,
   TransformJsonToInstance,
 } from '../../../common/decorators/transform-json.decorator.js';
+import { ApiProperty } from '@nestjs/swagger';
 
 const COORD_LIMIT = 10_000_000; // mm
 
@@ -48,6 +49,17 @@ export class PieceInputDto {
   @Type(() => PointDto)
   points!: PointDto[];
 
+  @ApiProperty({
+    description: 'Grainline angle in degrees [0, 359]',
+    example: 90,
+    minimum: 0,
+    maximum: 359,
+  })
+  @Transform(({ value }) => {
+    const num = Number(value);
+    if (isNaN(num)) return value;
+    return ((Math.round(num) % 360) + 360) % 360;
+  })
   @IsInt()
   @Min(0)
   @Max(359)
@@ -69,7 +81,6 @@ export class PatternImageInputDto {
   @IsInt()
   @IsPositive()
   imageWidthMm!: number;
-
 
   @Type(() => Number)
   @IsInt()

@@ -22,6 +22,7 @@ const patternRow = (overrides: Record<string, unknown> = {}) => ({
   createdAt: new Date('2025-01-15T10:30:00.000Z'),
   tags: [],
   user: { id: 3, nickname: 'ala_k', name: 'Ala' },
+  images: [],
   pieces: [],
   favoritedBy: [],
   ...overrides,
@@ -42,6 +43,7 @@ describe('PatternsService', () => {
   let joinedSelectWhere: ReturnType<typeof vi.fn>;
   let uploadFile: ReturnType<typeof vi.fn>;
   let deleteFile: ReturnType<typeof vi.fn>;
+  let generatePresignedUrls: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     findFirst = vi.fn();
@@ -71,6 +73,7 @@ describe('PatternsService', () => {
     joinedSelectWhere = vi.fn().mockResolvedValue([]);
     uploadFile = vi.fn().mockResolvedValue('users/3/patterns/image.png');
     deleteFile = vi.fn().mockResolvedValue(undefined);
+    generatePresignedUrls = vi.fn().mockResolvedValue(new Map());
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -98,7 +101,7 @@ describe('PatternsService', () => {
         },
         {
           provide: StorageService,
-          useValue: { uploadFile, deleteFile },
+          useValue: { uploadFile, deleteFile, generatePresignedUrls },
         },
       ],
     }).compile();
@@ -111,10 +114,21 @@ describe('PatternsService', () => {
       findFirst.mockResolvedValue(
         patternRow({
           tags: [{ tag: { id: 2, name: 'summer' } }],
-          pieces: [
+          images: [
             {
-              id: 1,
-              geojson: '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,5],[0,0]]]}',
+              id: 8,
+              pictureS3Key: 'patterns/image.png',
+              imageWidthMm: 200,
+              imageHeightMm: 300,
+              orderIndex: 0,
+              pieces: [
+                {
+                  id: 1,
+                  grainline: 90,
+                  geojson:
+                    '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,5],[0,0]]]}',
+                },
+              ],
             },
           ],
         }),
@@ -124,7 +138,14 @@ describe('PatternsService', () => {
         id: 17,
         createdAt: '2025-01-15T10:30:00.000Z',
         tags: [{ id: 2, name: 'summer' }],
-        pieces: [{ id: 1, points: [[0, 0], [10, 0], [10, 5], [0, 0]] }],
+        pieces: [
+          {
+            id: 1,
+            patternImageId: 8,
+            grainline: 90,
+            points: [[0, 0], [10, 0], [10, 5], [0, 0]],
+          },
+        ],
         isFavourite: false,
         author: { nickname: 'ala_k' },
       });
@@ -213,10 +234,10 @@ describe('PatternsService', () => {
       ]);
       expect(inserted[3]).toMatchObject([
         {
-          patternId: 84,
           patternImageId: 84,
           normalCount: 2,
           mirroredCount: 1,
+          grainline: 90,
         },
       ]);
       expect(uploadFile).toHaveBeenCalledWith(

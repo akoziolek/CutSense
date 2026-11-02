@@ -15,12 +15,6 @@ export class FabricResponseDto {
   })
   description?: string;
 
-  @ApiProperty({
-    description: 'S3 key of the fabric image',
-    example: 'users/1/fabrics/uuid.jpg',
-  })
-  pictureS3Key!: string;
-
   @ApiPropertyOptional({
     description: 'S3 signed photo URL',
     example: 'https://...',
@@ -38,6 +32,14 @@ export class FabricResponseDto {
     example: 4_320_000,
   })
   areaMm2!: number;
+
+  @ApiProperty({
+    description: 'Grainline angle in degrees [0, 359]',
+    example: 90,
+    minimum: 0,
+    maximum: 359,
+  })
+  grainline!: number;
 
   @ApiProperty({
     description:

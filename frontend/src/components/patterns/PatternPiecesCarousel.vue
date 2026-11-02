@@ -10,6 +10,8 @@ import {
 
 export interface PatternPiece {
   id: number
+  patternImageId: number
+  grainline: number
   points: [number, number][]
 }
 

@@ -50,9 +50,19 @@ interface Pattern {
   isFavourite: boolean
 }
 
-const { confirmOpen, successOpen, isDeleting, error: deleteError, request: requestDelete,
-  confirm: confirmDelete, closeSuccess } = useDeleteResource({
-  basePath: '/patterns', noun: 'pattern', redirectTo: '/patterns', getId: () => props.id,
+const {
+  confirmOpen,
+  successOpen,
+  isDeleting,
+  error: deleteError,
+  request: requestDelete,
+  confirm: confirmDelete,
+  closeSuccess,
+} = useDeleteResource({
+  basePath: '/patterns',
+  noun: 'pattern',
+  redirectTo: '/patterns',
+  getId: () => props.id,
 })
 
 const props = defineProps<{ id: string }>()
@@ -200,9 +210,7 @@ watch(
           <ErrorState
             :title="isNotFound ? 'Pattern not found' : 'Unable to load pattern'"
             :message="
-              isNotFound
-                ? 'This pattern does not exist or you do not have access to it.'
-                : error
+              isNotFound ? 'This pattern does not exist or you do not have access to it.' : error
             "
             :code="isNotFound ? 'Error 404' : 'Error'"
           >
@@ -232,7 +240,7 @@ watch(
           class="grid grid-cols-1 md:grid-cols-5 gap-8 items-start"
         >
           <div class="w-full md:col-span-2">
-            <PatternPiecesCarousel :pieces="pattern.pieces" />
+            <PatternPiecesCarousel :images="pattern.images" :pieces="pattern.pieces" />
           </div>
 
           <div class="md:col-span-3">

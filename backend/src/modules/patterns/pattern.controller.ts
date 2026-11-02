@@ -126,15 +126,14 @@ export class PatternController {
   @ApiOperation({
     summary: 'List patterns',
     description:
-      'Guests get public patterns only. A logged-in user gets public patterns plus their own private ones. Supports pagination (page, limit) and sorting (sort).',
-  })
+    'Guests get public patterns only. A logged-in user gets public patterns plus their own private ones. Supports pagination, sorting, text search and filters (date added, favourites, tags, sizes).'  })
   @ApiOkResponse({
     description: 'A page of patterns was returned successfully.',
     type: PatternListResponseDto,
   })
   @ApiBadRequestResponse({
     description:
-      'Invalid query parameters: page must be an integer >= 1, limit an integer between 1 and 50, sort one of the allowed values.',
+      'Invalid query parameters: page must be an integer >= 1, limit an integer between 1 and 50, sort one of the allowed values or filter values (dates, tag IDs, sizes).',
   })
   async getPatterns(
     @Query() query: ListPatternsQueryDto,

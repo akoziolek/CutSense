@@ -430,7 +430,7 @@ watch(
       </Transition>
     </div>
 
-    <FloatingButton v-if="isLoggedIn" :to="{ name: 'pattern-new' }" />
+    <FloatingButton v-if="isLoggedIn" :to="{ name: 'PatternNew' }" />
 
     <BulkDeleteControls
       base-path="/patterns"

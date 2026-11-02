@@ -21,7 +21,7 @@ export interface FabricResponse {
   imageHeightMm?: number
   userId: number
   createdAt: string
-  tags: FabricTag[]
+  tags: NameTag[]
 }
 
 export interface FabricListItem {

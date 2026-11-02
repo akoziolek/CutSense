@@ -393,6 +393,7 @@ async function main(): Promise<void> {
           description: template.description,
           pictureS3Key: pictureS3Key,
           boundary: sql`ST_GeomFromText(${irregularFabricPolygon(index, template.width, template.length)}, 0)`,
+          grainline: Math.floor(Math.random() * 360),
           imageWidthMm: template.width,
           imageHeightMm: template.length,
           areaMm2: template.areaMm2,
@@ -526,6 +527,7 @@ async function main(): Promise<void> {
     const pieceRows: {
       patternImageId: number;
       boundary: ReturnType<typeof sql>;
+      grainline: number;
       normalCount: number;
       mirroredCount: number;
     }[] = [];
@@ -549,6 +551,7 @@ async function main(): Promise<void> {
           pieceRows.push({
             patternImageId: assignedImageId,
             boundary: sql`ST_GeomFromText(${irregularPolygon(patternIndex * 3 + pieceIndex, 10 + (pieceIndex % 3) * 5)}, 0)`,
+            grainline: Math.floor(Math.random() * 360),
             normalCount: 1,
             mirroredCount: pieceIndex % 2 === 0 ? 1 : 0,
           });

@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { Puzzle, RotateCcw } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import ErrorState from '@/components/common/ErrorState.vue'
 import SelectableOptionCard from '@/components/common/SelectableOptionCard.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import { api, ApiError } from '@/api/client'
-import type { OptimizationAlgorithm } from '@/types/optimization'
+import type { OptimizationAlgorithm, PreparedOptimizerInput } from '@/types/optimization'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 
 const emit = defineEmits<{
@@ -20,6 +21,8 @@ const store = useOptimizationAddingStore()
 const algorithms = ref<OptimizationAlgorithm[]>([])
 const isLoading = ref(true)
 const error = ref('')
+const isSubmitting = ref(false)
+const submitError = ref('')
 
 const load = async () => {
   isLoading.value = true
@@ -30,7 +33,7 @@ const load = async () => {
       error.value = 'No nesting algorithms are available right now.'
       return
     }
-    // single algorithm for now, nothing to decide
+    // single algorithm fir now
     if (store.algorithmId === null && algorithms.value.length === 1) {
       store.selectAlgorithm(algorithms.value[0]!.id)
     }
@@ -43,11 +46,43 @@ const load = async () => {
 }
 
 onMounted(load)
+
+const handleSubmit = async () => {
+  if (isSubmitting.value) return
+  const payload = store.toPayload()
+  if (!payload || !store.canSubmit) {
+    submitError.value = 'The configuration is incomplete. Check the highlighted fields.'
+    return
+  }
+
+  submitError.value = ''
+  isSubmitting.value = true
+  try {
+    const prepared = await api<PreparedOptimizerInput>('/optimizations', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    toast.success(
+      `Prepared ${prepared.pieces.length} piece settings. Optimizer integration is not connected yet.`,
+    )
+  } catch (e) {
+    submitError.value =
+      e instanceof ApiError
+        ? e.body.message
+        : 'Could not prepare the optimization configuration. Please try again.'
+  } finally {
+    isSubmitting.value = false
+  }
+}
 </script>
 
 <template>
   <div class="space-y-6 pb-14">
-    <div v-if="isLoading" class="mx-auto grid max-w-3xl grid-cols-1 gap-6 sm:grid-cols-3" role="status">
+    <div
+      v-if="isLoading"
+      class="mx-auto grid w-full max-w-4xl grid-cols-1 gap-6 sm:grid-cols-3"
+      role="status"
+    >
       <Skeleton v-for="n in 3" :key="n" class="h-56 w-full rounded-xl" />
     </div>
 
@@ -60,7 +95,11 @@ onMounted(load)
       </template>
     </ErrorState>
 
-    <div v-else class="mx-auto grid max-w-3xl grid-cols-1 gap-6 sm:grid-cols-3">
+    <div
+      v-else
+      class="mx-auto grid w-full grid-cols-1 gap-6"
+      :class="algorithms.length === 1 ? 'max-w-4xl' : 'max-w-4xl sm:grid-cols-3'"
+    >
       <SelectableOptionCard
         v-for="algorithm in algorithms"
         :key="algorithm.id"
@@ -73,12 +112,16 @@ onMounted(load)
       </SelectableOptionCard>
     </div>
 
+    <p v-if="submitError" class="text-sm font-semibold text-destructive" role="alert">
+      {{ submitError }}
+    </p>
+
     <FormFloatingActions
       cancel-label="Cancel"
-      next-label="Next"
-      :disabled="store.algorithmId === null"
+      next-label="Prepare configuration"
+      :disabled="isLoading || !!error || isSubmitting || store.algorithmId === null || !store.canSubmit"
       @cancel="emit('cancel')"
-      @next="emit('next')"
+      @next="handleSubmit"
     />
   </div>
 </template>

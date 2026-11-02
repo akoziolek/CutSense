@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { toast } from 'vue-sonner'
 import { ArrowLeft, RotateCcw } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -15,17 +13,15 @@ import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { mmToCm } from '@/utils/optimizationConfig'
 
 const emit = defineEmits<{
+  (e: 'next'): void
   (e: 'cancel'): void
 }>()
 
 const store = useOptimizationAddingStore()
-const router = useRouter()
 
 const patternPieces = ref<PatternPieceDefaults[]>([])
 const isLoading = ref(true)
 const loadError = ref('')
-const isSubmitting = ref(false)
-const submitError = ref('')
 
 const pointsById = computed(() => new Map(patternPieces.value.map((p) => [p.id, p.points])))
 
@@ -58,7 +54,6 @@ const load = async () => {
     ])
     patternPieces.value = details.pieces
 
-    // keep what the user already configured when they come back to this step
     if (store.piecesPatternId !== pattern.id) store.initPieces(pattern.id, details.pieces)
     if (store.seamAllowanceCm === '') store.seamAllowanceCm = mmToCm(defaults.seamAllowanceMm)
     if (store.cuttingAllowanceCm === '')
@@ -68,32 +63,6 @@ const load = async () => {
       e instanceof ApiError ? e.body.message : 'Could not load the pattern. Please try again.'
   } finally {
     isLoading.value = false
-  }
-}
-
-const handleSubmit = async () => {
-  if (isSubmitting.value) return
-  const payload = store.toPayload()
-  if (!payload || !store.canSubmit) {
-    submitError.value = 'The configuration is incomplete. Check the highlighted fields.'
-    return
-  }
-
-  submitError.value = ''
-  isSubmitting.value = true
-  try {
-    await api<{ id: number }>('/optimizations', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-    store.reset()
-    toast.success('Optimization saved')
-    await router.push({ name: 'Optimizations' })
-  } catch (e) {
-    submitError.value =
-      e instanceof ApiError ? e.body.message : 'Could not save the optimization. Please try again.'
-  } finally {
-    isSubmitting.value = false
   }
 }
 
@@ -140,16 +109,12 @@ onMounted(load)
       <AllowancesPanel v-model:seam="store.seamAllowanceCm" v-model:cutting="store.cuttingAllowanceCm" />
     </div>
 
-    <p v-if="submitError" class="mt-4 text-sm font-semibold text-destructive" role="alert">
-      {{ submitError }}
-    </p>
-
     <FormFloatingActions
       cancel-label="Cancel"
-      next-label="Optimize"
-      :disabled="isLoading || !!loadError || isSubmitting || !store.canSubmit"
+      next-label="Next"
+      :disabled="isLoading || !!loadError || !store.canSubmit"
       @cancel="emit('cancel')"
-      @next="handleSubmit"
+      @next="emit('next')"
     />
   </div>
 </template>

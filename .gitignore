@@ -14,3 +14,5 @@ terraform/*.tfvars
 shapes-engine/sample-images/
 
 *.pt
+
+backend/src/db/seeder/assets/*

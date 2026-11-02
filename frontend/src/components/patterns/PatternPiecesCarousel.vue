@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import type { EmblaCarouselType } from 'embla-carousel'
 import {
   Carousel,
   CarouselContent,
@@ -11,12 +12,6 @@ import {
 export interface PatternPiece {
   id: number
   points: [number, number][]
-}
-
-interface EmblaLike {
-  selectedScrollSnap(): number
-  scrollTo(index: number): void
-  on(event: string, callback: () => void): void
 }
 
 const props = defineProps<{ pieces: PatternPiece[] }>()
@@ -43,10 +38,11 @@ const slides = computed(() =>
     }),
 )
 
-const emblaApi = ref<EmblaLike | null>(null)
+const emblaApi = ref<EmblaCarouselType | null>(null)
 const current = ref(0)
 
-const onInit = (api: EmblaLike) => {
+const onInit = (api: EmblaCarouselType | undefined) => {
+  if (!api) return
   emblaApi.value = api
   current.value = api.selectedScrollSnap()
   api.on('select', () => {

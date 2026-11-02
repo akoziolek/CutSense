@@ -14,6 +14,7 @@ interface PatternListRow {
   isFavourite: boolean;
   createdAt: Date;
   userId: number;
+  pictureS3Key?: string | null
 }
 
 export interface PatternWithRelations {
@@ -48,6 +49,7 @@ export class PatternsMapper {
   static toListItemDto(
     row: PatternListRow,
     currentUserId?: number,
+    imageUrl?: string
   ): PatternListItemDto {
     return Object.assign(new PatternListItemDto(), {
       id: row.id,
@@ -56,12 +58,13 @@ export class PatternsMapper {
       isFavourite: row.isFavourite,
       createdAt: row.createdAt.toISOString(),
       isOwner: currentUserId !== undefined && row.userId === currentUserId,
+      imageUrl: imageUrl
     });
   }
 
   static toResponseDto(
     pattern: PatternWithRelations,
-    imageUrls: Map<number, string> = new Map(),
+    imageUrls: Map<string, string> = new Map(),
   ): PatternResponseDto {
     const allPieces = (pattern.images ?? []).flatMap((image) =>
       image.pieces.map((piece) => ({
@@ -73,7 +76,7 @@ export class PatternsMapper {
 
     const images: PatternImageDto[] = (pattern.images ?? []).map((img) => ({
       id: img.id,
-      url: imageUrls.get(img.id) ?? img.pictureS3Key,
+      url: imageUrls.get(img.pictureS3Key) ?? img.pictureS3Key,
       imageWidthMm: img.imageWidthMm,
       imageHeightMm: img.imageHeightMm,
       orderIndex: img.orderIndex,

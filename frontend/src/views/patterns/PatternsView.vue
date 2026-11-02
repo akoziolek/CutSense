@@ -104,7 +104,8 @@ const loadTags = async () => {
     availableTags.value = await api<NameTag[]>('/patterns/tags')
     tagsLoaded.value = true
   } catch (e) {
-    tagsError.value = e instanceof ApiError ? e.body.message : 'Could not load tags. Reopen to retry.'
+    tagsError.value =
+      e instanceof ApiError ? e.body.message : 'Could not load tags. Reopen to retry.'
   } finally {
     tagsLoading.value = false
   }
@@ -229,9 +230,7 @@ const fetchPatterns = async (activeSignal = { active: true }) => {
   }
 }
 
-const showTrash = computed(
-  () => isLoggedIn.value && !!data.value?.items.some((p) => p.isOwner),
-)
+const showTrash = computed(() => isLoggedIn.value && !!data.value?.items.some((p) => p.isOwner))
 
 const onBulkDeleted = () => {
   stopSelecting()
@@ -308,7 +307,11 @@ watch(
                   :key="size"
                   type="button"
                   class="cursor-pointer rounded-md border px-2.5 py-1 text-xs hover:bg-brand-green"
-                  :class="draft.sizes.includes(size) ? 'border-foreground bg-brand-green' : 'border-border'"
+                  :class="
+                    draft.sizes.includes(size)
+                      ? 'border-foreground bg-brand-green'
+                      : 'border-border'
+                  "
                   :aria-pressed="draft.sizes.includes(size)"
                   :data-testid="`size-${size}`"
                   @click="toggleSize(draft, size)"
@@ -403,6 +406,7 @@ watch(
               :to="{ name: 'PatternDetails', params: { id: pattern.id } }"
               :title="pattern.name"
               :meta="`${formatCardDate(pattern.createdAt)} • ${pattern.size}`"
+              :image-url="pattern.imageUrl"
               :is-favourite="pattern.isFavourite"
               :selectable="selectionMode"
               :selected="isSelected(pattern.id)"
@@ -430,7 +434,7 @@ watch(
       </Transition>
     </div>
 
-    <FloatingButton v-if="isLoggedIn" :to="{ name: 'pattern-new' }" />
+    <FloatingButton v-if="isLoggedIn" :to="{ name: 'PatternNew' }" />
 
     <BulkDeleteControls
       base-path="/patterns"

@@ -197,18 +197,8 @@ export class PatternsService {
       throw new ResourceNotFoundException('Pattern', patternId);
     }
 
-    const imageUrls = new Map<number, string>();
-    await Promise.all(
-      (pattern.images ?? []).map(async (img) => {
-        try {
-          const url = await this.storageService.generatePresignedUrl(
-            img.pictureS3Key,
-          );
-          imageUrls.set(img.id, url);
-        } catch {
-          imageUrls.set(img.id, img.pictureS3Key);
-        }
-      }),
+    const imageUrls = await this.storageService.generatePresignedUrls(
+      pattern.images.map((i) => i.pictureS3Key),
     );
 
     return PatternsMapper.toResponseDto(pattern, imageUrls);
@@ -371,6 +361,20 @@ export class PatternsService {
     const { page, limit, sort } = query;
 
     const where = this.buildWhere(query, currentUserId);
+
+    const firstImageSubquery = this.db
+      .selectDistinctOn([patternImages.patternId], {
+        patternId: patternImages.patternId,
+        pictureS3Key: patternImages.pictureS3Key,
+      })
+      .from(patternImages)
+      .orderBy(
+        patternImages.patternId,
+        asc(patternImages.orderIndex),
+        asc(patternImages.id),
+      )
+      .as('first_image');
+
     const [rows, [{ total }]] = await Promise.all([
       this.db
         .select({
@@ -380,6 +384,7 @@ export class PatternsService {
           createdAt: patterns.createdAt,
           isFavourite: sql<boolean>`${patternFavourites.userId} is not null`,
           userId: patterns.userId,
+          pictureS3Key: firstImageSubquery.pictureS3Key,
         })
         .from(patterns)
         .leftJoin(
@@ -389,6 +394,10 @@ export class PatternsService {
             eq(patternFavourites.userId, currentUserId ?? NO_USER_ID),
           ),
         )
+        .leftJoin(
+          firstImageSubquery,
+          eq(firstImageSubquery.patternId, patterns.id),
+        )
         .where(where)
         .orderBy(...this.getOrderBy(sort))
         .limit(limit)
@@ -396,10 +405,22 @@ export class PatternsService {
       this.db.select({ total: count() }).from(patterns).where(where),
     ]);
 
-    return {
-      items: rows.map((row) =>
-        PatternsMapper.toListItemDto(row, currentUserId),
+    const s3Keys = rows
+      .map((row) => row.pictureS3Key)
+      .filter((key): key is string => Boolean(key));
+
+    const imageUrls = await this.storageService.generatePresignedUrls(s3Keys);
+
+    const items = rows.map((row) =>
+      PatternsMapper.toListItemDto(
+        row,
+        currentUserId,
+        row.pictureS3Key ? imageUrls.get(row.pictureS3Key) : undefined,
       ),
+    );
+
+    return {
+      items,
       total,
       page,
       limit,

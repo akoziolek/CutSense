@@ -8,6 +8,7 @@ import { PatternsService } from './patterns.service.js';
 import { PatternSize, PatternVisibility } from './dto/pattern.enum.js';
 import type { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { ShapesEngineClient } from '../shapes-engine/shapes-engine.client.js';
+import { StorageService } from '../storage/storage.service.js';
 
 const patternRow = (overrides: Record<string, unknown> = {}) => ({
   id: 17,
@@ -38,6 +39,9 @@ describe('PatternsService', () => {
   let insert: ReturnType<typeof vi.fn>;
   let deleteFn: ReturnType<typeof vi.fn>;
   let txSelectWhere: ReturnType<typeof vi.fn>;
+  let joinedSelectWhere: ReturnType<typeof vi.fn>;
+  let uploadFile: ReturnType<typeof vi.fn>;
+  let deleteFile: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     findFirst = vi.fn();
@@ -64,6 +68,9 @@ describe('PatternsService', () => {
     );
     insert = vi.fn();
     deleteFn = vi.fn();
+    joinedSelectWhere = vi.fn().mockResolvedValue([]);
+    uploadFile = vi.fn().mockResolvedValue('users/3/patterns/image.png');
+    deleteFile = vi.fn().mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -77,12 +84,21 @@ describe('PatternsService', () => {
             },
             transaction,
             insert,
+            select: () => ({
+              from: () => ({
+                innerJoin: () => ({ where: joinedSelectWhere }),
+              }),
+            }),
             delete: deleteFn,
           },
         },
         {
           provide: ShapesEngineClient,
           useValue: { analyzeBoundary: vi.fn() },
+        },
+        {
+          provide: StorageService,
+          useValue: { uploadFile, deleteFile },
         },
       ],
     }).compile();
@@ -154,8 +170,10 @@ describe('PatternsService', () => {
       size: 'M',
       visibility: 'PUBLIC',
       tags: ['Summer'],
+      images: [{ imageWidthMm: 200, imageHeightMm: 300 }],
       pieces: [
         {
+          imageIndex: 0,
           points: [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 5 }],
           grainline: 90,
           normal: 2,
@@ -168,32 +186,54 @@ describe('PatternsService', () => {
       const inserted: unknown[] = [];
       insertValues.mockImplementation((values: unknown) => {
         inserted.push(values);
+        const orderIndex =
+          Array.isArray(values) &&
+          typeof values[0] === 'object' &&
+          values[0] !== null &&
+          'orderIndex' in values[0]
+            ? values[0].orderIndex
+            : undefined;
         return Object.assign(Promise.resolve(), {
-          returning: () => Promise.resolve([{ id: 42 }]),
+          returning: () => Promise.resolve([{ id: 84, orderIndex }]),
         });
       });
       txSelectWhere.mockResolvedValue([{ id: 7, name: 'summer' }]);
 
-      await expect(service.createPattern(dto, 3)).resolves.toEqual({ id: 42 });
-      expect(inserted).toHaveLength(3);
+      const photo = { originalname: 'shirt.png' } as Express.Multer.File;
+      await expect(service.createPattern(dto, [photo], 3)).resolves.toEqual({ id: 84 });
+      expect(inserted).toHaveLength(4);
       expect(inserted[0]).toMatchObject({
         name: 'Shirt',
         userId: 3,
         visibility: 'PUBLIC',
       });
-      expect(inserted[1]).toEqual([{ patternId: 42, tagId: 7 }]);
+      expect(inserted[1]).toEqual([{ patternId: 84, tagId: 7 }]);
       expect(inserted[2]).toMatchObject([
-        { patternId: 42, normalCount: 2, mirroredCount: 1 },
+        { pictureS3Key: 'users/3/patterns/image.png', imageWidthMm: 200, orderIndex: 0 },
       ]);
+      expect(inserted[3]).toMatchObject([
+        {
+          patternId: 84,
+          patternImageId: 84,
+          normalCount: 2,
+          mirroredCount: 1,
+        },
+      ]);
+      expect(uploadFile).toHaveBeenCalledWith(
+        photo,
+        'users/3/patterns',
+      );
     });
 
     it('rejects unknown tags without saving the pattern', async () => {
       txSelectWhere.mockResolvedValue([]);
 
-      await expect(service.createPattern(dto, 3)).rejects.toBeInstanceOf(
+      const photo = { originalname: 'shirt.png' } as Express.Multer.File;
+      await expect(service.createPattern(dto, [photo], 3)).rejects.toBeInstanceOf(
         BadRequestException,
       );
       expect(insertValues).not.toHaveBeenCalled();
+      expect(deleteFile).toHaveBeenCalledWith('users/3/patterns/image.png');
     });
   });
 

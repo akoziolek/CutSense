@@ -2,7 +2,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PatternTagDto } from './pattern-tag.dto.js';
 import { PatternVisibility, PatternSize } from './pattern.enum.js';
 
-
 class PatternAuthorDto {
   @ApiProperty({ description: 'Unique identifier of the author', example: 42 })
   id!: number;
@@ -11,9 +10,35 @@ class PatternAuthorDto {
   nickname!: string;
 }
 
+export class PatternImageDto {
+  @ApiProperty({ description: 'Identifier of the image', example: 1 })
+  id!: number;
+
+  @ApiProperty({
+    description: 'Public or presigned URL to view the image',
+    example: 'https://storage.example.com/...',
+  })
+  url!: string;
+
+  @ApiProperty({ description: 'Width of sheet in millimeters', example: 900 })
+  imageWidthMm!: number;
+
+  @ApiProperty({ description: 'Height of sheet in millimeters', example: 1200 })
+  imageHeightMm!: number;
+
+  @ApiProperty({ description: 'Display order index', example: 0 })
+  orderIndex!: number;
+}
+
 class PatternPieceDto {
   @ApiProperty({ description: 'Identifier of the pattern piece', example: 1 })
   id!: number;
+
+  @ApiProperty({
+    description: 'ID of the image this piece belongs to',
+    example: 5,
+  })
+  patternImageId!: number;
 
   @ApiProperty({
     description: 'Outer ring of the piece polygon as [x, y] pairs',
@@ -60,7 +85,8 @@ export class PatternResponseDto {
   visibility!: string;
 
   @ApiProperty({
-    description: 'Whether the current user marked the pattern as a favourite (always false for guests)',
+    description:
+      'Whether the current user marked the pattern as a favourite (always false for guests)',
     example: false,
   })
   isFavourite!: boolean;
@@ -92,6 +118,12 @@ export class PatternResponseDto {
 
   @ApiProperty({ type: PatternAuthorDto })
   author!: PatternAuthorDto;
+
+  @ApiProperty({
+    description: 'Images associated with the pattern',
+    type: [PatternImageDto],
+  })
+  images!: PatternImageDto[];
 
   @ApiProperty({
     description: 'All pieces that make up the pattern',

@@ -57,6 +57,7 @@ const handleSubmit = async (payload: PatternFormPayload) => {
     }
 
     return {
+      imageIndex: piece.photoIndex,
       points: shape.map(({ pctX, pctY }) => ({
         x: (pctX * config.imageWidth) / 100 / config.pxPerMm,
         y: ((100 - pctY) * config.imageHeight) / 100 / config.pxPerMm,
@@ -74,6 +75,32 @@ const handleSubmit = async (payload: PatternFormPayload) => {
     return
   }
 
+  const imageDimensions = patternStore.photos.map((_, imageIndex) => {
+    const config = patternStore.photoConfigs[imageIndex]
+    if (
+      !config ||
+      !Number.isFinite(config.imageWidth) ||
+      !Number.isFinite(config.imageHeight) ||
+      !Number.isFinite(config.pxPerMm) ||
+      config.imageWidth <= 0 ||
+      config.imageHeight <= 0 ||
+      config.pxPerMm <= 0
+    ) {
+      return null
+    }
+
+    return {
+      imageWidthMm: Math.max(1, Math.round(config.imageWidth / config.pxPerMm)),
+      imageHeightMm: Math.max(1, Math.round(config.imageHeight / config.pxPerMm)),
+    }
+  })
+
+  if (imageDimensions.some((dimensions) => dimensions === null)) {
+    submitError.value =
+      'Image calibration is incomplete. Return to the configuration step and try again.'
+    return
+  }
+
   isSubmitting.value = true
   try {
     await patternStore.updateDetails({
@@ -84,16 +111,19 @@ const handleSubmit = async (payload: PatternFormPayload) => {
       visibility: payload.visibility,
     })
 
+    const formData = new FormData()
+    formData.append('name', payload.name)
+    formData.append('size', payload.size)
+    formData.append('description', payload.description ?? '')
+    formData.append('tags', JSON.stringify(payload.tags.map((tag) => tag.name)))
+    formData.append('visibility', payload.visibility)
+    formData.append('images', JSON.stringify(imageDimensions))
+    formData.append('pieces', JSON.stringify(validPieces))
+    patternStore.photos.forEach((photo) => formData.append('photos', photo, photo.name))
+
     const createdPattern = await api<{ id: number }>('/patterns', {
       method: 'POST',
-      body: JSON.stringify({
-        name: payload.name,
-        size: payload.size,
-        description: payload.description,
-        tags: payload.tags.map((tag) => tag.name),
-        visibility: payload.visibility,
-        pieces: validPieces,
-      }),
+      body: formData,
     })
 
     await patternStore.resetWizard()

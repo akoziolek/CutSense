@@ -1,7 +1,6 @@
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 const API_BASE = `${API_URL}/v1`;
 
-// Shape returned by the backend's AllExceptionsFilter
 export interface ApiErrorBody {
   statusCode: number;
   errorCode: string;

@@ -32,11 +32,13 @@ async function onLogout() {
   if (!route.meta.isPublic) router.replace({ name: 'Landing' })
 }
 
-const guestLinks = [{ name: 'Patterns', path: '/patterns' }]
+const guestLinks = [
+  { name: 'Optimizations', path: '/optimizations' },
+  { name: 'Patterns', path: '/patterns' }
+]
 
 const authLinks = [
   { name: 'Home', path: '/home' },
-  { name: 'Optimizations', path: '/optimizations' },
   { name: 'Fabrics', path: '/fabrics' },
   { name: 'Patterns', path: '/patterns' },
 ]

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { Check, CheckCircle2, AlertCircle, Sparkles, Circle } from 'lucide-vue-next'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { Check, CheckCircle2, AlertCircle, Sparkles, Circle, Loader2 } from 'lucide-vue-next'
 import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator'
+import { api } from '@/api/client'
 import { Input } from '@/components/ui/input'
 import BaseModal from '@/components/common/BaseModal.vue'
 
@@ -19,22 +20,78 @@ const emit = defineEmits<{
 const NICKNAME_REGEX = /^[a-zA-Z0-9_.-]{3,20}$/
 
 const nickname = ref('')
+const isChecking = ref(false)
+const isAvailable = ref(false)
+const availabilityError = ref('')
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let abortController: AbortController | null = null
 
 const formatError = computed(() => {
   const value = nickname.value.trim()
-  return value && !NICKNAME_REGEX.test(value)
+  if (!value) return ''
+  return !NICKNAME_REGEX.test(value)
     ? 'Nickname must have 3–20 characters: letters, numbers and _ . -'
     : ''
 })
 
-const errorMessage = computed(() => props.error || formatError.value)
-
-const status = computed<'idle' | 'valid' | 'error'>(() => {
-  if (errorMessage.value) return 'error'
-  return nickname.value.trim() ? 'valid' : 'idle'
+const errorMessage = computed(() => {
+  return formatError.value || availabilityError.value || props.error
 })
 
-watch(nickname, () => emit('typing'))
+const status = computed<'idle' | 'checking' | 'valid' | 'error'>(() => {
+  if (!nickname.value.trim()) return 'idle'
+  if (formatError.value || availabilityError.value || props.error) return 'error'
+  if (isChecking.value) return 'checking'
+  if (isAvailable.value) return 'valid'
+  return 'idle'
+})
+
+watch(nickname, (val) => {
+  emit('typing')
+  const clean = val.trim()
+
+  if (debounceTimer) clearTimeout(debounceTimer)
+  if (abortController) abortController.abort()
+
+  availabilityError.value = ''
+  isAvailable.value = false
+
+  if (!clean || !NICKNAME_REGEX.test(clean)) {
+    isChecking.value = false
+    return
+  }
+
+  isChecking.value = true
+
+  debounceTimer = setTimeout(async () => {
+    abortController = new AbortController()
+    try {
+      const res = await api<{ available: boolean }>(
+        `/auth/check-nickname?nickname=${encodeURIComponent(clean)}`,
+        { signal: abortController.signal },
+      )
+
+      if (res.available) {
+        isAvailable.value = true
+      } else {
+        availabilityError.value = 'This nickname is already taken'
+      }
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError') {
+        return
+      }
+      availabilityError.value = 'Could not verify nickname. Try again.'
+    } finally {
+      isChecking.value = false
+    }
+  }, 350)
+})
+
+onBeforeUnmount(() => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  if (abortController) abortController.abort()
+})
 
 const generateRandomNickname = () => {
   let candidate = ''
@@ -49,7 +106,7 @@ const generateRandomNickname = () => {
 }
 
 const handleSave = () => {
-  if (status.value === 'valid' && !props.loading) {
+  if (status.value === 'valid' && !props.loading && !isChecking.value) {
     emit('save', nickname.value.trim())
   }
 }
@@ -63,7 +120,7 @@ const handleSave = () => {
     cancel-label="Cancel"
     show-cancel
     prevent-close
-    :confirm-disabled="status !== 'valid' || loading"
+    :confirm-disabled="status !== 'valid' || loading || isChecking"
     :confirm-loading="loading"
     @confirm="handleSave"
     @cancel="emit('cancel')"
@@ -81,6 +138,10 @@ const handleSave = () => {
       <div class="relative flex items-center">
         <div class="absolute left-3.5 flex items-center pointer-events-none">
           <Circle v-if="status === 'idle'" class="w-4 h-4 sm:w-5 sm:h-5 text-input fill-muted" />
+          <Loader2
+            v-else-if="status === 'checking'"
+            class="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-muted-foreground"
+          />
           <CheckCircle2
             v-else-if="status === 'valid'"
             class="w-4 h-4 sm:w-5 sm:h-5 text-brand-green-foreground fill-brand-green stroke-[2.2]"

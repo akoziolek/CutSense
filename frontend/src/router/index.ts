@@ -13,7 +13,7 @@ const PatternsPage = () => import('../views/patterns/PatternsView.vue')
 const NewPatternPage = () => import('../views/patterns/NewPatternView.vue')
 const PatternEditPage = () => import('../views/patterns/PatternEditView.vue')
 const OptimizationsPage = () => import('../views/optimizations/OptimizationsView.vue')
-const NewOptimizationPage = () => import('../views/optimizations/OptimizationWizard.vue')
+const NewOptimizationPage = () => import('../views/optimizations/NewOptimizationView.vue')
 
 const routes = [
   { path: '/', name: 'Landing', component: LandingPage, meta: { isPublic: true } },
@@ -41,15 +41,17 @@ const routes = [
 
   // pages that are private unless explicitly marked public above
   { path: '/home', name: 'Home', component: ComingSoonPage },
-  { 
-    path: '/optimizations', 
-    name: 'Optimizations', 
-    component: OptimizationsPage 
+  {
+    path: '/optimizations',
+    name: 'Optimizations',
+    component: OptimizationsPage,
+    meta: { isPublic: true },
   },
-  { 
-    path: '/optimizations/new', 
-    name: 'OptimizationsNew', 
-    component: NewOptimizationPage 
+  {
+    path: '/optimizations/new',
+    name: 'OptimizationNew',
+    component: NewOptimizationPage,
+    meta: { isPublic: true },
   },
 
   { path: '/fabrics', name: 'Fabrics', component: FabricsPage },

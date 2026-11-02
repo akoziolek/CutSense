@@ -140,6 +140,7 @@ export const patternPieces = pgTable(
       .references(() => patternImages.id, { onDelete: 'cascade' }),
     // polygon on Cartesian coordinate system
     boundary: postgisPolygon('boundary').notNull(),
+    grainline: integer('grainline').notNull().default(0),
     normalCount: integer('normal_count').notNull().default(1),
     mirroredCount: integer('mirrored_count').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -163,6 +164,7 @@ export const fabrics = pgTable(
     description: varchar('description', { length: 400 }),
     pictureS3Key: varchar('picture_s3_key', { length: 512 }).notNull(),
     boundary: postgisPolygon('boundary').notNull(),
+    grainline: integer('grainline').notNull().default(0),
     imageWidthMm: integer('image_width_mm').notNull(),
     imageHeightMm: integer('image_height_mm').notNull(),
     areaMm2: bigint('area_mm2', { mode: 'number' }).notNull(),

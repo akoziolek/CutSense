@@ -25,7 +25,7 @@ interface PatternWithRelations {
   createdAt: Date;
   tags: { tag: { id: number; name: string } }[];
   user: { id: number; nickname: string | null; name: string };
-  pieces: { id: number; geojson: string }[];
+  pieces: { id: number; normalCount: number; mirroredCount: number; geojson: string }[];
   favoritedBy: { userId: number }[];
 }
 
@@ -75,6 +75,8 @@ export class PatternsMapper {
       },
       pieces: pattern.pieces.map((piece) => ({
         id: piece.id,
+        normalCount: piece.normalCount,
+        mirroredCount: piece.mirroredCount,
         points: PatternsMapper.piecePointsFromGeoJson(piece.geojson),
       })),
     });

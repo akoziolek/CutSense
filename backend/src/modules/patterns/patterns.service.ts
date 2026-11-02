@@ -162,7 +162,7 @@ export class PatternsService {
           columns: { id: true, nickname: true, name: true },
         },
         pieces: {
-          columns: { id: true },
+          columns: { id: true, normalCount: true, mirroredCount: true },
           extras: (piece, { sql }) => ({
             geojson: sql<string>`ST_AsGeoJSON(${piece.boundary})`.as('geojson'),
           }),

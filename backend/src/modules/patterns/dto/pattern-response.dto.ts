@@ -15,6 +15,12 @@ class PatternPieceDto {
   @ApiProperty({ description: 'Identifier of the pattern piece', example: 1 })
   id!: number;
 
+  @ApiProperty({ description: 'Default number of normal copies', example: 1 })
+  normalCount!: number;
+
+  @ApiProperty({ description: 'Default number of mirrored copies', example: 0 })
+  mirroredCount!: number;
+
   @ApiProperty({
     description: 'Outer ring of the piece polygon as [x, y] pairs',
     type: 'array',

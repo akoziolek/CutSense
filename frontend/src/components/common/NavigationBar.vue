@@ -39,6 +39,7 @@ const guestLinks = [
 
 const authLinks = [
   { name: 'Home', path: '/home' },
+  { name: 'Optimizations', path: '/optimizations' },
   { name: 'Fabrics', path: '/fabrics' },
   { name: 'Patterns', path: '/patterns' },
 ]

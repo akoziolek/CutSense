@@ -1,5 +1,15 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { eq, and, or, inArray, sql, asc, desc, count, type SQL } from 'drizzle-orm';
+import {
+  eq,
+  and,
+  or,
+  inArray,
+  sql,
+  asc,
+  desc,
+  count,
+  type SQL,
+} from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import { fabrics, fabricTags, tagsForFabrics } from '../../db/schema/schema.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
@@ -96,6 +106,7 @@ export class FabricService {
             description: createFabricDto.description,
             pictureS3Key,
             boundary: geometry,
+            grainline: createFabricDto.grainline,
             imageWidthMm: createFabricDto.imageWidthMm,
             imageHeightMm: createFabricDto.imageHeightMm,
             areaMm2: sql<number>`ROUND(ST_Area(${geometry}))::bigint`,
@@ -218,7 +229,19 @@ export class FabricService {
   ): Promise<FabricResponseDto> {
     const fabric = await this.db.query.fabrics.findFirst({
       where: and(eq(fabrics.id, fabricId), eq(fabrics.userId, currentUserId)),
-      columns: { boundary: false },
+      columns: {
+        id: true,
+        name: true,
+        description: true,
+        isFavourite: true,
+        pictureS3Key: true,
+        areaMm2: true,
+        imageWidthMm: true,
+        imageHeightMm: true,
+        userId: true,
+        createdAt: true,
+        grainline: true,
+      },
       extras: {
         boundaryGeoJson:
           sql<string>`ST_AsGeoJSON(${fabrics.boundary})::json`.as(
@@ -349,7 +372,10 @@ export class FabricService {
     }
   }
 
-  async deleteFabrics(ids: number[], currentUserId: number): Promise<BulkDeleteResponseDto> {
+  async deleteFabrics(
+    ids: number[],
+    currentUserId: number,
+  ): Promise<BulkDeleteResponseDto> {
     const deleted = await this.db
       .delete(fabrics)
       .where(and(inArray(fabrics.id, ids), eq(fabrics.userId, currentUserId)))

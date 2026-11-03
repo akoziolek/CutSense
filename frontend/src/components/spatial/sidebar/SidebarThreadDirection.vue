@@ -22,6 +22,7 @@ const emit = defineEmits<{
   (e: 'update:threadAngle', value: number): void
 }>()
 
+// TODO - shouldn't the user be able to enter any value (0, 359?). pictures could be at different angles
 const threadAngles = [0, 45, 90, 135, 180, 225, 270, 315]
 </script>
 

@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   UploadedFile,
+  UploadedFiles,
   UseInterceptors,
   ParseFilePipe,
   MaxFileSizeValidator,
@@ -41,7 +42,7 @@ import { OptionalSessionGuard } from '../../auth/guards/optional-session.guard.j
 import { OptionalUser } from '../../common/decorators/optional-user.decorator.js';
 import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
 import { PatternTagDto } from './dto/pattern-tag.dto.js';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { AnalysisShapesDto } from '../shapes-engine/dto/analysis-shapes.dto.js';
 import { EditPatternDto } from './dto/edit-pattern.dto.js';
 import { PatternListResponseDto } from './dto/pattern-list.dto.js';
@@ -49,10 +50,14 @@ import { ListPatternsQueryDto } from './dto/list-patterns-query.dto.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { SetFavouriteDto } from '../../common/dto/set-favourite.dto.js';
 import { BulkDeleteDto, BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
+import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
+import { PatternSize, PatternVisibility } from './dto/pattern.enum.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')
 export class PatternController {
+  private readonly MAX_PATTERN_PHOTO_SIZE = 10 * 1024 * 1024;
+
   constructor(private readonly patternsService: PatternsService) {}
 
   @Get('tags')
@@ -240,10 +245,56 @@ export class PatternController {
   @UseGuards(SessionGuard)
   @ApiCookieAuth('session')
   @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FilesInterceptor('photos', 20, {
+      limits: { fileSize: 10 * 1024 * 1024, files: 20 },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: [
+        'name',
+        'size',
+        'visibility',
+        'tags',
+        'images',
+        'pieces',
+        'photos',
+      ],
+      properties: {
+        name: { type: 'string', maxLength: 35 },
+        size: { type: 'string', enum: Object.values(PatternSize) },
+        description: { type: 'string', maxLength: 400 },
+        visibility: { type: 'string', enum: Object.values(PatternVisibility) },
+        tags: {
+          type: 'string',
+          description: 'JSON-encoded array of tag names.',
+        },
+        images: {
+          type: 'string',
+          description:
+            'JSON-encoded array of imageWidthMm and imageHeightMm values, in photo order.',
+        },
+        pieces: {
+          type: 'string',
+          description:
+            'JSON-encoded pieces; each includes imageIndex identifying its source photo.',
+        },
+        photos: {
+          type: 'array',
+          items: { type: 'string', format: 'binary' },
+          description:
+            'Pattern source photos (PNG, JPG, or WEBP; up to 20 photos, 10 MB each).',
+        },
+      },
+    },
+  })
   @ApiOperation({
     summary: 'Create a pattern',
     description:
-      'Creates a pattern with its pieces and tags for the current user.',
+      'Uploads pattern source photos and creates the pattern with its pieces and tags for the current user.',
   })
   @ApiCreatedResponse({ description: 'Returns the id of the new pattern.' })
   @ApiBadRequestResponse({ description: 'Validation failed or unknown tag' })
@@ -252,9 +303,23 @@ export class PatternController {
   })
   async createPattern(
     @Body() dto: CreatePatternDto,
+    @UploadedFiles() photos: Express.Multer.File[],
     @CurrentUser() user: { id: number },
   ): Promise<{ id: number }> {
-    return this.patternsService.createPattern(dto, user.id);
+    const uploadedPhotos = photos ?? [];
+    if (
+      uploadedPhotos.some(
+        (photo) =>
+          photo.size > this.MAX_PATTERN_PHOTO_SIZE ||
+          !/^image\/(jpeg|png|webp)$/.test(photo.mimetype),
+      )
+    ) {
+      throw new RequestValidationException(
+        'Pattern photos must be PNG, JPG, or WEBP images no larger than 10 MB.',
+      );
+    }
+
+    return this.patternsService.createPattern(dto, uploadedPhotos, user.id);
   }
 
   @Get('tags')

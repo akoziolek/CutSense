@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import {
   ArrayMinSize,
   IsOptional,
@@ -64,6 +64,22 @@ export class CreateFabricDto {
   @ValidateNested({ each: true })
   @Type(() => PointDto)
   boundary!: PointDto[];
+
+  @ApiProperty({
+    description: 'Grainline angle in degrees [0, 359]',
+    example: 90,
+    minimum: 0,
+    maximum: 359,
+  })
+  @Transform(({ value }) => {
+    const num = Number(value);
+    if (isNaN(num)) return value;
+    return ((Math.round(num) % 360) + 360) % 360;
+  })
+  @IsInt()
+  @Min(0)
+  @Max(359)
+  grainline!: number;
 
   @ApiProperty({
     description: 'Image width in calibrated millimeters.',

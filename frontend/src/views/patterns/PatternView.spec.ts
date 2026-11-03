@@ -108,9 +108,20 @@ const pattern = {
   tags: ['summer', 'tops'],
   author: { id: 3, nickname: 'Lily43' },
   pieces: [
-    { id: 1, points: [[0, 0], [10, 0], [10, 5], [0, 0]] },
-    { id: 2, points: [[0, 0], [4, 0], [4, 4], [0, 0]] },
+    {
+      id: 1,
+      patternImageId: 1,
+      grainline: 90,
+      points: [[0, 0], [10, 0], [10, 5], [0, 0]],
+    },
+    {
+      id: 2,
+      patternImageId: 1,
+      grainline: 180,
+      points: [[0, 0], [4, 0], [4, 4], [0, 0]],
+    },
   ],
+  images: [],
 }
 
 afterEach(() => {

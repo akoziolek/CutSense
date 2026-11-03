@@ -17,7 +17,14 @@ const patternRow = (overrides: Record<string, unknown> = {}) => ({
   id: 17,
   userId: 3,
   visibility: 'PUBLIC',
-  pieces: [{ id: 101, geojson: polygonGeoJson }, { id: 102, geojson: polygonGeoJson }],
+  images: [
+    {
+      pieces: [
+        { id: 101, geojson: polygonGeoJson },
+        { id: 102, geojson: polygonGeoJson },
+      ],
+    },
+  ],
   ...overrides,
 });
 

@@ -71,11 +71,15 @@ export class OptimizationsService {
       where: eq(patterns.id, dto.patternId),
       columns: { id: true, userId: true, visibility: true },
       with: {
-        pieces: {
-          columns: { id: true },
-          extras: (piece, { sql }) => ({
-            geojson: sql<string>`ST_AsGeoJSON(${piece.boundary})`.as('geojson'),
-          }),
+        images: {
+          with: {
+            pieces: {
+              columns: { id: true },
+              extras: (piece, { sql }) => ({
+                geojson: sql<string>`ST_AsGeoJSON(${piece.boundary})`.as('geojson'),
+              }),
+            },
+          },
         },
       },
     });
@@ -87,10 +91,12 @@ export class OptimizationsService {
     }
 
     const patternPieces = new Map(
-      pattern.pieces.map((piece) => [
-        piece.id,
-        PatternsMapper.piecePointsFromGeoJson(piece.geojson),
-      ]),
+      pattern.images.flatMap((image) =>
+        image.pieces.map((piece) => [
+          piece.id,
+          PatternsMapper.piecePointsFromGeoJson(piece.geojson),
+        ]),
+      ),
     );
     const preparedPieces = dto.pieces.map((piece) => {
       const boundary = patternPieces.get(piece.patternPieceId);

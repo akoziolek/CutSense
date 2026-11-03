@@ -124,6 +124,8 @@ describe('PatternsService', () => {
               pieces: [
                 {
                   id: 1,
+                  normalCount: 2,
+                  mirroredCount: 1,
                   grainline: 90,
                   geojson:
                     '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,5],[0,0]]]}',
@@ -141,6 +143,8 @@ describe('PatternsService', () => {
         pieces: [
           {
             id: 1,
+            normalCount: 2,
+            mirroredCount: 1,
             patternImageId: 8,
             grainline: 90,
             points: [[0, 0], [10, 0], [10, 5], [0, 0]],

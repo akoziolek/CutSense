@@ -59,6 +59,7 @@ const handleSubmit = async (payload: FabricFormPayload) => {
   formData.append('boundary', JSON.stringify(boundary))
   formData.append('imageWidthMm', String(imageWidthMm))
   formData.append('imageHeightMm', String(imageHeightMm))
+  formData.append('grainline', String(config.threadAngle))
   formData.append('tagIds', JSON.stringify(tagIds))
 
   isSubmitting.value = true

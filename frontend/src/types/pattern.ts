@@ -8,6 +8,7 @@ export interface PatternListItem {
   isFavourite: boolean
   createdAt: string
   isOwner: boolean
+  imageUrl?: string
 }
 
 export interface PatternListResponse {

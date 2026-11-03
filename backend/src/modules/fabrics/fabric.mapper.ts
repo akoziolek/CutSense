@@ -7,7 +7,6 @@ interface FabricWithTags {
   id: number;
   name: string;
   description?: string | null;
-  pictureS3Key?: string | null;
   isFavourite: boolean;
   areaMm2: number;
   imageWidthMm?: number | null;
@@ -21,6 +20,7 @@ interface FabricWithTags {
     };
   }[];
   boundary: PointDto[];
+  grainline: number;
 }
 
 export class FabricMapper {
@@ -70,7 +70,6 @@ export class FabricMapper {
       id: fabric.id,
       name: fabric.name,
       description: fabric.description ?? undefined,
-      pictureS3Key: fabric.pictureS3Key ?? undefined,
       pictureUrl,
       isFavourite: fabric.isFavourite,
       areaMm2: fabric.areaMm2,
@@ -83,6 +82,7 @@ export class FabricMapper {
         name: item.tag.name,
       })),
       shapes: shape.length > 0 ? [shape] : [],
+      grainline: fabric.grainline
     });
   }
 
@@ -102,7 +102,7 @@ export class FabricMapper {
   static toListItemDto(
     fabric: Pick<
       typeof fabrics.$inferSelect,
-      'id' | 'name' | 'pictureS3Key' | 'isFavourite' | 'areaMm2' | 'createdAt'
+      'id' | 'name' | 'isFavourite' | 'areaMm2' | 'createdAt'
     >,
     pictureUrl?: string,
   ): FabricListItemDto {

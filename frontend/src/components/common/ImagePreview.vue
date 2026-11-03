@@ -11,14 +11,19 @@ const props = withDefaults(
     src: string
     alt: string
     shapes?: Point2D[][]
-    activeShapeIndex?: number
+    activeShapeIndex?: number | null
     allShapesEdges?: PolygonEdge[][]
   }>(),
   {
     shapes: () => [],
     allShapesEdges: () => [],
+    activeShapeIndex: null,
   },
 )
+
+const emit = defineEmits<{
+  (e: 'activateShape', shapeIndex: number): void
+}>()
 
 const zoomLevel = ref(1)
 const canvasOffset = ref({ x: 0, y: 0 })
@@ -48,13 +53,14 @@ const resetZoom = () => {
           <img
             :src="src"
             :alt="alt"
-            class="w-full h-full object-cover block select-none transition-transform duration-300 group-hover:scale-105"
+            draggable="false"
+            class="w-full h-full object-cover block select-none pointer-events-none transition-transform duration-300 group-hover:scale-105"
           />
           <div
             class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-30"
           >
-            <span class="rounded-full bg-background/80 p-2 shadow-sm backdrop-blur-sm">
-              <ZoomIn class="h-5 w-5 text-foreground" />
+            <span class="rounded-full bg-background/80 p-2 shadow-sm backdrop-blur-sm text-foreground">
+              <ZoomIn class="h-5 w-5" />
             </span>
           </div>
         </div>
@@ -110,12 +116,13 @@ const resetZoom = () => {
         <SpatialCanvas
           :image-url="src"
           :shapes="showOverlay ? props.shapes : []"
-          :active-shape-index="props.activeShapeIndex"
+          :active-shape-index="props.activeShapeIndex ?? undefined"
           :all-shapes-edges="showOverlay ? props.allShapesEdges : []"
           :show-labels="showOverlay"
           :zoom-level="zoomLevel"
           :canvas-offset="canvasOffset"
           :read-only="true"
+          @activate-shape="emit('activateShape', $event)"
           @update:zoom-level="zoomLevel = $event"
           @update:canvas-offset="canvasOffset = $event"
         />

@@ -92,6 +92,20 @@
       "when": 1793366194995,
       "tag": "0012_fabric_dimensions_mm",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793618817158,
+      "tag": "0013_add_pattern_images",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793634120113,
+      "tag": "0014_add_grainline_columns",
+      "breakpoints": true
     }
   ]
 }

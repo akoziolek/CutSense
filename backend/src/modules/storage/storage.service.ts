@@ -95,7 +95,7 @@ export class StorageService {
         expiresIn: expiresInSeconds,
       });
 
-       if (this.internalEndpoint && this.publicEndpoint) {
+      if (this.internalEndpoint && this.publicEndpoint) {
         url = url.replace(this.internalEndpoint, this.publicEndpoint);
       }
 
@@ -104,6 +104,26 @@ export class StorageService {
       const details = error instanceof Error ? error.message : String(error);
       throw new StorageOperationFailedException('read', details);
     }
+  }
+
+  async generatePresignedUrls(
+    keys: string[],
+    expiresInSeconds = 300,
+  ): Promise<Map<string, string>> {
+    const uniqueKeys = [...new Set(keys)];
+
+    const entries = await Promise.all(
+      uniqueKeys.map(async (key) => {
+        try {
+          const url = await this.generatePresignedUrl(key, expiresInSeconds);
+          return [key, url] as const;
+        } catch {
+          return [key, key] as const;
+        }
+      }),
+    );
+
+    return new Map(entries);
   }
 
   async deleteFile(key: string): Promise<void> {

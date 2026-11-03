@@ -124,6 +124,7 @@ const fabric = {
   ],
   imageWidthMm: 1000,
   imageHeightMm: 800,
+  grainline: 90,
 }
 
 afterEach(() => {

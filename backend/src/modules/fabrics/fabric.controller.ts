@@ -153,6 +153,7 @@ export class FabricController {
         'name',
         'picture',
         'boundary',
+        'grainline',
         'imageWidthMm',
         'imageHeightMm',
       ],
@@ -170,6 +171,11 @@ export class FabricController {
             'JSON-encoded array of { x, y } points in calibrated millimeters.',
           example:
             '[{"x":-2500,"y":1250},{"x":2500,"y":1250},{"x":2500,"y":6250},{"x":-2500,"y":6250}]',
+        },
+        grainline: {
+          type: 'number',
+          description: 'Grainline angle in degrees [0, 359].',
+          example: 90,
         },
         imageWidthMm: {
           type: 'number',

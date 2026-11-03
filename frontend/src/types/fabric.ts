@@ -12,10 +12,10 @@ export interface FabricResponse {
   id: number
   name: string
   description?: string
-  pictureS3Key?: string
   pictureUrl?: string
   isFavourite: boolean
   areaMm2: number
+  grainline: number
   shapes: FabricBoundaryPoint[][]
   imageWidthMm?: number
   imageHeightMm?: number

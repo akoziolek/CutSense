@@ -1,4 +1,9 @@
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import {
   eq,
   and,
@@ -20,6 +25,7 @@ import {
   patternTags,
   patterns,
   tagsForPatterns,
+  patternImages,
 } from '../../db/schema/schema.js';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
 import { PatternTagDto } from './dto/pattern-tag.dto.js';
@@ -44,6 +50,7 @@ import { assertDateRange, likePattern } from '../../common/utils/list-query.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { patternFavourites } from '../../db/schema/schema.js';
 import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
+import { StoragePaths, StorageService } from '../storage/storage.service.js';
 
 // identity ids start at 1, so this never matches a favourite row (used for guests)
 const NO_USER_ID = 0;
@@ -54,6 +61,7 @@ export class PatternsService {
     @Inject(DRIZZLE)
     private readonly db: DrizzleDB,
     private readonly shapesEngineClient: ShapesEngineClient,
+    private readonly storageService: StorageService,
   ) {}
 
   async analyzePatternBoundary(
@@ -161,12 +169,19 @@ export class PatternsService {
         user: {
           columns: { id: true, nickname: true, name: true },
         },
-        pieces: {
-          columns: { id: true, normalCount: true, mirroredCount: true },
-          extras: (piece, { sql }) => ({
-            geojson: sql<string>`ST_AsGeoJSON(${piece.boundary})`.as('geojson'),
-          }),
-          orderBy: (piece, { asc }) => [asc(piece.id)],
+        images: {
+          orderBy: (img, { asc }) => [asc(img.orderIndex), asc(img.id)],
+          with: {
+            pieces: {
+              columns: { id: true, grainline: true, normalCount: true, mirroredCount: true },
+              extras: (piece, { sql }) => ({
+                geojson: sql<string>`ST_AsGeoJSON(${piece.boundary})`.as(
+                  'geojson',
+                ),
+              }),
+              orderBy: (piece, { asc }) => [asc(piece.id)],
+            },
+          },
         },
         favoritedBy: {
           columns: { userId: true },
@@ -181,59 +196,139 @@ export class PatternsService {
     if (pattern.visibility === 'PRIVATE' && pattern.userId !== currentUserId) {
       throw new ResourceNotFoundException('Pattern', patternId);
     }
-    return PatternsMapper.toResponseDto(pattern);
+
+    const imageUrls = await this.storageService.generatePresignedUrls(
+      pattern.images.map((i) => i.pictureS3Key),
+    );
+
+    return PatternsMapper.toResponseDto(pattern, imageUrls);
   }
 
   async createPattern(
     dto: CreatePatternDto,
+    photos: Express.Multer.File[],
     userId: number,
   ): Promise<{ id: number }> {
+    if (
+      photos.length !== dto.images.length ||
+      dto.pieces.some((piece) => piece.imageIndex >= photos.length)
+    ) {
+      throw new RequestValidationException(
+        'Each pattern photo must have image dimensions, and every piece must reference an uploaded photo.',
+      );
+    }
+
     const tagNames = [...new Set(dto.tags.map((t) => t.trim().toLowerCase()))];
+    const uploadedKeys: string[] = [];
 
-    // one transaction: if anything fails, nothing is saved
-    return this.db.transaction(async (tx) => {
-      const tagRows = tagNames.length
-        ? await tx
-            .select({ id: tagsForPatterns.id, name: tagsForPatterns.name })
-            .from(tagsForPatterns)
-            .where(inArray(tagsForPatterns.name, tagNames))
-        : [];
-
-      const unknown = tagNames.filter(
-        (n) => !tagRows.some((r) => r.name === n),
-      );
-      if (unknown.length) {
-        throw new BadRequestException([`Unknown tags: ${unknown.join(', ')}`]);
+    try {
+      for (const photo of photos) {
+        uploadedKeys.push(
+          await this.storageService.uploadFile(
+            photo,
+            StoragePaths.patterns(userId),
+          ),
+        );
       }
 
-      const [created] = await tx
-        .insert(patterns)
-        .values({
-          name: dto.name,
-          description: dto.description?.trim() || null,
-          size: dto.size,
-          visibility: dto.visibility,
-          userId,
-        })
-        .returning({ id: patterns.id });
+      return await this.db.transaction(async (tx) => {
+        const tagRows = tagNames.length
+          ? await tx
+              .select({ id: tagsForPatterns.id, name: tagsForPatterns.name })
+              .from(tagsForPatterns)
+              .where(inArray(tagsForPatterns.name, tagNames))
+          : [];
 
-      if (tagRows.length) {
-        await tx
-          .insert(patternTags)
-          .values(tagRows.map((t) => ({ patternId: created.id, tagId: t.id })));
-      }
+        const unknown = tagNames.filter(
+          (n) => !tagRows.some((r) => r.name === n),
+        );
+        if (unknown.length) {
+          throw new BadRequestException([
+            `Unknown tags: ${unknown.join(', ')}`,
+          ]);
+        }
 
-      await tx.insert(patternPieces).values(
-        dto.pieces.map((piece) => ({
-          patternId: created.id,
-          boundary: sql`ST_GeomFromText(${PatternsMapper.pieceBoundaryToWkt(rotateAndAnchor(piece.points, piece.grainline))}, 0)`,
-          normalCount: piece.normal,
-          mirroredCount: piece.mirrored,
-        })),
+        const [created] = await tx
+          .insert(patterns)
+          .values({
+            name: dto.name,
+            description: dto.description?.trim() || null,
+            size: dto.size,
+            visibility: dto.visibility,
+            userId,
+          })
+          .returning({ id: patterns.id });
+
+        if (!created) {
+          throw new Error(
+            'Pattern creation did not return the created pattern.',
+          );
+        }
+
+        if (tagRows.length) {
+          await tx
+            .insert(patternTags)
+            .values(
+              tagRows.map((t) => ({ patternId: created.id, tagId: t.id })),
+            );
+        }
+
+        const imageRows = await tx
+          .insert(patternImages)
+          .values(
+            dto.images.map((image, orderIndex) => {
+              const pictureS3Key = uploadedKeys[orderIndex];
+              if (!pictureS3Key) {
+                throw new Error(
+                  `Pattern photo ${orderIndex} was not uploaded.`,
+                );
+              }
+
+              return {
+                patternId: created.id,
+                pictureS3Key,
+                imageWidthMm: image.imageWidthMm,
+                imageHeightMm: image.imageHeightMm,
+                orderIndex,
+              };
+            }),
+          )
+          .returning({
+            id: patternImages.id,
+            orderIndex: patternImages.orderIndex,
+          });
+        const imageIds = new Map(
+          imageRows.map((image) => [image.orderIndex, image.id]),
+        );
+
+        await tx.insert(patternPieces).values(
+          dto.pieces.map((piece) => {
+            const patternImageId = imageIds.get(piece.imageIndex);
+            if (patternImageId === undefined) {
+              throw new Error(
+                `Pattern image ${piece.imageIndex} was not saved.`,
+              );
+            }
+
+            return {
+              patternImageId,
+              boundary: sql`ST_GeomFromText(${PatternsMapper.pieceBoundaryToWkt(piece.points)}, 0)`,
+              normalCount: piece.normal,
+              mirroredCount: piece.mirrored,
+              grainline: piece.grainline,
+            };
+          }),
+        );
+
+        return { id: created.id };
+      });
+    } catch (error) {
+      await Promise.allSettled(
+        uploadedKeys.map((key) => this.storageService.deleteFile(key)),
       );
 
-      return { id: created.id };
-    });
+      throw error;
+    }
   }
 
   async getPatternTags(): Promise<PatternTagDto[]> {
@@ -267,6 +362,20 @@ export class PatternsService {
     const { page, limit, sort } = query;
 
     const where = this.buildWhere(query, currentUserId);
+
+    const firstImageSubquery = this.db
+      .selectDistinctOn([patternImages.patternId], {
+        patternId: patternImages.patternId,
+        pictureS3Key: patternImages.pictureS3Key,
+      })
+      .from(patternImages)
+      .orderBy(
+        patternImages.patternId,
+        asc(patternImages.orderIndex),
+        asc(patternImages.id),
+      )
+      .as('first_image');
+
     const [rows, [{ total }]] = await Promise.all([
       this.db
         .select({
@@ -276,6 +385,7 @@ export class PatternsService {
           createdAt: patterns.createdAt,
           isFavourite: sql<boolean>`${patternFavourites.userId} is not null`,
           userId: patterns.userId,
+          pictureS3Key: firstImageSubquery.pictureS3Key,
         })
         .from(patterns)
         .leftJoin(
@@ -285,6 +395,10 @@ export class PatternsService {
             eq(patternFavourites.userId, currentUserId ?? NO_USER_ID),
           ),
         )
+        .leftJoin(
+          firstImageSubquery,
+          eq(firstImageSubquery.patternId, patterns.id),
+        )
         .where(where)
         .orderBy(...this.getOrderBy(sort))
         .limit(limit)
@@ -292,10 +406,22 @@ export class PatternsService {
       this.db.select({ total: count() }).from(patterns).where(where),
     ]);
 
-    return {
-      items: rows.map((row) =>
-        PatternsMapper.toListItemDto(row, currentUserId),
+    const s3Keys = rows
+      .map((row) => row.pictureS3Key)
+      .filter((key): key is string => Boolean(key));
+
+    const imageUrls = await this.storageService.generatePresignedUrls(s3Keys);
+
+    const items = rows.map((row) =>
+      PatternsMapper.toListItemDto(
+        row,
+        currentUserId,
+        row.pictureS3Key ? imageUrls.get(row.pictureS3Key) : undefined,
       ),
+    );
+
+    return {
+      items,
       total,
       page,
       limit,
@@ -338,15 +464,19 @@ export class PatternsService {
   }
 
   private buildWhere(query: ListPatternsQueryDto, currentUserId?: number): SQL {
-    const { createdFrom, createdTo, favourite, tagIds, sizes, community } = query;
+    const { createdFrom, createdTo, favourite, tagIds, sizes, community } =
+      query;
     assertDateRange(createdFrom, createdTo);
 
     const visible =
       currentUserId === undefined
         ? eq(patterns.visibility, 'PUBLIC')
         : community === false
-        ? eq(patterns.userId, currentUserId)
-          : or(eq(patterns.visibility, 'PUBLIC'), eq(patterns.userId, currentUserId));
+          ? eq(patterns.userId, currentUserId)
+          : or(
+              eq(patterns.visibility, 'PUBLIC'),
+              eq(patterns.userId, currentUserId),
+            );
 
     const favouriteIds =
       currentUserId !== undefined && favourite !== undefined
@@ -390,21 +520,54 @@ export class PatternsService {
     )!;
   }
 
-    async deletePattern(patternId: number, currentUserId: number): Promise<void> {
+  async deletePattern(patternId: number, currentUserId: number): Promise<void> {
+    const images = await this.db
+      .select({ key: patternImages.pictureS3Key })
+      .from(patternImages)
+      .innerJoin(patterns, eq(patterns.id, patternImages.patternId))
+      .where(
+        and(eq(patterns.id, patternId), eq(patterns.userId, currentUserId)),
+      );
+
     const [deleted] = await this.db
       .delete(patterns)
-      .where(and(eq(patterns.id, patternId), eq(patterns.userId, currentUserId)))
+      .where(
+        and(eq(patterns.id, patternId), eq(patterns.userId, currentUserId)),
+      )
       .returning({ id: patterns.id });
 
     if (!deleted) throw new ResourceNotFoundException('Pattern', patternId);
+
+    await Promise.allSettled(
+      images.map((img) => this.storageService.deleteFile(img.key)),
+    );
   }
 
-  async deletePatterns(ids: number[], currentUserId: number): Promise<BulkDeleteResponseDto> {
+  async deletePatterns(
+    ids: number[],
+    currentUserId: number,
+  ): Promise<BulkDeleteResponseDto> {
+    const images = await this.db
+      .select({ key: patternImages.pictureS3Key })
+      .from(patternImages)
+      .innerJoin(patterns, eq(patterns.id, patternImages.patternId))
+      .where(
+        and(inArray(patterns.id, ids), eq(patterns.userId, currentUserId)),
+      );
+
     const deleted = await this.db
       .delete(patterns)
       .where(and(inArray(patterns.id, ids), eq(patterns.userId, currentUserId)))
       .returning({ id: patterns.id });
 
-    return { deletedIds: deleted.map((p) => p.id) };
+    const deletedIds = deleted.map((p) => p.id);
+
+    if (deletedIds.length > 0) {
+      await Promise.allSettled(
+        images.map((img) => this.storageService.deleteFile(img.key)),
+      );
+    }
+
+    return { deletedIds };
   }
 }

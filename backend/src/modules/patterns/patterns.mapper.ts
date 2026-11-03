@@ -1,7 +1,10 @@
 import type { PointDto } from './dto/create-pattern.dto.js';
 import { PatternListItemDto } from './dto/pattern-list.dto.js';
 import { PatternSize, PatternVisibility } from './dto/pattern.enum.js';
-import { PatternResponseDto } from './dto/pattern-response.dto.js';
+import {
+  PatternResponseDto,
+  PatternImageDto,
+} from './dto/pattern-response.dto.js';
 import { PatternTagDto } from './dto/pattern-tag.dto.js';
 
 interface PatternListRow {
@@ -11,9 +14,10 @@ interface PatternListRow {
   isFavourite: boolean;
   createdAt: Date;
   userId: number;
+  pictureS3Key?: string | null
 }
 
-interface PatternWithRelations {
+export interface PatternWithRelations {
   id: number;
   name: string;
   description: string | null;
@@ -25,11 +29,16 @@ interface PatternWithRelations {
   createdAt: Date;
   tags: { tag: { id: number; name: string } }[];
   user: { id: number; nickname: string | null; name: string };
-  pieces: { id: number; normalCount: number; mirroredCount: number; geojson: string }[];
+  images: {
+    id: number;
+    pictureS3Key: string;
+    imageWidthMm: number;
+    imageHeightMm: number;
+    orderIndex: number;
+    pieces: { id: number; normalCount: number; mirroredCount: number; geojson: string; grainline: number }[];
+  }[];
   favoritedBy: { userId: number }[];
 }
-
-// TODO change from geojson to points[]
 
 interface PatternTag {
   id: number;
@@ -40,6 +49,7 @@ export class PatternsMapper {
   static toListItemDto(
     row: PatternListRow,
     currentUserId?: number,
+    imageUrl?: string
   ): PatternListItemDto {
     return Object.assign(new PatternListItemDto(), {
       id: row.id,
@@ -48,10 +58,33 @@ export class PatternsMapper {
       isFavourite: row.isFavourite,
       createdAt: row.createdAt.toISOString(),
       isOwner: currentUserId !== undefined && row.userId === currentUserId,
+      imageUrl: imageUrl
     });
   }
 
-  static toResponseDto(pattern: PatternWithRelations): PatternResponseDto {
+  static toResponseDto(
+    pattern: PatternWithRelations,
+    imageUrls: Map<string, string> = new Map(),
+  ): PatternResponseDto {
+    const allPieces = (pattern.images ?? []).flatMap((image) =>
+      image.pieces.map((piece) => ({
+        id: piece.id,
+        normalCount: piece.normalCount,
+        mirroredCount: piece.mirroredCount,
+        patternImageId: image.id,
+        grainline: piece.grainline,
+        points: PatternsMapper.piecePointsFromGeoJson(piece.geojson),
+      })),
+    );
+
+    const images: PatternImageDto[] = (pattern.images ?? []).map((img) => ({
+      id: img.id,
+      url: imageUrls.get(img.pictureS3Key) ?? img.pictureS3Key,
+      imageWidthMm: img.imageWidthMm,
+      imageHeightMm: img.imageHeightMm,
+      orderIndex: img.orderIndex,
+    }));
+
     return Object.assign(new PatternResponseDto(), {
       id: pattern.id,
       name: pattern.name,
@@ -73,12 +106,8 @@ export class PatternsMapper {
         id: pattern.user.id,
         nickname: pattern.user.nickname ?? pattern.user.name,
       },
-      pieces: pattern.pieces.map((piece) => ({
-        id: piece.id,
-        normalCount: piece.normalCount,
-        mirroredCount: piece.mirroredCount,
-        points: PatternsMapper.piecePointsFromGeoJson(piece.geojson),
-      })),
+      images,
+      pieces: allPieces,
     });
   }
 

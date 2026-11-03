@@ -25,7 +25,7 @@ export class PatternListItemDto {
 
   @ApiProperty({
     description:
-      'Whether the current user marked the pattern as a favourite (always false for guests)',
+      'Whether the current user marke the pattern as a favourite (always false for guests)',
     example: false,
   })
   isFavourite!: boolean;
@@ -35,6 +35,12 @@ export class PatternListItemDto {
     example: '2026-10-17T10:30:00.000Z',
   })
   createdAt!: string;
+
+  @ApiProperty({
+    description: 'Storage key of the image',
+    example: 'users/1/patterns/550e8400-e29b-41d4-a716-446655440000.jpg',
+  })
+  pictureS3Key!: string;
 }
 
 export class PatternListResponseDto {

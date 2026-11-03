@@ -16,6 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const fabricsAssetsDir = path.join(__dirname, 'assets/fabrics');
+const patternsAssetsDir = path.join(__dirname, 'assets/patterns');
 
 const algorithmSeeds = [
   {
@@ -392,6 +393,7 @@ async function main(): Promise<void> {
           description: template.description,
           pictureS3Key: pictureS3Key,
           boundary: sql`ST_GeomFromText(${irregularFabricPolygon(index, template.width, template.length)}, 0)`,
+          grainline: Math.floor(Math.random() * 360),
           imageWidthMm: template.width,
           imageHeightMm: template.length,
           areaMm2: template.areaMm2,
@@ -452,14 +454,108 @@ async function main(): Promise<void> {
     if (fabricTagLinks.length > 0)
       await db.insert(schema.fabricTags).values(fabricTagLinks);
 
-    console.log('Generating irregular pattern pieces (Pattern Pieces)...');
-    const pieceRows = patterns.flatMap(
-      (pattern: { id: number; userId: number }, patternIndex: number) => {
-        const piecesCount = 3 + (patternIndex % 3);
-        return Array.from({ length: piecesCount }, (_, pieceIndex: number) => ({
+    console.log('Generating pattern images and pieces...');
+    const patternImageRows: {
+      patternId: number;
+      pictureS3Key: string;
+      imageWidthMm: number;
+      imageHeightMm: number;
+      orderIndex: number;
+    }[] = [];
+
+    for (let pIndex = 0; pIndex < patterns.length; pIndex++) {
+      const pattern = patterns[pIndex];
+      const imagesCount = 1 + (pIndex % 2);
+
+      for (let imgIndex = 0; imgIndex < imagesCount; imgIndex++) {
+        const fileNumber = String((imgIndex % 10) + 1).padStart(2, '0');
+        const fileName = `sheet_${fileNumber}.jpg`;
+        const filePath = path.join(patternsAssetsDir, fileName);
+
+        let pictureS3Key: string | null = null;
+
+        if (fs.existsSync(filePath)) {
+          try {
+            const buffer = fs.readFileSync(filePath);
+            const mockFile = {
+              originalname: fileName,
+              mimetype: 'image/jpeg',
+              buffer,
+              size: buffer.length,
+            } as Express.Multer.File;
+
+            pictureS3Key = await storageService.uploadFile(
+              mockFile,
+              StoragePaths.patterns(pattern.userId),
+            );
+          } catch (uploadError) {
+            console.warn(
+              `Warning: Upload failed for ${fileName} (pattern: ${pattern.id})`,
+              uploadError,
+            );
+          }
+        }
+
+        patternImageRows.push({
           patternId: pattern.id,
-          boundary: sql`ST_GeomFromText(${irregularPolygon(patternIndex * 3 + pieceIndex, 10 + (pieceIndex % 3) * 5)}, 0)`,
-        }));
+          pictureS3Key:
+            pictureS3Key ??
+            `users/${pattern.userId}/patterns/seed_pattern_${pattern.id}_${imgIndex + 1}.jpg`,
+          imageWidthMm: 900,
+          imageHeightMm: 1200,
+          orderIndex: imgIndex,
+        });
+      }
+    }
+
+    const insertedPatternImages = await db
+      .insert(schema.patternImages)
+      .values(patternImageRows)
+      .returning({
+        id: schema.patternImages.id,
+        patternId: schema.patternImages.patternId,
+      });
+
+    const imagesByPattern = new Map<number, number[]>();
+    for (const img of insertedPatternImages) {
+      const pId = Number(img.patternId);
+      const list = imagesByPattern.get(pId) ?? [];
+      list.push(Number(img.id));
+      imagesByPattern.set(pId, list);
+    }
+
+    const pieceRows: {
+      patternImageId: number;
+      boundary: ReturnType<typeof sql>;
+      grainline: number;
+      normalCount: number;
+      mirroredCount: number;
+    }[] = [];
+
+    patterns.forEach(
+      (pattern: { id: number; userId: number }, patternIndex: number) => {
+        const availableImageIds = imagesByPattern.get(Number(pattern.id));
+
+        if (!availableImageIds || availableImageIds.length === 0) {
+          throw new Error(
+            `No pattern_images found for pattern ID ${pattern.id}. Cannot assign patternImageId.`,
+          );
+        }
+
+        const piecesCount = 3 + (patternIndex % 3);
+
+        for (let pieceIndex = 0; pieceIndex < piecesCount; pieceIndex++) {
+          const assignedImageId =
+            availableImageIds[pieceIndex % availableImageIds.length];
+
+          pieceRows.push({
+            patternImageId: assignedImageId,
+            boundary: sql`ST_GeomFromText(${irregularPolygon(patternIndex * 3 + pieceIndex, 10 + (pieceIndex % 3) * 5)}, 0)`,
+            grainline: Math.floor(Math.random() * 360),
+            normalCount: 1,
+            mirroredCount: pieceIndex % 2 === 0 ? 1 : 0,
+          });
+        }
       },
     );
 

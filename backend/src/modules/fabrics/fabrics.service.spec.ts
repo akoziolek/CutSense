@@ -8,6 +8,7 @@ import { StorageService } from '../storage/storage.service.js';
 import { FabricService } from './fabrics.service.js';
 import { FabricSortOption } from './dto/list-fabrics-query.dto.js';
 import { PgDialect } from 'drizzle-orm/pg-core';
+import { ShapesEngineClient } from '../shapes-engine/shapes-engine.client.js';
 
 describe('FabricService', () => {
   let service: FabricService;
@@ -96,6 +97,10 @@ describe('FabricService', () => {
           useValue: {
             get: (_key: string, defaultValue: string) => defaultValue,
           },
+        },
+        {
+          provide: ShapesEngineClient,
+          useValue: { analyzeBoundary: vi.fn() },
         },
       ],
     }).compile();
@@ -245,6 +250,7 @@ describe('FabricService', () => {
         areaMm2: 125_000,
         imageWidthMm: 500,
         imageHeightMm: 250,
+        grainline: 45,
         userId: 3,
         createdAt: new Date('2025-01-15T10:30:00.000Z'),
       },
@@ -254,6 +260,7 @@ describe('FabricService', () => {
       service.createFabric(
         {
           name: 'Cotton canvas',
+          grainline: 45,
           imageWidthMm: 500,
           imageHeightMm: 250,
           boundary: [
@@ -285,6 +292,7 @@ describe('FabricService', () => {
       pictureUrl: 'https://example.com/signed.jpg',
       isFavourite: false,
       areaMm2: 125_000,
+      grainline: 45,
       userId: 3,
       createdAt: '2025-01-15T10:30:00.000Z',
       imageWidthMm: 500,
@@ -313,6 +321,7 @@ describe('FabricService', () => {
       userId: 3,
       imageWidthMm: 500,
       imageHeightMm: 250,
+      grainline: 45,
     });
     expect(insertedFabric.boundary).toBeDefined();
     expect(insertedFabric.areaMm2).toBeDefined();
@@ -329,6 +338,7 @@ describe('FabricService', () => {
       service.createFabric(
         {
           name: 'Cotton canvas',
+          grainline: 90,
           imageWidthMm: 500,
           imageHeightMm: 250,
           boundary: [
@@ -368,6 +378,7 @@ describe('FabricService', () => {
       imageHeightMm: 250,
       userId: 3,
       createdAt: new Date('2025-01-15T10:30:00.000Z'),
+      grainline: 135,
       boundaryGeoJson:
         '{"type":"Polygon","coordinates":[[[-2500,1250],[2500,1250],[2500,6250],[-2500,6250],[-2500,1250]]]}',
       tags: [
@@ -386,6 +397,7 @@ describe('FabricService', () => {
       areaMm2: 4_320_000,
       imageWidthMm: 500,
       imageHeightMm: 250,
+      grainline: 135,
       userId: 3,
       createdAt: '2025-01-15T10:30:00.000Z',
       shapes: [
@@ -405,7 +417,7 @@ describe('FabricService', () => {
     expect(findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.anything(),
-        columns: { boundary: false },
+        columns: expect.objectContaining({ grainline: true }),
         extras: { boundaryGeoJson: expect.anything() },
         with: { tags: { with: { tag: true } } },
       }),
@@ -423,6 +435,7 @@ describe('FabricService', () => {
       pictureS3Key: null,
       isFavourite: false,
       areaMm2: 2_100_000,
+      grainline: 0,
       userId: 3,
       createdAt: new Date('2025-02-01T00:00:00.000Z'),
       boundaryGeoJson:

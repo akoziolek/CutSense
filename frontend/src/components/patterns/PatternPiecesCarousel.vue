@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { EmblaCarouselType } from 'embla-carousel'
-import type { EmblaCarouselType } from 'embla-carousel'
 import {
   Carousel,
   CarouselContent,
@@ -77,8 +76,6 @@ const slides = computed(() =>
   }),
 )
 
-const emblaApi = ref<EmblaCarouselType | null>(null)
-const current = ref(0)
 
 const onInit = (api: EmblaCarouselType | undefined) => {
   if (!api) return

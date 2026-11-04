@@ -26,6 +26,7 @@ import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 import FavouriteButton from '@/components/common/FavouriteButton.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
 import { useDeleteResource } from '@/composables/useDeleteResource'
+import PatternPieceCard from '@/components/patterns/PatternPieceCard.vue'
 
 interface Pattern {
   id: number
@@ -83,6 +84,13 @@ const clearSkeletonTimer = () => {
     skeletonTimer = null
   }
 }
+
+const totalNormal = computed(
+  () => pattern.value?.pieces.reduce((sum, p) => sum + p.normalCount, 0) ?? 0,
+)
+const totalMirrored = computed(
+  () => pattern.value?.pieces.reduce((sum, p) => sum + p.mirroredCount, 0) ?? 0,
+)
 
 const isOwner = computed(() => !!pattern.value && auth.user?.id === pattern.value.userId)
 
@@ -249,6 +257,30 @@ watch(
               :tags="pattern.tags"
               :meta-items="metaItems"
             />
+          </div>
+
+          <div class="md:col-span-5 space-y-4">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 class="text-lg font-bold font-inter text-foreground">
+                Pattern pieces ({{ pattern.pieces.length }})
+              </h2>
+              <p class="text-xs text-muted-foreground">
+                Total: {{ totalNormal }} normal, {{ totalMirrored }} mirrored
+              </p>
+            </div>
+
+            <div
+              v-if="pattern.pieces.length"
+              class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+            >
+              <PatternPieceCard
+                v-for="(piece, index) in pattern.pieces"
+                :key="piece.id"
+                :piece="piece"
+                :label="`Piece #${index + 1}`"
+              />
+            </div>
+            <p v-else class="text-sm text-muted-foreground">This pattern has no pieces.</p>
           </div>
         </main>
       </Transition>

@@ -92,6 +92,8 @@ const totalMirrored = computed(
   () => pattern.value?.pieces.reduce((sum, p) => sum + p.mirroredCount, 0) ?? 0,
 )
 
+const imagesById = computed(() => new Map((pattern.value?.images ?? []).map((i) => [i.id, i])))
+
 const isOwner = computed(() => !!pattern.value && auth.user?.id === pattern.value.userId)
 
 const metaItems = computed<MetaItem[]>(() =>
@@ -278,6 +280,7 @@ watch(
                 :key="piece.id"
                 :piece="piece"
                 :label="`Piece #${index + 1}`"
+                :image="imagesById.get(piece.patternImageId)"
               />
             </div>
             <p v-else class="text-sm text-muted-foreground">This pattern has no pieces.</p>

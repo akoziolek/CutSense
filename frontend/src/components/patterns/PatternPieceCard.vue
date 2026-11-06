@@ -1,79 +1,57 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { ArrowUp, Copy, FlipHorizontal2, Compass } from 'lucide-vue-next'
+import { ArrowUp, Copy, FlipHorizontal2 } from 'lucide-vue-next'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import PatternPieceImage from '@/components/patterns/PatternPieceImage.vue'
 import type { PatternPiece } from '@/components/patterns/PatternPiecesCarousel.vue'
+import type { PieceImageSource } from '@/types/geometry'
 
-const props = defineProps<{
+defineProps<{
   piece: PatternPiece
   label: string
+  image?: PieceImageSource
 }>()
-
-const shape = computed(() => {
-  const pts = props.piece.points
-  if (pts.length === 0) return { viewBox: '0 0 1 1', polygon: '' }
-
-  const xs = pts.map(([x]) => x)
-  const ys = pts.map(([, y]) => y)
-  const minX = Math.min(...xs)
-  const maxX = Math.max(...xs)
-  const minY = Math.min(...ys)
-  const maxY = Math.max(...ys)
-  const width = maxX - minX || 1
-  const height = maxY - minY || 1
-  const pad = Math.max(width, height) * 0.08
-
-  return {
-    viewBox: `${minX - pad} ${-maxY - pad} ${width + pad * 2} ${height + pad * 2}`,
-    polygon: pts.map(([x, y]) => `${x},${-y}`).join(' '),
-  }
-})
 </script>
 
 <template>
-  <Card class="gap-3 border-muted px-4 py-4 shadow-xs transition-shadow hover:shadow-md">
-    <div class="aspect-square rounded-md border border-border/40 bg-muted/20 p-4">
-      <svg
-        :viewBox="shape.viewBox"
-        class="h-full w-full"
-        role="img"
-        :aria-label="`${label} shape`"
+  <Card
+    class="relative aspect-square w-full gap-0 overflow-hidden border border-muted-foreground/20 bg-muted/20 p-0 shadow-xs transition-shadow hover:shadow-md"
+  >
+    <PatternPieceImage
+      :points="piece.points"
+      :image="image"
+      :label="label"
+      :margin="1.7"
+      class="absolute inset-0 h-full w-full"
+    />
+
+    <div class="absolute inset-x-2 top-2 flex items-start justify-between gap-2">
+      <span
+        class="max-w-[70%] truncate rounded-md bg-background/85 px-2 py-1 text-xs font-bold font-inter text-foreground shadow-xs backdrop-blur-sm"
       >
-        <polygon
-          :points="shape.polygon"
-          class="fill-brand-violet/40 stroke-foreground"
-          stroke-width="2"
-          stroke-linejoin="round"
-          vector-effect="non-scaling-stroke"
+        {{ label }}
+      </span>
+      <span
+        class="flex size-7 shrink-0 items-center justify-center rounded-md bg-background/85 shadow-xs backdrop-blur-sm"
+        :title="`Grainline: ${piece.grainline}°`"
+      >
+        <ArrowUp
+          class="size-4 text-violet-600"
+          :style="{ transform: `rotate(${piece.grainline}deg)` }"
         />
-      </svg>
+        <span class="sr-only">Grainline {{ piece.grainline }}°</span>
+      </span>
     </div>
 
-    <h3 class="truncate text-sm font-bold font-inter text-foreground">{{ label }}</h3>
-
-    <div class="flex flex-wrap items-center gap-1.5">
-      <Badge variant="secondary" class="gap-1 rounded-md bg-brand-grey font-normal text-foreground">
+    <div class="absolute inset-x-2 bottom-2 flex flex-wrap items-center gap-1.5">
+      <Badge variant="secondary" class="gap-1 rounded-md bg-background/85 font-normal text-foreground backdrop-blur-sm">
         <Copy class="size-3" />
         Normal: <span class="font-mono font-semibold">{{ piece.normalCount }}</span>
       </Badge>
-      <Badge variant="secondary" class="gap-1 rounded-md bg-brand-grey font-normal text-foreground">
+      <Badge variant="secondary" class="gap-1 rounded-md bg-background/85 font-normal text-foreground backdrop-blur-sm">
         <FlipHorizontal2 class="size-3" />
         Mirrored: <span class="font-mono font-semibold">{{ piece.mirroredCount }}</span>
       </Badge>
-    </div>
-
-    <div
-      class="flex items-center gap-2 text-xs text-muted-foreground"
-      title="Pieces are stored with the grainline already aligned vertically"
-    >
-      <div
-        class="flex size-6 shrink-0 items-center justify-center rounded-md border border-border/50 bg-muted/30"
-      >
-        <ArrowUp class="size-3.5 text-violet-600" />
-      </div>
-      <Compass class="size-3.5" />
-      <span>Grainline: vertical (0°)</span>
     </div>
   </Card>
 </template>

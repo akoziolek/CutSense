@@ -16,6 +16,8 @@ export interface PatternPiece {
   patternImageId: number
   grainline: number
   points: [number, number][]
+  normalCount: number
+  mirroredCount: number
 }
 
 export interface PatternImage {

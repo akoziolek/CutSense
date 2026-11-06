@@ -11,6 +11,7 @@ import { api, ApiError } from '@/api/client'
 import type { OptimizationDefaults, PatternPieceDefaults } from '@/types/optimization'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { mmToCm } from '@/utils/optimizationConfig'
+import type { PieceImageSource } from '@/types/geometry'
 
 const emit = defineEmits<{
   (e: 'next'): void
@@ -25,6 +26,12 @@ const loadError = ref('')
 
 const pointsById = computed(() => new Map(patternPieces.value.map((p) => [p.id, p.points])))
 
+
+const patternImages = ref<(PieceImageSource & { id: number })[]>([])
+
+const piecesById = computed(() => new Map(patternPieces.value.map((p) => [p.id, p])))
+const imagesById = computed(() => new Map(patternImages.value.map((i) => [i.id, i])))
+
 // "Piece #1", and "Piece #1.1", "Piece #1.2" for its copies
 const labeledPieces = computed(() => {
   const order = new Map<number, number>()
@@ -34,10 +41,12 @@ const labeledPieces = computed(() => {
     const copy = copies.get(piece.patternPieceId) ?? 0
     copies.set(piece.patternPieceId, copy + 1)
     const number = order.get(piece.patternPieceId)!
+    const source = piecesById.value.get(piece.patternPieceId)
     return {
       piece,
       label: copy === 0 ? `Piece #${number}` : `Piece #${number}.${copy}`,
-      points: pointsById.value.get(piece.patternPieceId) ?? [],
+      points: source?.points ?? [],
+      image: source ? imagesById.value.get(source.patternImageId) : undefined,
     }
   })
 })
@@ -49,10 +58,15 @@ const load = async () => {
   loadError.value = ''
   try {
     const [details, defaults] = await Promise.all([
-      api<{ id: number; pieces: PatternPieceDefaults[] }>(`/patterns/${pattern.id}`),
+      api<{
+        id: number
+        pieces: PatternPieceDefaults[]
+        images: (PieceImageSource & { id: number })[]
+      }>(`/patterns/${pattern.id}`),
       api<OptimizationDefaults>('/optimizations/defaults'),
     ])
     patternPieces.value = details.pieces
+    patternImages.value = details.images
 
     if (store.piecesPatternId !== pattern.id) store.initPieces(pattern.id, details.pieces)
     if (store.seamAllowanceCm === '') store.seamAllowanceCm = mmToCm(defaults.seamAllowanceMm)
@@ -99,6 +113,7 @@ onMounted(load)
           :piece="item.piece"
           :label="item.label"
           :points="item.points"
+          :image="item.image"
           :can-delete="store.pieces.length > 1"
           @update="(partial) => store.updatePiece(item.piece.key, partial)"
           @duplicate="store.duplicatePiece(item.piece.key)"

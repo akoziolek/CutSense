@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { Copy, Trash2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,11 +7,13 @@ import { Switch } from '@/components/ui/switch'
 import SidebarThreadDirection from '@/components/spatial/sidebar/SidebarThreadDirection.vue'
 import type { OptimizationPieceConfig } from '@/types/optimization'
 import { MAX_PIECE_COPIES } from '@/utils/optimizationConfig'
+import type { PieceImageSource } from '@/types/geometry'
 
 const props = defineProps<{
   piece: OptimizationPieceConfig
   label: string
   points: [number, number][]
+  image?: PieceImageSource
   canDelete: boolean
 }>()
 
@@ -27,27 +28,6 @@ const quantityFields = [
   { key: 'mirroredCount', label: 'Mirrored' },
 ] as const
 
-const shape = computed(() => {
-  if (props.points.length === 0) {
-    return { viewBox: '0 0 1 1', polygon: '' }
-  }
-
-  const xs = props.points.map(([x]) => x)
-  const ys = props.points.map(([, y]) => y)
-  const minX = Math.min(...xs)
-  const maxX = Math.max(...xs)
-  const minY = Math.min(...ys)
-  const maxY = Math.max(...ys)
-  const width = maxX - minX || 1
-  const height = maxY - minY || 1
-  const padding = Math.max(width, height) * 0.08
-
-  return {
-    viewBox: `${minX - padding} ${-maxY - padding} ${width + padding * 2} ${height + padding * 2}`,
-    polygon: props.points.map(([x, y]) => `${x},${-y}`).join(' '),
-  }
-})
-
 const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | number) => {
   const parsed = parseInt(String(raw), 10)
   const value = Number.isNaN(parsed) ? 0 : Math.min(MAX_PIECE_COPIES, Math.max(0, parsed))
@@ -60,20 +40,7 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
     class="flex flex-col items-center gap-5 overflow-hidden rounded-md border border-muted bg-card p-4 shadow-xs transition-all hover:shadow-md sm:p-5 xl:flex-row xl:items-start"
   >
     <div class="size-32 shrink-0 rounded-xl border border-border/40 bg-muted/20 p-3 sm:size-36">
-      <svg
-        :viewBox="shape.viewBox"
-        class="h-full w-full"
-        role="img"
-        :aria-label="`${label} shape`"
-      >
-        <polygon
-          :points="shape.polygon"
-          class="fill-brand-violet/40 stroke-foreground"
-          stroke-width="2"
-          stroke-linejoin="round"
-          vector-effect="non-scaling-stroke"
-        />
-      </svg>
+      <PatternPieceImage :points="points" :image="image" :label="label" class="h-full w-full" />
     </div>
 
     <div class="flex w-full min-w-0 flex-1 flex-col py-0.5">

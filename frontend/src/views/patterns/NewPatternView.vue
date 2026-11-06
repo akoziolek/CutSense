@@ -14,6 +14,7 @@ import StepDetails from '@/components/patterns/new/StepDetails.vue'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
+import { provideWizardNav } from '@/composables/useWizardNav'
 
 const TITLES = ['Pattern source', 'Pattern configuration', 'Detected pieces', 'Pattern details']
 
@@ -61,6 +62,11 @@ const step = computed({
   },
 })
 
+provideWizardNav({
+  canGoBack: computed(() => step.value > 1),
+  back: () => { step.value = step.value - 1 },
+})
+
 watch(
   [() => route.query.step, validStep, isInitializing],
   () => {
@@ -90,11 +96,11 @@ watch(
 
       <template v-else>
         <!-- TODO keep title at the top??, list overflowing behind the navigation -->
-        <PageHeader :title="TITLES[step - 1]" :show-back="step > 1" @back="step = step - 1">
-          <template #actions>
-            <StepCounter :current-step="step" :total-steps="4" />
-          </template>
-        </PageHeader>
+      <PageHeader :title="TITLES[step - 1]" show-cancel @cancel="handleCancel">
+        <template #actions>
+          <StepCounter :current-step="step" :total-steps="4" />
+        </template>
+      </PageHeader>
 
         <StepUpload v-if="step === 1" @next="step = 2" @cancel="handleCancel" />
         <StepConfig v-else-if="step === 2" @next="step = 3" @cancel="handleCancel" />

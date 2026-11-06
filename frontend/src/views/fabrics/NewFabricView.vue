@@ -14,6 +14,8 @@ import StepUpload from '@/components/fabrics/new/StepUpload.vue'
 import StepConfig from '@/components/fabrics/new/StepConfig.vue'
 import StepDetails from '@/components/fabrics/new/StepDetails.vue'
 
+import { provideWizardNav } from '@/composables/useWizardNav'
+
 const route = useRoute()
 const router = useRouter()
 const fabricStore = useFabricAddingStore()
@@ -58,6 +60,11 @@ const step = computed({
   },
 })
 
+provideWizardNav({
+  canGoBack: computed(() => step.value > 1),
+  back: () => { step.value = step.value - 1 },
+})
+
 watch(
   [() => route.query.step, validStep, isInitializing],
   () => {
@@ -89,11 +96,11 @@ const TITLES = ['Upload Fabric Photo', 'Fabric Configuration', 'Fabric Details']
       </div>
 
       <template v-else>
-        <PageHeader :title="TITLES[step - 1]" :show-back="step > 1" @back="step = step - 1">
-          <template #actions>
-            <StepCounter :current-step="step" :total-steps="3" />
-          </template>
-        </PageHeader>
+      <PageHeader :title="TITLES[step - 1]" show-cancel @cancel="handleCancel">
+        <template #actions>
+          <StepCounter :current-step="step" :total-steps="3" />
+        </template>
+      </PageHeader>
 
         <StepUpload v-if="step === 1" @next="step = 2" @cancel="handleCancel" />
 

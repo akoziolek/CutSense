@@ -13,6 +13,7 @@ import StepAlgorithm from '@/components/optimizations/new/StepAlgorithm.vue'
 import StepElements from '@/components/optimizations/new/StepElements.vue'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
+import { provideWizardNav } from '@/composables/useWizardNav'
 
 const TOTAL_STEPS = 5
 
@@ -45,6 +46,11 @@ const step = computed({
   },
 })
 
+provideWizardNav({
+  canGoBack: computed(() => step.value > 1),
+  back: () => { step.value = step.value - 1 },
+})
+
 watch(
   [() => route.query.step, validStep],
   () => {
@@ -75,7 +81,7 @@ const title = computed(() => {
 <template>
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
-      <PageHeader :title="title" :show-back="step > 1" @back="step = step - 1">
+      <PageHeader :title="title" show-cancel @cancel="handleCancel">
         <template #actions>
           <StepCounter :current-step="step" :total-steps="TOTAL_STEPS" />
         </template>

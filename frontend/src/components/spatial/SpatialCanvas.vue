@@ -255,7 +255,7 @@ defineExpose({
         <img
           ref="imgRef"
           :src="imageUrl ?? undefined"
-          alt="Workspace canvas"
+          :alt="$t('spatial.workspaceCanvas')"
           draggable="false"
           class="max-h-[460px] w-auto max-w-full object-contain rounded-md shadow-md block pointer-events-none select-none z-10"
           @load="handleImageLoad"

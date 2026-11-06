@@ -33,7 +33,7 @@ const threadAngles = [0, 45, 90, 135, 180, 225, 270, 315]
         <div class="flex items-center gap-2">
           <Compass class="h-4 w-4 text-foreground" />
           <h3 class="text-xs font-bold font-inter text-foreground uppercase tracking-wider">
-            Thread Direction
+            {{ $t('spatial.threadDirection') }}
           </h3>
         </div>
 
@@ -44,7 +44,7 @@ const threadAngles = [0, 45, 90, 135, 180, 225, 270, 315]
               class="text-muted-foreground hover:text-foreground transition-colors cursor-help focus:outline-hidden"
             >
               <Info class="h-3.5 w-3.5" />
-              <span class="sr-only">Thread direction info</span>
+              <span class="sr-only">{{ $t('spatial.threadDirectionInfo') }}</span>
             </button>
           </TooltipTrigger>
           <TooltipContent
@@ -53,14 +53,13 @@ const threadAngles = [0, 45, 90, 135, 180, 225, 270, 315]
             :side-offset="8"
             class="max-w-xs w-fit text-xs text-popover-foreground bg-popover/95 border border-border p-3 rounded-xl"
           >
-            Defines the primary thread direction (warp angle) used for nesting and pattern
-            alignment.
+            {{ $t('spatial.threadDirectionDescription') }}
           </TooltipContent>
         </Tooltip>
       </div>
 
       <div class="flex items-center justify-between gap-2">
-        <span class="text-xs text-muted-foreground font-medium">Primary angle:</span>
+        <span class="text-xs text-muted-foreground font-medium">{{ $t('spatial.primaryAngle') }}</span>
 
         <div class="flex items-center gap-2">
           <div

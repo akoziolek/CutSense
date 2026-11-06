@@ -30,7 +30,7 @@ watch(
 <template>
   <div class="space-y-6">
     <p class="text-sm text-muted-foreground">
-      Choose what the pattern pieces will be placed on. Guests can use custom dimensions.
+      {{ $t('optimizations.fabricSourceDescription') }}
     </p>
 
     <div
@@ -38,8 +38,8 @@ watch(
       :class="isLoggedIn ? 'max-w-2xl sm:grid-cols-2' : 'max-w-4xl'"
     >
       <SelectableOptionCard
-        title="Custom dimensions"
-        description="Enter width and length for standard rolls or rectangular sheets."
+        :title="$t('optimizations.customDimensions')"
+        :description="$t('optimizations.customDimensionsDescription')"
         :selected="store.fabricSource === 'custom'"
         @select="store.selectFabricSource('custom')"
       >
@@ -48,8 +48,8 @@ watch(
 
       <SelectableOptionCard
         v-if="state.user"
-        title="Fabric library"
-        description="Pick a pre-configured shape or saved scrap from your library."
+        :title="$t('optimizations.fabricLibrary')"
+        :description="$t('optimizations.fabricLibraryDescription')"
         :selected="store.fabricSource === 'library'"
         @select="store.selectFabricSource('library')"
       >
@@ -58,8 +58,8 @@ watch(
     </div>
 
     <FormFloatingActions
-      cancel-label="Cancel"
-      next-label="Next"
+      :cancel-label="$t('common.actions.cancel')"
+      :next-label="$t('common.actions.next')"
       :disabled="!store.fabricSource"
       @cancel="emit('cancel')"
       @next="emit('next')"

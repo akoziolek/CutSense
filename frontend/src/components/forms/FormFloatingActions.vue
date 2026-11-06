@@ -17,8 +17,8 @@ const props = withDefaults(
     showNext?: boolean
   }>(),
   {
-    cancelLabel: 'Cancel',
-    nextLabel: 'Next',
+    cancelLabel: '',
+    nextLabel: '',
     disabled: false,
     showCancel: true,
     showNext: true,
@@ -63,7 +63,7 @@ const handleNext = (event: MouseEvent) => {
         @click="handleCancel"
       >
         <X v-if="!props.cancelTo" class="w-4 h-4 stroke-[2.5]" />
-        {{ props.cancelLabel }}
+        {{ props.cancelLabel || $t('common.actions.cancel') }}
       </component>
     </Button>
 
@@ -90,7 +90,7 @@ const handleNext = (event: MouseEvent) => {
         v-bind="props.nextTo ? { to: props.nextTo } : { type: 'button' }"
         @click="handleNext"
       >
-        {{ props.nextLabel }}
+        {{ props.nextLabel || $t('common.actions.next') }}
         <ArrowRight class="w-4 h-4 ml-2 stroke-[2.5]" />
       </component>
     </Button>

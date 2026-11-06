@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ListboxContent,
   ListboxFilter,
@@ -44,6 +45,7 @@ import RadioGroupItem from '../ui/radio-group/RadioGroupItem.vue'
 const SIZES = Object.values(PatternSize)
 const MAX_NAME_LENGTH = 35
 const MAX_DESC_LENGTH = 400
+const { t } = useI18n()
 
 export interface PatternFormPayload {
   name: string
@@ -136,7 +138,7 @@ const loadAvailableTags = async () => {
     tagLoadError.value =
       error instanceof ApiError
         ? error.body.message
-        : 'Could not load pattern tags. Please try again.'
+        : t('patterns.tagLoadError')
   }
 }
 
@@ -262,13 +264,13 @@ onMounted(() => {
   <div v-else class="w-full space-y-6">
     <div class="space-y-2">
       <Label for="pattern-name" class="text-md font-semibold font-inter text-foreground">
-        Pattern name <span class="text-destructive">*</span>
+        {{ t('patterns.name') }} <span class="text-destructive">*</span>
       </Label>
       <InputGroup>
         <InputGroupInput
           id="pattern-name"
           v-model="patternName"
-          placeholder="e.g. Summer Dress Pattern"
+          :placeholder="t('patterns.namePlaceholder')"
           :maxlength="MAX_NAME_LENGTH"
         />
         <InputGroupAddon align="block-end">
@@ -281,15 +283,15 @@ onMounted(() => {
 
     <div class="space-y-2 max-w-sm">
       <Label class="text-md font-semibold font-inter text-foreground">
-        Size <span class="text-destructive">*</span>
+        {{ t('patterns.size') }} <span class="text-destructive">*</span>
       </Label>
       <Select v-model="size">
         <SelectTrigger class="w-full h-10 rounded-md bg-background border-input font-inter">
-          <SelectValue placeholder="Select size" />
+          <SelectValue :placeholder="t('patterns.selectSize')" />
         </SelectTrigger>
         <SelectContent class="rounded-md border-border bg-popover font-inter">
           <SelectGroup>
-            <SelectLabel>Size</SelectLabel>
+            <SelectLabel>{{ t('patterns.size') }}</SelectLabel>
             <SelectItem
               v-for="size in SIZES"
               :key="size"
@@ -305,19 +307,19 @@ onMounted(() => {
 
     <div class="space-y-2">
       <Label class="text-md font-semibold font-inter text-foreground">
-        Visibility <span class="text-destructive">*</span>
+        {{ t('patterns.visibility') }} <span class="text-destructive">*</span>
       </Label>
       <RadioGroup v-model="visibility" class="flex gap-6">
         <div class="flex items-center gap-2">
           <RadioGroupItem id="visibility-public" :value="PatternVisibility.PUBLIC" />
           <Label for="visibility-public" class="text-sm font-normal cursor-pointer font-inter">
-            Public
+            {{ t('patterns.public') }}
           </Label>
         </div>
         <div class="flex items-center gap-2">
           <RadioGroupItem id="visibility-private" :value="PatternVisibility.PRIVATE" />
           <Label for="visibility-private" class="text-sm font-normal cursor-pointer font-inter">
-            Private
+            {{ t('patterns.private') }}
           </Label>
         </div>
       </RadioGroup>
@@ -325,13 +327,13 @@ onMounted(() => {
 
     <div class="space-y-2">
       <Label for="description" class="text-md font-semibold font-inter text-foreground">
-        Description
+        {{ t('common.details.description') }}
       </Label>
       <InputGroup>
         <InputGroupTextarea
           id="description"
           v-model="description"
-          placeholder="Enter composition, weight, or intended use..."
+          :placeholder="t('patterns.descriptionPlaceholder')"
           :maxlength="MAX_DESC_LENGTH"
           rows="4"
         />
@@ -344,7 +346,7 @@ onMounted(() => {
     </div>
 
     <div class="space-y-2">
-      <Label class="text-md font-semibold font-inter text-foreground">Tags</Label>
+      <Label class="text-md font-semibold font-inter text-foreground">{{ t('common.details.tags') }}</Label>
 
       <Popover v-model:open="open">
         <ListboxRoot v-model="selectedTagNames" highlight-on-hover multiple>
@@ -370,7 +372,7 @@ onMounted(() => {
                 <div class="flex items-center w-full gap-2">
                   <ListboxFilter v-model="searchTerm" as-child>
                     <TagsInputInput
-                      placeholder="Search or add tags..."
+                      :placeholder="t('common.form.searchOrAddTags')"
                       class="w-full text-sm bg-transparent p-0 focus:outline-hidden border-none shadow-none cursor-text"
                       @keydown.enter.prevent="handleEnterKey"
                     />
@@ -412,7 +414,7 @@ onMounted(() => {
       <p v-if="tagLoadError" class="text-xs text-destructive" role="alert">
         {{ tagLoadError }}
         <button type="button" class="underline underline-offset-2" @click="loadAvailableTags">
-          Try again
+          {{ t('common.actions.tryAgain') }}
         </button>
       </p>
     </div>
@@ -421,11 +423,11 @@ onMounted(() => {
       {{ submitError }}
     </p>
 
-    <p class="text-xs text-destructive pt-2">* Required field</p>
+    <p class="text-xs text-destructive pt-2">{{ t('common.status.requiredField') }}</p>
 
     <FormFloatingActions
-      cancel-label="Cancel"
-      next-label="Save"
+      :cancel-label="t('common.actions.cancel')"
+      :next-label="t('common.actions.save')"
       :disabled="isSubmitting || !patternName.trim() || !size"
       @cancel="handleCancel"
       @next="handleSubmit"

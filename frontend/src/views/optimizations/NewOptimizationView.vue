@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -20,6 +21,7 @@ const TOTAL_STEPS = 5
 const route = useRoute()
 const router = useRouter()
 const store = useOptimizationAddingStore()
+const { t } = useI18n()
 
 const { isCancelModalOpen, handleCancel, confirmExit } = useUnsavedChangesGuard({
   isDirty: computed(() => store.isDirty),
@@ -65,15 +67,17 @@ watch(
 const title = computed(() => {
   switch (step.value) {
     case 1:
-      return 'Fabric source'
+      return t('optimizations.fabricSource')
     case 2:
-      return store.fabricSource === 'custom' ? 'Custom dimensions' : 'Fabric library'
+      return store.fabricSource === 'custom'
+        ? t('optimizations.customDimensions')
+        : t('optimizations.fabricLibrary')
     case 3:
-      return 'Pattern library'
+      return t('optimizations.patternLibrary')
     case 4:
-      return 'Optimization elements'
+      return t('optimizations.elements')
     default:
-      return 'Nesting strategy'
+      return t('optimizations.strategy')
   }
 })
 </script>

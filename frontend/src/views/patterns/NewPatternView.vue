@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
 import GridLayout from '@/components/layouts/GridLayout.vue'
@@ -16,7 +17,13 @@ import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
 import { provideWizardNav } from '@/composables/useWizardNav'
 
-const TITLES = ['Pattern source', 'Pattern configuration', 'Detected pieces', 'Pattern details']
+const { t } = useI18n()
+const titles = computed(() => [
+  t('patterns.sourceTitle'),
+  t('patterns.configurationTitle'),
+  t('patterns.piecesTitle'),
+  t('patterns.detailsTitle'),
+])
 
 const route = useRoute()
 const router = useRouter()
@@ -96,11 +103,11 @@ watch(
 
       <template v-else>
         <!-- TODO keep title at the top??, list overflowing behind the navigation -->
-      <PageHeader :title="TITLES[step - 1]" show-cancel @cancel="handleCancel">
-        <template #actions>
-          <StepCounter :current-step="step" :total-steps="4" />
-        </template>
-      </PageHeader>
+        <PageHeader :title="titles[step - 1]" :show-back="step > 1" @back="step = step - 1">
+          <template #actions>
+            <StepCounter :current-step="step" :total-steps="4" />
+          </template>
+        </PageHeader>
 
         <StepUpload v-if="step === 1" @next="step = 2" @cancel="handleCancel" />
         <StepConfig v-else-if="step === 2" @next="step = 3" @cancel="handleCancel" />

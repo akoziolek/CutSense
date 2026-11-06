@@ -53,7 +53,7 @@ const handleBack = (event: MouseEvent) => {
       variant="ghost"
       size="icon"
       class="shrink-0 rounded-md bg-white border-2 cursor-pointer hover:bg-card mt-1"
-      aria-label="Go back"
+      :aria-label="$t('common.actions.goBack')"
     >
       <component
         :is="props.backTo ? RouterLink : 'button'"

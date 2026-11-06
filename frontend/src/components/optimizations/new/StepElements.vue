@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ArrowLeft, RotateCcw } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -23,6 +24,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useOptimizationAddingStore()
+const { t } = useI18n()
 
 const patternPieces = ref<PatternPieceDefaults[]>([])
 const patternDetails = ref<PatternDetails | null>(null)
@@ -86,7 +88,7 @@ const labeledPieces = computed(() => {
     const number = order.get(piece.patternPieceId)!
     return {
       piece,
-      label: copy === 0 ? `Piece #${number}` : `Piece #${number}.${copy}`,
+      label: t('optimizations.pieceLabel', { number, copy: copy ? `.${copy}` : '' }),
       ...previewsById.value.get(piece.patternPieceId),
     }
   })
@@ -111,7 +113,7 @@ const load = async () => {
       store.cuttingAllowanceCm = mmToCm(defaults.cuttingAllowanceMm)
   } catch (e) {
     loadError.value =
-      e instanceof ApiError ? e.body.message : 'Could not load the pattern. Please try again.'
+      e instanceof ApiError ? e.body.message : t('optimizations.patternLoadFailed')
   } finally {
     isLoading.value = false
   }
@@ -129,15 +131,15 @@ onMounted(load)
       <Skeleton class="h-48 w-full rounded-md lg:w-80" />
     </div>
 
-    <ErrorState v-else-if="loadError" title="Unable to load the pattern" :message="loadError" code="Error">
+    <ErrorState v-else-if="loadError" :title="$t('optimizations.unableToLoadPattern')" :message="loadError" :code="$t('common.errors.errorCode')">
       <template #actions>
         <Button variant="outline" class="rounded-lg gap-2" @click="load">
           <RotateCcw class="w-4 h-4" />
-          <span>Try again</span>
+          <span>{{ $t('common.actions.tryAgain') }}</span>
         </Button>
         <Button variant="default" class="rounded-lg gap-2" @click="emit('cancel')">
           <ArrowLeft class="w-4 h-4" />
-          <span>Back</span>
+          <span>{{ $t('common.actions.back') }}</span>
         </Button>
       </template>
     </ErrorState>
@@ -164,8 +166,8 @@ onMounted(load)
     </div>
 
     <FormFloatingActions
-      cancel-label="Cancel"
-      next-label="Next"
+      :cancel-label="$t('common.actions.cancel')"
+      :next-label="$t('common.actions.next')"
       :disabled="isLoading || !!loadError || !store.canSubmit"
       @cancel="emit('cancel')"
       @next="emit('next')"

@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Info } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -11,21 +13,22 @@ import {
 
 const seam = defineModel<string>('seam', { required: true })
 const cutting = defineModel<string>('cutting', { required: true })
+const { t } = useI18n()
 
-const fields = [
+const fields = computed(() => [
   {
     id: 'seam-allowance',
-    label: 'Seam allowance',
+    label: t('optimizations.seamAllowance'),
     max: MAX_SEAM_ALLOWANCE_CM,
-    info: 'Defines the distance between the stitching line and the raw edge of the fabric. This ensures that the final product retains its intended measurements once all pieces are sewn together.',
+    info: t('optimizations.seamAllowanceInfo'),
   },
   {
     id: 'cutting-allowance',
-    label: 'Cutting allowance',
+    label: t('optimizations.cuttingAllowance'),
     max: MAX_CUTTING_ALLOWANCE_CM,
-    info: 'Provides extra buffer space so you can maneuver shears or a rotary blade freely without accidentally slicing into neighboring pattern pieces or causing fabric shifting.',
+    info: t('optimizations.cuttingAllowanceInfo'),
   },
-] as const
+] as const)
 
 const models = { 'seam-allowance': seam, 'cutting-allowance': cutting }
 </script>
@@ -45,7 +48,7 @@ const models = { 'seam-allowance': seam, 'cutting-allowance': cutting }
                 class="cursor-help text-muted-foreground transition-colors hover:text-foreground focus:outline-hidden"
               >
                 <Info class="h-3.5 w-3.5" />
-                <span class="sr-only">{{ field.label }} info</span>
+                <span class="sr-only">{{ t('optimizations.fieldInfo', { field: field.label }) }}</span>
               </button>
             </TooltipTrigger>
             <TooltipContent
@@ -82,7 +85,7 @@ const models = { 'seam-allowance': seam, 'cutting-allowance': cutting }
           class="text-xs text-destructive"
           role="alert"
         >
-          Enter a value between 0 and {{ field.max }} cm.
+          {{ t('optimizations.allowanceRangeError', { max: field.max }) }}
         </p>
       </div>
     </div>

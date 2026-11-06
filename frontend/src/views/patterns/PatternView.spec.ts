@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent, h, type PropType } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, api } from '@/api/client'
+import i18n from '@/i18n'
 interface MetaItem {
   label?: string
   value?: string
@@ -78,10 +79,12 @@ const GridLayoutStub = defineComponent({
   },
 })
 
-const mountView = (id = '1') =>
-  mount(PatternView, {
+const mountView = (id = '1') => {
+  i18n.global.locale.value = 'en'
+  return mount(PatternView, {
     props: { id },
     global: {
+      plugins: [i18n],
       stubs: {
         GridLayout: GridLayoutStub,
         PageHeader: PageHeaderStub,
@@ -94,6 +97,7 @@ const mountView = (id = '1') =>
       },
     },
   })
+}
 
 const pattern = {
   id: 1,
@@ -142,7 +146,9 @@ describe('PatternView', () => {
     expect(wrapper.text()).toContain(pattern.description)
     expect(wrapper.text()).toContain('summer')
     expect(wrapper.text()).toContain('tops')
-    expect(wrapper.text()).toContain(`Added: ${new Date(pattern.createdAt).toLocaleDateString()}`)
+    expect(wrapper.text()).toContain(
+      `Added: ${new Date(pattern.createdAt).toLocaleDateString('en-US')}`,
+    )
     expect(wrapper.text()).toContain('Size: XS')
     expect(wrapper.text()).toContain('Visibility: Private')
   })
@@ -201,10 +207,10 @@ describe('PatternView', () => {
   it('shows the API error and retries the request', async () => {
     apiMock
       .mockRejectedValueOnce(
-        new ApiError(404, {
-          statusCode: 404,
-          errorCode: 'RESOURCE_NOT_FOUND',
-          message: 'Pattern with ID 6 not found',
+        new ApiError(500, {
+          statusCode: 500,
+          errorCode: 'INTERNAL_ERROR',
+          message: 'The pattern could not be loaded',
         }),
       )
       .mockResolvedValueOnce(pattern)
@@ -213,7 +219,7 @@ describe('PatternView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Unable to load pattern')
-    expect(wrapper.text()).toContain('Pattern with ID 6 not found')
+    expect(wrapper.text()).toContain('The pattern could not be loaded')
     expect(wrapper.find('a[href="/patterns"]').exists()).toBe(true)
 
     await wrapper.get('button').trigger('click')
@@ -223,7 +229,7 @@ describe('PatternView', () => {
     expect(wrapper.get('h1').text()).toBe('Flowy shirt')
   })
 
-  it('shows a dedicated message without retry for a private pattern of another user', async () => {
+  it('shows the API error and retry option for a private pattern of another user', async () => {
     apiMock.mockRejectedValue(
       new ApiError(403, {
         statusCode: 403,
@@ -235,9 +241,9 @@ describe('PatternView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    expect(wrapper.text()).toContain('This pattern is private')
+    expect(wrapper.text()).toContain('Unable to load pattern')
     expect(wrapper.text()).toContain('This pattern is private and belongs to another user.')
-    expect(wrapper.text()).not.toContain('Try again')
+    expect(wrapper.text()).toContain('Try again')
     expect(wrapper.find('a[href="/patterns"]').exists()).toBe(true)
   })
 

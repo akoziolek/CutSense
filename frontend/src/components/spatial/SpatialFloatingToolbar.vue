@@ -41,11 +41,11 @@ const emit = defineEmits<{
       :class="
         props.activeTool === 'select' && !props.isMoveMode ? 'bg-brand-green text-foreground' : ''
       "
-      title="Ruler Add & Edit tool"
+      :title="$t('spatial.rulerTool')"
       @click.stop="emit('update:activeTool', 'select')"
     >
       <Ruler class="h-3.5 w-3.5" />
-      <span class="sr-only">Edit tool</span>
+      <span class="sr-only">{{ $t('spatial.editTool') }}</span>
     </Button>
 
     <!-- Pan Tool -->
@@ -55,11 +55,11 @@ const emit = defineEmits<{
       variant="ghost"
       class="h-7 w-7 rounded-lg cursor-pointer transition-colors"
       :class="props.isMoveMode ? 'bg-brand-green text-foreground' : ''"
-      title="Pan tool (Drag canvas or select line)"
+      :title="$t('spatial.panToolDescription')"
       @click.stop="emit('update:activeTool', 'pan')"
     >
       <Hand class="h-3.5 w-3.5" />
-      <span class="sr-only">Pan tool</span>
+      <span class="sr-only">{{ $t('spatial.panTool') }}</span>
     </Button>
 
     <!-- Toggle Labels -->
@@ -69,12 +69,12 @@ const emit = defineEmits<{
       size="icon"
       variant="ghost"
       class="h-7 w-7 rounded-lg cursor-pointer transition-colors"
-      :title="props.showLabels ? 'Hide size labels' : 'Show size labels'"
+      :title="$t(props.showLabels ? 'spatial.hideSizeLabels' : 'spatial.showSizeLabels')"
       @click.stop="emit('update:showLabels', !props.showLabels)"
     >
       <Eye v-if="props.showLabels" class="h-3.5 w-3.5" />
       <EyeOff v-else class="h-3.5 w-3.5" />
-      <span class="sr-only">Toggle labels</span>
+      <span class="sr-only">{{ $t('spatial.toggleLabels') }}</span>
     </Button>
 
     <div class="w-px h-4 bg-border mx-0.5" />
@@ -91,11 +91,11 @@ const emit = defineEmits<{
           : 'text-muted-foreground/30 cursor-not-allowed'
       "
       :disabled="!props.canDelete"
-      title="Delete selected point, edge or active shape (Delete / Backspace)"
+      :title="$t('spatial.deleteShapeSelection')"
       @click.stop="emit('deleteSelected')"
     >
       <Trash2 class="h-3.5 w-3.5" />
-      <span class="sr-only">Delete selected</span>
+      <span class="sr-only">{{ $t('spatial.deleteSelected') }}</span>
     </Button>
   </div>
 </template>

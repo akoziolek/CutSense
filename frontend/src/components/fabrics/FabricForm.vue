@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ListboxContent,
   ListboxFilter,
@@ -32,6 +33,7 @@ import type { NameTag } from '@/types/fabric'
 
 const MAX_NAME_LENGTH = 35
 const MAX_DESC_LENGTH = 400
+const { t } = useI18n()
 
 export interface FabricFormPayload {
   name: string
@@ -117,7 +119,7 @@ const loadAvailableTags = async () => {
     tagLoadError.value =
       error instanceof ApiError
         ? error.body.message
-        : 'Could not load fabric tags. Please try again.'
+        : t('fabrics.tagLoadError')
   }
 }
 
@@ -222,13 +224,13 @@ onMounted(() => {
     <!-- 1. Fabric Name -->
     <div class="space-y-2">
       <Label for="fabric-name" class="text-md font-semibold font-inter text-foreground">
-        Fabric name <span class="text-destructive">*</span>
+        {{ t('fabrics.name') }} <span class="text-destructive">*</span>
       </Label>
       <InputGroup>
         <InputGroupInput
           id="fabric-name"
           v-model="fabricName"
-          placeholder="e.g Linen fabric"
+          :placeholder="t('fabrics.namePlaceholder')"
           :maxlength="MAX_NAME_LENGTH"
         />
         <InputGroupAddon align="block-end">
@@ -242,13 +244,13 @@ onMounted(() => {
     <!-- 2. Description -->
     <div class="space-y-2">
       <Label for="description" class="text-md font-semibold font-inter text-foreground">
-        Description
+        {{ t('common.details.description') }}
       </Label>
       <InputGroup>
         <InputGroupTextarea
           id="description"
           v-model="description"
-          placeholder="Enter composition, weight, or intended use..."
+          :placeholder="t('fabrics.descriptionPlaceholder')"
           :maxlength="MAX_DESC_LENGTH"
           rows="4"
         />
@@ -262,7 +264,7 @@ onMounted(() => {
 
     <!-- 3. Tags -->
     <div class="space-y-2">
-      <Label class="text-md font-semibold font-inter text-foreground">Tags</Label>
+      <Label class="text-md font-semibold font-inter text-foreground">{{ t('common.details.tags') }}</Label>
 
       <Popover v-model:open="open">
         <ListboxRoot v-model="selectedTagNames" highlight-on-hover multiple>
@@ -288,7 +290,7 @@ onMounted(() => {
                 <div class="flex items-center w-full gap-2">
                   <ListboxFilter v-model="searchTerm" as-child>
                     <TagsInputInput
-                      placeholder="Search or add tags..."
+                      :placeholder="t('common.form.searchOrAddTags')"
                       class="w-full text-sm bg-transparent p-0 focus:outline-hidden border-none shadow-none cursor-text"
                       @keydown.enter.prevent="handleEnterKey"
                     />
@@ -330,7 +332,7 @@ onMounted(() => {
       <p v-if="tagLoadError" class="text-xs text-destructive" role="alert">
         {{ tagLoadError }}
         <button type="button" class="underline underline-offset-2" @click="loadAvailableTags">
-          Try again
+          {{ t('common.actions.tryAgain') }}
         </button>
       </p>
     </div>
@@ -339,11 +341,11 @@ onMounted(() => {
       {{ submitError }}
     </p>
 
-    <p class="text-xs text-destructive pt-2">* Required field</p>
+    <p class="text-xs text-destructive pt-2">{{ t('common.status.requiredField') }}</p>
 
     <FormFloatingActions
-      cancel-label="Cancel"
-      next-label="Save"
+      :cancel-label="t('common.actions.cancel')"
+      :next-label="t('common.actions.save')"
       :disabled="isSubmitting || !fabricName.trim()"
       @cancel="handleCancel"
       @next="handleSubmit"

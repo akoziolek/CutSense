@@ -93,7 +93,7 @@ const resetZoom = () => {
             size="icon"
             variant="ghost"
             class="h-9 w-9 transition-colors cursor-pointer"
-            :title="showOverlay ? 'Hide shape' : 'Show shape'"
+            :title="$t(showOverlay ? 'common.actions.hideShape' : 'common.actions.showShape')"
             @click="showOverlay = !showOverlay"
           >
             <Eye v-if="showOverlay" class="h-3.5 w-3.5" />
@@ -106,7 +106,7 @@ const resetZoom = () => {
         class="absolute top-4 right-4 z-50 bg-background/80 backdrop-blur-sm p-1.5 rounded-md border shadow-sm"
       >
         <DialogClose as-child>
-          <Button size="icon" variant="ghost">
+          <Button size="icon" variant="ghost" :aria-label="$t('common.actions.close')">
             <X class="h-4 w-4" />
           </Button>
         </DialogClose>

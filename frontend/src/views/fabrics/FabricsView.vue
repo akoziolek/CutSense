@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, RotateCcw, Search, Shirt, X } from 'lucide-vue-next'
 import GridLayout from '@/components/layouts/GridLayout.vue'
@@ -27,14 +28,15 @@ import BulkDeleteControls from '@/components/common/BulkDeleteControls.vue'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: FabricSort = 'date_desc'
-const SORT_OPTIONS: { value: FabricSort; label: string }[] = [
-  { value: 'name_asc', label: 'Name (A to Z)' },
-  { value: 'name_desc', label: 'Name (Z to A)' },
-  { value: 'date_desc', label: 'Newest first' },
-  { value: 'date_asc', label: 'Oldest first' },
-  { value: 'area_asc', label: 'Smallest first' },
-  { value: 'area_desc', label: 'Biggest first' },
-]
+const { t } = useI18n()
+const SORT_OPTIONS = computed<{ value: FabricSort; label: string }[]>(() => [
+  { value: 'name_asc', label: t('common.sort.nameAscending') },
+  { value: 'name_desc', label: t('common.sort.nameDescending') },
+  { value: 'date_desc', label: t('common.sort.newest') },
+  { value: 'date_asc', label: t('common.sort.oldest') },
+  { value: 'area_asc', label: t('common.sort.smallest') },
+  { value: 'area_desc', label: t('common.sort.biggest') },
+])
 const SEARCH_DEBOUNCE_MS = 300
 const SEARCH_MAX = 100
 
@@ -43,7 +45,7 @@ const router = useRouter()
 
 const sort = computed<FabricSort>(() => {
   const value = route.query.sort
-  return SORT_OPTIONS.some((o) => o.value === value) ? (value as FabricSort) : DEFAULT_SORT
+  return SORT_OPTIONS.value.some((o) => o.value === value) ? (value as FabricSort) : DEFAULT_SORT
 })
 const page = computed(() => {
   const n = Number(route.query.page)
@@ -69,7 +71,7 @@ const loadTags = async () => {
     availableTags.value = await api<NameTag[]>('/fabrics/tags')
     tagsLoaded.value = true
   } catch (e) {
-    tagsError.value = e instanceof ApiError ? e.body.message : 'Could not load tags. Reopen to retry.'
+    tagsError.value = e instanceof ApiError ? e.body.message : t('common.errors.tagsLoadFailed')
   } finally {
     tagsLoading.value = false
   }
@@ -185,7 +187,7 @@ const fetchFabrics = async (activeSignal = { active: true }) => {
   } catch (e) {
     if (activeSignal.active) {
       error.value =
-        e instanceof ApiError ? e.body.message : 'Could not load fabrics. Please try again.'
+        e instanceof ApiError ? e.body.message : t('fabrics.loadFailed')
     }
   } finally {
     if (activeSignal.active) {
@@ -236,8 +238,10 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
       class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-10"
     >
       <PageHeader>
-        <span>Fabrics</span>
-        <span v-if="data" class="ml-3 text-sm font-semibold">({{ data.total }} found)</span>
+        <span>{{ t('common.navigation.fabrics') }}</span>
+        <span v-if="data" class="ml-3 text-sm font-semibold">
+          ({{ t('common.status.foundCount', { count: data.total }) }})
+        </span>
       </PageHeader>
 
       <div class="flex flex-wrap items-center gap-2">
@@ -248,8 +252,8 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
             type="text"
             autocomplete="off"
             :maxlength="SEARCH_MAX"
-            placeholder="Search fabrics..."
-            aria-label="Search fabrics"
+            :placeholder="t('fabrics.search')"
+            :aria-label="t('fabrics.searchLabel')"
             class="h-9 pl-9 pr-9"
             @keydown.enter="flushSearch"
           />
@@ -257,7 +261,7 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
             v-if="searchInput"
             type="button"
             class="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded p-1 text-muted-foreground hover:text-foreground"
-            aria-label="Clear search"
+            :aria-label="t('common.actions.clearSearch')"
             @click="clearSearch"
           >
             <X class="size-4" />
@@ -277,10 +281,10 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
           @opened="loadTags"
         >
           <template #default="{ draft }">
-            <FilterSection title="Area" :default-open="false">
+            <FilterSection :title="t('common.filters.area')" :default-open="false">
               <div class="grid grid-cols-2 gap-2">
                 <label class="space-y-1 text-xs">
-                  <span>From</span>
+                  <span>{{ t('common.filters.from') }}</span>
                   <div class="relative">
                     <Input
                       v-model="draft.areaMin"
@@ -295,7 +299,7 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
                   </div>
                 </label>
                 <label class="space-y-1 text-xs">
-                  <span>To</span>
+                  <span>{{ t('common.filters.to') }}</span>
                   <div class="relative">
                     <Input
                       v-model="draft.areaMax"
@@ -341,16 +345,16 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
 
         <!-- error -->
         <div v-else-if="error" key="error">
-          <ErrorState title="Unable to load fabrics" :message="error" code="Error">
+          <ErrorState :title="t('fabrics.unableToLoadMany')" :message="error" :code="t('common.errors.errorCode')">
             <template #actions>
               <Button variant="outline" class="rounded-lg gap-2" @click="fetchFabrics()">
                 <RotateCcw class="w-4 h-4" />
-                <span>Try again</span>
+                <span>{{ t('common.actions.tryAgain') }}</span>
               </Button>
               <Button as-child variant="default" class="rounded-lg gap-2">
                 <RouterLink to="/">
                   <ArrowLeft class="w-4 h-4" />
-                  <span>Back to home</span>
+                  <span>{{ t('common.actions.backToHome') }}</span>
                 </RouterLink>
               </Button>
             </template>
@@ -365,10 +369,10 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
         >
           <SearchX class="size-8 text-muted-foreground" />
           <p class="max-w-xs text-xs text-muted-foreground">
-            We couldn't find any fabrics matching your criteria.
+            {{ t('common.errors.noResults', { resource: t('fabrics.plural') }) }}
           </p>
           <Button variant="outline" size="sm" class="mt-2 rounded-lg" @click="resetCriteria">
-            Clear filters
+            {{ t('common.actions.clearFilters') }}
           </Button>
         </div>
 
@@ -379,12 +383,12 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
           class="flex flex-col items-center justify-center gap-2 py-20 text-center"
         >
           <Shirt class="size-8 text-muted-foreground" />
-          <h2 class="text-sm font-bold font-inter">No fabrics yet</h2>
+          <h2 class="text-sm font-bold font-inter">{{ t('fabrics.noItems') }}</h2>
           <p class="max-w-xs text-xs text-muted-foreground">
-            Upload an image to start configuring your materials and optimizing fabric usage.
+            {{ t('fabrics.emptyDescription') }}
           </p>
           <Button as-child size="sm" class="mt-2 rounded-lg">
-            <RouterLink :to="{ name: 'AddFabric' }">Add your first fabric</RouterLink>
+            <RouterLink :to="{ name: 'AddFabric' }">{{ t('fabrics.addFirst') }}</RouterLink>
           </Button>
         </div>
 

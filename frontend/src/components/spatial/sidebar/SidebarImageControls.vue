@@ -29,12 +29,12 @@ const zoomOut = () => {
     <div class="flex items-center gap-2 pb-2 border-b border-border/60">
       <Sliders class="h-4 w-4 text-foreground" />
       <h3 class="text-xs font-bold font-inter text-foreground uppercase tracking-wider">
-        Image Controls
+        {{ $t('spatial.imageControls') }}
       </h3>
     </div>
 
     <div class="flex items-center justify-between gap-2">
-      <span class="text-xs text-muted-foreground font-medium">Photo Zoom:</span>
+      <span class="text-xs text-muted-foreground font-medium">{{ $t('spatial.photoZoom') }}</span>
       <div class="flex items-center gap-1 bg-muted/30 py-1 px-2 rounded-lg border border-border/50">
         <Button
           type="button"
@@ -45,7 +45,7 @@ const zoomOut = () => {
           :disabled="props.zoomLevel <= 0.75"
         >
           <ZoomOut class="h-3.5 w-3.5" />
-          <span class="sr-only">Zoom out</span>
+          <span class="sr-only">{{ $t('spatial.zoomOut') }}</span>
         </Button>
 
         <span class="text-xs font-mono px-1 min-w-12 text-center select-none font-bold">
@@ -61,20 +61,20 @@ const zoomOut = () => {
           :disabled="props.zoomLevel >= 3"
         >
           <ZoomIn class="h-3.5 w-3.5" />
-          <span class="sr-only">Zoom in</span>
+          <span class="sr-only">{{ $t('spatial.zoomIn') }}</span>
         </Button>
       </div>
     </div>
 
     <div class="flex items-center justify-between gap-2">
-      <span class="text-xs text-muted-foreground font-medium">Rotate image:</span>
+      <span class="text-xs text-muted-foreground font-medium">{{ $t('spatial.rotateImage') }}</span>
       <div class="flex items-center gap-1.5">
         <Button
           type="button"
           variant="outline"
           size="sm"
           class="h-8 px-2.5 gap-1.5 text-xs cursor-pointer bg-brand-green/70 hover:bg-brand-green text-foreground border-brand-green/30"
-          title="Rotate 90° counter-clockwise"
+          :title="$t('spatial.rotateCounterClockwise')"
           @click="emit('rotate', 'ccw')"
         >
           <RotateCcw class="h-3.5 w-3.5 text-brand-green-foreground" />
@@ -86,7 +86,7 @@ const zoomOut = () => {
           variant="outline"
           size="sm"
           class="h-8 px-2.5 gap-1.5 text-xs cursor-pointer bg-brand-green/70 hover:bg-brand-green text-foreground border-brand-green/30"
-          title="Rotate 90° clockwise"
+          :title="$t('spatial.rotateClockwise')"
           @click="emit('rotate', 'cw')"
         >
           <RotateCw class="h-3.5 w-3.5 text-brand-green-foreground" />

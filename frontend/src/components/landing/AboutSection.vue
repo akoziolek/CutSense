@@ -8,17 +8,11 @@
         <h2
           class="text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-inter leading-tight mb-8"
         >
-          Smart fabric nesting made simple
+          {{ $t('landing.aboutTitle') }}
         </h2>
 
         <p class="text-sm sm:text-base text-muted-foreground leading-relaxed text-justify">
-          Traditional pattern layouts often lead to unnecessary fabric waste, and hours of manual
-          shifting CutSense takes the guesswork out of preparation by using intelligent nesting
-          algorithms built specifically for digital sewing patterns. Simply upload your pattern
-          pieces, set the roll width, grainline rules, and required margins, and the system
-          instantly computes the densest possible layout across every meter of fabric. By automating
-          the planning phase, you reduce preparation time from hours to seconds while keeping raw
-          material expenses under strict control.
+          {{ $t('landing.aboutDescription') }}
         </p>
       </div>
 
@@ -28,7 +22,7 @@
             <!-- TODO - find a better image -->
             <img
               src="@/assets/images/pattern-preview.png"
-              alt="Pattern preview"
+              :alt="$t('landing.patternPreview')"
               class="w-full h-auto object-cover select-none"
             />
           </div>

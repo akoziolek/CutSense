@@ -10,3 +10,9 @@ export interface PolygonEdge {
   p2: Point2D
   distanceCm: string
 }
+
+export interface PieceImageSource {
+  url: string
+  imageWidthMm: number
+  imageHeightMm: number
+}

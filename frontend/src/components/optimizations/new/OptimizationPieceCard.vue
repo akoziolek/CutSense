@@ -9,6 +9,7 @@ import PatternPiecePreview from '@/components/patterns/PatternPiecePreview.vue'
 import type { Point2D } from '@/types/geometry'
 import type { OptimizationPieceConfig } from '@/types/optimization'
 import { MAX_PIECE_COPIES } from '@/utils/optimizationConfig'
+import type { PieceImageSource } from '@/types/geometry'
 
 const props = defineProps<{
   piece: OptimizationPieceConfig
@@ -17,6 +18,7 @@ const props = defineProps<{
   imageUrl?: string
   shapeIndex: number
   allShapes: Point2D[][]
+  image?: PieceImageSource
   canDelete: boolean
 }>()
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -20,6 +21,7 @@ import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
 import { useDeleteResource } from '@/composables/useDeleteResource'
 
 const props = defineProps<{ id: string }>()
+const { t } = useI18n()
 
 const fabric = ref<FabricResponse | null>(null)
 const isFetching = ref(true)
@@ -97,12 +99,12 @@ const metaItems = computed<MetaItem[]>(() =>
     ? [
         {
           icon: CalendarDays,
-          label: 'Added',
+          label: t('common.details.added'),
           value: new Date(fabric.value.createdAt).toLocaleDateString(),
         },
         {
           icon: RulerDimensionLine,
-          label: 'Area',
+          label: t('common.details.area'),
           value: `${(fabric.value.areaMm2 / 1_000_000).toFixed(2)} m²`,
         },
       ]
@@ -128,7 +130,7 @@ const fetchFabric = async (id: string, activeSignal = { active: true }) => {
   } catch (e) {
     if (activeSignal.active) {
       error.value =
-        e instanceof ApiError ? e.body.message : 'Could not load fabric. Please try again.'
+        e instanceof ApiError ? e.body.message : t('fabrics.loadFailed')
     }
   } finally {
     if (activeSignal.active) {
@@ -158,7 +160,7 @@ watch(
 <template>
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
-      <PageHeader :title="fabric?.name ?? (isFetching ? '' : 'Fabric details')">
+      <PageHeader :title="fabric?.name ?? (isFetching ? '' : t('fabrics.details'))">
         <template #actions>
           <div class="flex items-center gap-2">
             <FavouriteButton
@@ -203,16 +205,16 @@ watch(
         </main>
 
         <main v-else-if="error" key="error">
-          <ErrorState title="Unable to load fabric" :message="error" code="Error">
+          <ErrorState :title="t('fabrics.unableToLoad')" :message="error" :code="t('common.errors.errorCode')">
             <template #actions>
               <Button variant="outline" class="rounded-lg gap-2" @click="fetchFabric(props.id)">
                 <RotateCcw class="w-4 h-4" />
-                <span>Try again</span>
+                <span>{{ t('common.actions.tryAgain') }}</span>
               </Button>
               <Button as-child variant="default" class="rounded-lg gap-2">
                 <RouterLink to="/fabrics">
                   <ArrowLeft class="w-4 h-4" />
-                  <span>Back to fabrics</span>
+                  <span>{{ t('common.actions.backToFabrics') }}</span>
                 </RouterLink>
               </Button>
             </template>
@@ -237,14 +239,14 @@ watch(
                 v-else
                 class="flex h-full items-center justify-center rounded-md bg-muted text-muted-foreground"
               >
-                No fabric image available
+                {{ t('fabrics.imageUnavailable') }}
               </div>
             </div>
             <p
               v-if="fabric.shapes.length > 0 && normalizedPoints.length === 0"
               class="mt-2 text-sm text-muted-foreground"
             >
-              Boundary preview is unavailable because calibrated image dimensions are missing.
+              {{ t('fabrics.boundaryUnavailable') }}
             </p>
           </div>
 
@@ -264,10 +266,10 @@ watch(
       :success-open="successOpen"
       :is-deleting="isDeleting"
       :error="deleteError"
-      :title="`Delete ${fabric?.name ?? 'this fabric'}?`"
-      description="This action cannot be undone and will permanently remove all associated optimizations."
-      success-title="Fabric deleted"
-      success-description="The fabric and its optimizations were deleted."
+      :title="t('fabrics.deleteTitle', { name: fabric?.name ?? t('fabrics.thisFabric') })"
+      :description="t('common.confirmations.deleteDescription')"
+      :success-title="t('fabrics.deleted')"
+      :success-description="t('fabrics.deletedDescription')"
       @confirm="confirmDelete"
       @cancel="confirmOpen = false"
       @close-success="closeSuccess"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, RotateCcw, Scissors, Search, SearchX, X } from 'lucide-vue-next'
 import GridLayout from '@/components/layouts/GridLayout.vue'
@@ -39,12 +40,13 @@ import { useSelection } from '@/composables/useSelection'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: PatternSort = 'name_asc'
-const SORT_OPTIONS: { value: PatternSort; label: string }[] = [
-  { value: 'name_asc', label: 'Name (A to Z)' },
-  { value: 'name_desc', label: 'Name (Z to A)' },
-  { value: 'date_desc', label: 'Newest first' },
-  { value: 'date_asc', label: 'Oldest first' },
-]
+const { t } = useI18n()
+const SORT_OPTIONS = computed<{ value: PatternSort; label: string }[]>(() => [
+  { value: 'name_asc', label: t('common.sort.nameAscending') },
+  { value: 'name_desc', label: t('common.sort.nameDescending') },
+  { value: 'date_desc', label: t('common.sort.newest') },
+  { value: 'date_asc', label: t('common.sort.oldest') },
+])
 const SEARCH_DEBOUNCE_MS = 300
 const SEARCH_MAX = 100
 
@@ -57,7 +59,7 @@ const { toggle: toggleFavourite } = useFavouriteToggle('/patterns')
 
 const sort = computed<PatternSort>(() => {
   const value = route.query.sort
-  return SORT_OPTIONS.some((o) => o.value === value) ? (value as PatternSort) : DEFAULT_SORT
+  return SORT_OPTIONS.value.some((o) => o.value === value) ? (value as PatternSort) : DEFAULT_SORT
 })
 const page = computed(() => {
   const n = Number(route.query.page)
@@ -105,7 +107,7 @@ const loadTags = async () => {
     tagsLoaded.value = true
   } catch (e) {
     tagsError.value =
-      e instanceof ApiError ? e.body.message : 'Could not load tags. Reopen to retry.'
+      e instanceof ApiError ? e.body.message : t('common.errors.tagsLoadFailed')
   } finally {
     tagsLoading.value = false
   }
@@ -219,7 +221,7 @@ const fetchPatterns = async (activeSignal = { active: true }) => {
   } catch (e) {
     if (activeSignal.active) {
       error.value =
-        e instanceof ApiError ? e.body.message : 'Could not load patterns. Please try again.'
+        e instanceof ApiError ? e.body.message : t('patterns.loadFailed')
     }
   } finally {
     if (activeSignal.active) {
@@ -259,8 +261,10 @@ watch(
       class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-10"
     >
       <PageHeader>
-        <span>Patterns</span>
-        <span v-if="data" class="ml-3 text-sm font-semibold">({{ data.total }} found)</span>
+        <span>{{ t('common.navigation.patterns') }}</span>
+        <span v-if="data" class="ml-3 text-sm font-semibold">
+          ({{ t('common.status.foundCount', { count: data.total }) }})
+        </span>
       </PageHeader>
 
       <div class="flex flex-wrap items-center gap-2">
@@ -271,8 +275,8 @@ watch(
             type="text"
             autocomplete="off"
             :maxlength="SEARCH_MAX"
-            placeholder="Search patterns..."
-            aria-label="Search patterns"
+            :placeholder="t('patterns.search')"
+            :aria-label="t('patterns.searchLabel')"
             class="h-9 pl-9 pr-9"
             @keydown.enter="flushSearch"
           />
@@ -280,7 +284,7 @@ watch(
             v-if="searchInput"
             type="button"
             class="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded p-1 text-muted-foreground hover:text-foreground"
-            aria-label="Clear search"
+            :aria-label="t('common.actions.clearSearch')"
             @click="clearSearch"
           >
             <X class="size-4" />
@@ -300,7 +304,7 @@ watch(
           @opened="loadTags"
         >
           <template #default="{ draft }">
-            <FilterSection title="Size" :default-open="true">
+            <FilterSection :title="t('common.filters.size')" :default-open="true">
               <div class="flex flex-wrap gap-1.5">
                 <button
                   v-for="size in PATTERN_SIZES"
@@ -350,16 +354,16 @@ watch(
 
         <!-- error -->
         <div v-else-if="error" key="error">
-          <ErrorState title="Unable to load patterns" :message="error" code="Error">
+          <ErrorState :title="t('patterns.unableToLoadMany')" :message="error" :code="t('common.errors.errorCode')">
             <template #actions>
               <Button variant="outline" class="rounded-lg gap-2" @click="fetchPatterns()">
                 <RotateCcw class="w-4 h-4" />
-                <span>Try again</span>
+                <span>{{ t('common.actions.tryAgain') }}</span>
               </Button>
               <Button as-child variant="default" class="rounded-lg gap-2">
                 <RouterLink to="/">
                   <ArrowLeft class="w-4 h-4" />
-                  <span>Back to home</span>
+                  <span>{{ t('common.actions.backToHome') }}</span>
                 </RouterLink>
               </Button>
             </template>
@@ -374,10 +378,10 @@ watch(
         >
           <SearchX class="size-8 text-muted-foreground" />
           <p class="max-w-xs text-xs text-muted-foreground">
-            We couldn't find any patterns matching your criteria.
+            {{ t('common.errors.noResults', { resource: t('patterns.plural') }) }}
           </p>
           <Button variant="outline" size="sm" class="mt-2 rounded-lg" @click="resetCriteria">
-            Clear filters
+            {{ t('common.actions.clearFilters') }}
           </Button>
         </div>
 
@@ -388,12 +392,12 @@ watch(
           class="flex flex-col items-center justify-center gap-2 py-20 text-center"
         >
           <Scissors class="size-12 text-muted-foreground" />
-          <h2 class="text-lg font-bold font-inter">No patterns yet</h2>
+          <h2 class="text-lg font-bold font-inter">{{ t('patterns.noItems') }}</h2>
           <p class="max-w-xs text-xs text-muted-foreground">
-            Bring your designs to life. Upload a file to add it to your library.
+            {{ t('patterns.emptyDescription') }}
           </p>
           <Button v-if="isLoggedIn" as-child size="sm" class="mt-2 rounded-lg">
-            <RouterLink :to="{ name: 'PatternNew' }">Add your first pattern</RouterLink>
+            <RouterLink :to="{ name: 'PatternNew' }">{{ t('patterns.addFirst') }}</RouterLink>
           </Button>
         </div>
 
@@ -411,7 +415,7 @@ watch(
               :selectable="selectionMode"
               :selected="isSelected(pattern.id)"
               :disabled="selectionMode && !pattern.isOwner"
-              disabled-reason="Only your own patterns can be selected for deleting"
+              :disabled-reason="t('patterns.onlyOwnCanDelete')"
               :toggleable="isLoggedIn"
               :show-favourite="isLoggedIn"
               @toggle-favourite="toggleFavourite(pattern)"

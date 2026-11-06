@@ -31,17 +31,15 @@ const handleSubmit = () => {
 <template>
   <div class="space-y-6">
     <p class="text-sm text-muted-foreground">
-      For best results, upload a high-resolution photo of your fabric. Lay it flat on a clean,
-      neutral surface with even lighting. Avoid shadows, wrinkles, and distracting background
-      elements.
+      {{ $t('fabrics.uploadDescription') }}
     </p>
 
     <main class="flex flex-col items-center px-3 pb-14">
       <UploadFileCard v-model="selectedFile" />
 
       <FormFloatingActions
-        cancel-label="Cancel"
-        next-label="Calibrate"
+        :cancel-label="$t('common.actions.cancel')"
+        :next-label="$t('common.actions.calibrate')"
         :disabled="!selectedFile"
         @cancel="emit('cancel')"
         @next="handleSubmit"

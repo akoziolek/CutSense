@@ -137,7 +137,7 @@ const handleClearSelection = (imageId: number) => {
           type="button"
           class="h-1 w-6 rounded-full transition-colors cursor-pointer"
           :class="index === current ? 'bg-zinc-800' : 'bg-zinc-400'"
-          :aria-label="`Go to sheet ${index + 1}`"
+          :aria-label="$t('common.actions.selectSheet', { number: index + 1 })"
           @click="emblaApi?.scrollTo(index)"
         />
       </div>
@@ -148,6 +148,6 @@ const handleClearSelection = (imageId: number) => {
     v-else
     class="flex aspect-square w-full max-h-[500px] items-center justify-center rounded-md border bg-muted text-muted-foreground"
   >
-    No pattern sheets to display
+    {{ $t('patterns.noSheetsToDisplay') }}
   </div>
 </template>

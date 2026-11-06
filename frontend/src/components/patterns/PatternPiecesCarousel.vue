@@ -76,7 +76,8 @@ const slides = computed(() =>
   }),
 )
 
-const onInit = (api?: EmblaCarouselType) => {
+
+const onInit = (api: EmblaCarouselType | undefined) => {
   if (!api) return
   emblaApi.value = api
   current.value = api.selectedScrollSnap()

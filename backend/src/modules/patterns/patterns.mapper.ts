@@ -35,7 +35,7 @@ export interface PatternWithRelations {
     imageWidthMm: number;
     imageHeightMm: number;
     orderIndex: number;
-    pieces: { id: number; geojson: string; grainline: number }[];
+    pieces: { id: number; normalCount: number; mirroredCount: number; geojson: string; grainline: number }[];
   }[];
   favoritedBy: { userId: number }[];
 }
@@ -69,6 +69,8 @@ export class PatternsMapper {
     const allPieces = (pattern.images ?? []).flatMap((image) =>
       image.pieces.map((piece) => ({
         id: piece.id,
+        normalCount: piece.normalCount,
+        mirroredCount: piece.mirroredCount,
         patternImageId: image.id,
         grainline: piece.grainline,
         points: PatternsMapper.piecePointsFromGeoJson(piece.geojson),

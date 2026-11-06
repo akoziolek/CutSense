@@ -173,7 +173,7 @@ export class PatternsService {
           orderBy: (img, { asc }) => [asc(img.orderIndex), asc(img.id)],
           with: {
             pieces: {
-              columns: { id: true, grainline: true },
+              columns: { id: true, grainline: true, normalCount: true, mirroredCount: true },
               extras: (piece, { sql }) => ({
                 geojson: sql<string>`ST_AsGeoJSON(${piece.boundary})`.as(
                   'geojson',

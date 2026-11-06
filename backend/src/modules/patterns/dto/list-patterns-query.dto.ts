@@ -1,10 +1,16 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsBoolean, IsEnum, IsIn, IsOptional } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsIn,
+  IsOptional,
+} from 'class-validator';
 import { patternSizeEnum } from '../../../db/schema/schema.js';
 import { FilterableListQueryDto } from '../../../common/dto/base-list-query.dto.js';
 import { PatternSize } from './pattern.enum.js';
-
 
 export enum PatternSortOption {
   NAME_ASC = 'name_asc',
@@ -27,7 +33,7 @@ export class ListPatternsQueryDto extends FilterableListQueryDto {
   @ApiPropertyOptional({
     description:
       'Only these sizes. Comma-separated (S,M) or repeated (sizes=S&sizes=M).',
-    enum: PatternSize,
+    enum: patternSizeEnum.enumValues,
     isArray: true,
     example: 'S,M',
   })
@@ -41,7 +47,10 @@ export class ListPatternsQueryDto extends FilterableListQueryDto {
   })
   @IsArray()
   @ArrayMaxSize(6)
-  @IsEnum(PatternSize, { message: 'Size must be a valid size enum value' })
+  @IsIn(patternSizeEnum.enumValues, {
+    each: true,
+    message: 'Size must be a valid size enum value',
+  })
   sizes?: PatternSize[];
 
   @ApiPropertyOptional({

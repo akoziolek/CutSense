@@ -102,7 +102,7 @@ const titles = computed(() => [
       </div>
 
       <template v-else>
-        <PageHeader :title="titles[step - 1]" :show-back="step > 1" @back="step = step - 1">
+        <PageHeader :title="titles[step - 1]" show-cancel @cancel="handleCancel">
           <template #actions>
             <StepCounter :current-step="step" :total-steps="3" />
           </template>

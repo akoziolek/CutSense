@@ -103,7 +103,7 @@ watch(
 
       <template v-else>
         <!-- TODO keep title at the top??, list overflowing behind the navigation -->
-        <PageHeader :title="titles[step - 1]" :show-back="step > 1" @back="step = step - 1">
+        <PageHeader :title="titles[step - 1]" show-cancel @cancel="handleCancel">
           <template #actions>
             <StepCounter :current-step="step" :total-steps="4" />
           </template>

@@ -132,7 +132,7 @@ const wrapperProps = computed(() => {
             v-if="toggleable"
             type="button"
             class="absolute right-2 top-2 rounded-md bg-background p-1 shadow-sm transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-            :aria-label="isFavourite ? 'Remove from favourites' : 'Add to favourites'"
+            :aria-label="$t(isFavourite ? 'common.actions.favouriteRemove' : 'common.actions.favouriteAdd')"
             :aria-pressed="isFavourite"
             @click.prevent.stop="emit('toggleFavourite')"
           >
@@ -141,7 +141,7 @@ const wrapperProps = computed(() => {
           <span
             v-else
             class="absolute right-2 top-2 rounded-md bg-background p-1 shadow-sm"
-            :aria-label="isFavourite ? 'Favourite' : 'Not favourite'"
+            :aria-label="$t(isFavourite ? 'common.actions.favourite' : 'common.actions.notFavourite')"
           >
             <Heart class="size-6" :class="{ 'fill-current': isFavourite }" />
           </span>

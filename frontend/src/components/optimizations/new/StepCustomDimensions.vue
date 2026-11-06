@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
@@ -18,6 +19,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useOptimizationAddingStore()
+const { t } = useI18n()
 
 const widthInvalid = computed(
   () => store.customWidthCm !== '' && !isValidFabricSideCm(store.customWidthCm),
@@ -31,10 +33,11 @@ const preview = computed(() => {
   return { w: parseCm(store.customWidthCm)!, h: parseCm(store.customHeightCm)! }
 })
 
-const fields = [
-  { id: 'fabric-width', label: 'Width', model: 'customWidthCm', placeholder: 'e.g. 145' },
-  { id: 'fabric-height', label: 'Height', model: 'customHeightCm', placeholder: 'e.g. 290' },
+const fields = computed(() => [
+  { id: 'fabric-width', label: t('optimizations.width'), model: 'customWidthCm', placeholder: '145' },
+  { id: 'fabric-height', label: t('optimizations.height'), model: 'customHeightCm', placeholder: '290' },
 ] as const
+)
 </script>
 
 <template>
@@ -49,7 +52,7 @@ const fields = [
           preserveAspectRatio="xMidYMid meet"
           class="h-full w-full"
           role="img"
-          :aria-label="`Fabric ${preview.w} by ${preview.h} cm`"
+          :aria-label="t('optimizations.fabricPreview', { width: preview.w, height: preview.h })"
         >
           <rect
             x="0"
@@ -61,13 +64,13 @@ const fields = [
             vector-effect="non-scaling-stroke"
           />
         </svg>
-        <p v-else class="text-xs text-muted-foreground">Enter the fabric size to see a preview.</p>
+        <p v-else class="text-xs text-muted-foreground">{{ t('optimizations.enterFabricSize') }}</p>
       </div>
 
       <div class="space-y-4">
         <div class="space-y-3 rounded-md border border-muted bg-card p-4 shadow-xs">
           <h3 class="text-xs font-bold font-inter uppercase tracking-wider text-foreground">
-            Fabric size
+            {{ t('optimizations.fabricSize') }}
           </h3>
 
           <div v-for="field in fields" :key="field.id" class="space-y-1">
@@ -99,9 +102,9 @@ const fields = [
             class="text-xs text-destructive"
             role="alert"
           >
-            Enter sizes between {{ MIN_FABRIC_SIDE_CM }} and {{ MAX_FABRIC_SIDE_CM }} cm.
+            {{ t('optimizations.sizeRangeError', { min: MIN_FABRIC_SIDE_CM, max: MAX_FABRIC_SIDE_CM }) }}
           </p>
-          <p class="text-xs text-destructive">* Required field</p>
+          <p class="text-xs text-destructive">{{ t('common.status.requiredField') }}</p>
         </div>
 
         <!-- fixed for custom sheets: the thread runs along the length -->
@@ -109,7 +112,7 @@ const fields = [
           inert
           aria-disabled="true"
           class="pointer-events-none select-none opacity-70"
-          title="Thread direction cannot be changed for custom dimensions"
+          :title="t('optimizations.threadDirectionLocked')"
         >
           <SidebarThreadDirection :thread-angle="0" />
         </div>
@@ -117,8 +120,8 @@ const fields = [
     </div>
 
     <FormFloatingActions
-      cancel-label="Cancel"
-      next-label="Next"
+      :cancel-label="t('common.actions.cancel')"
+      :next-label="t('common.actions.next')"
       :disabled="!store.isFabricConfigured"
       @cancel="emit('cancel')"
       @next="emit('next')"

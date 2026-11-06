@@ -11,10 +11,10 @@ const emit = defineEmits<{
 <template>
   <BaseModal
     v-model:open="isOpen"
-    title="Discard changes?"
-    description="Are you sure you want to exit? All progress will be lost."
-    confirm-label="Yes, discard"
-    cancel-label="Continue editing"
+    :title="$t('common.discard.title')"
+    :description="$t('common.discard.description')"
+    :confirm-label="$t('common.actions.yesDiscard')"
+    :cancel-label="$t('common.actions.continueEditing')"
     show-cancel
     @confirm="emit('confirm')"
     @cancel="isOpen = false"

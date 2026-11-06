@@ -1,18 +1,22 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { Copy, Trash2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import SidebarThreadDirection from '@/components/spatial/sidebar/SidebarThreadDirection.vue'
+import PatternPiecePreview from '@/components/patterns/PatternPiecePreview.vue'
+import type { Point2D } from '@/types/geometry'
 import type { OptimizationPieceConfig } from '@/types/optimization'
 import { MAX_PIECE_COPIES } from '@/utils/optimizationConfig'
 
 const props = defineProps<{
   piece: OptimizationPieceConfig
   label: string
-  points: [number, number][]
+  points: Point2D[]
+  imageUrl?: string
+  shapeIndex: number
+  allShapes: Point2D[][]
   canDelete: boolean
 }>()
 
@@ -23,30 +27,9 @@ const emit = defineEmits<{
 }>()
 
 const quantityFields = [
-  { key: 'normalCount', label: 'Normal' },
-  { key: 'mirroredCount', label: 'Mirrored' },
+  { key: 'normalCount', label: 'normal' },
+  { key: 'mirroredCount', label: 'mirrored' },
 ] as const
-
-const shape = computed(() => {
-  if (props.points.length === 0) {
-    return { viewBox: '0 0 1 1', polygon: '' }
-  }
-
-  const xs = props.points.map(([x]) => x)
-  const ys = props.points.map(([, y]) => y)
-  const minX = Math.min(...xs)
-  const maxX = Math.max(...xs)
-  const minY = Math.min(...ys)
-  const maxY = Math.max(...ys)
-  const width = maxX - minX || 1
-  const height = maxY - minY || 1
-  const padding = Math.max(width, height) * 0.08
-
-  return {
-    viewBox: `${minX - padding} ${-maxY - padding} ${width + padding * 2} ${height + padding * 2}`,
-    polygon: props.points.map(([x, y]) => `${x},${-y}`).join(' '),
-  }
-})
 
 const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | number) => {
   const parsed = parseInt(String(raw), 10)
@@ -59,22 +42,12 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
   <article
     class="flex flex-col items-center gap-5 overflow-hidden rounded-md border border-muted bg-card p-4 shadow-xs transition-all hover:shadow-md sm:p-5 xl:flex-row xl:items-start"
   >
-    <div class="size-32 shrink-0 rounded-xl border border-border/40 bg-muted/20 p-3 sm:size-36">
-      <svg
-        :viewBox="shape.viewBox"
-        class="h-full w-full"
-        role="img"
-        :aria-label="`${label} shape`"
-      >
-        <polygon
-          :points="shape.polygon"
-          class="fill-brand-violet/40 stroke-foreground"
-          stroke-width="2"
-          stroke-linejoin="round"
-          vector-effect="non-scaling-stroke"
-        />
-      </svg>
-    </div>
+    <PatternPiecePreview
+      :image-url="imageUrl"
+      :points="points"
+      :shape-index="shapeIndex"
+      :all-shapes="allShapes"
+    />
 
     <div class="flex w-full min-w-0 flex-1 flex-col py-0.5">
       <div class="mb-4 flex items-center justify-between gap-4 border-b border-border/60 pb-2">
@@ -87,11 +60,11 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
             size="icon"
             variant="ghost"
             class="h-8 w-8 cursor-pointer rounded-lg"
-            title="Duplicate piece with its own settings"
+            :title="$t('optimizations.duplicatePieceDescription')"
             @click="emit('duplicate')"
           >
             <Copy class="h-4 w-4" />
-            <span class="sr-only">Duplicate piece</span>
+            <span class="sr-only">{{ $t('optimizations.duplicatePiece') }}</span>
           </Button>
           <Button
             type="button"
@@ -99,11 +72,11 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
             variant="ghost"
             class="h-8 w-8 cursor-pointer rounded-lg bg-destructive/15 text-destructive transition-colors hover:bg-destructive/20 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
             :disabled="!canDelete"
-            title="Remove piece"
+            :title="$t('optimizations.removePiece')"
             @click="emit('remove')"
           >
             <Trash2 class="h-4 w-4" />
-            <span class="sr-only">Remove piece</span>
+            <span class="sr-only">{{ $t('optimizations.removePiece') }}</span>
           </Button>
         </div>
       </div>
@@ -111,11 +84,11 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
       <div class="flex flex-col gap-4 md:flex-row xl:items-center xl:gap-8">
         <div class="shrink-0 space-y-2">
           <h3 class="text-xs font-bold font-inter uppercase tracking-wider text-foreground">
-            Number of pieces
+            {{ $t('optimizations.numberOfPieces') }}
           </h3>
           <div class="flex items-center gap-3 pt-0.5 text-xs sm:gap-4">
             <label v-for="field in quantityFields" :key="field.key" class="flex items-center gap-2 font-medium">
-              <span class="text-muted-foreground">{{ field.label }}:</span>
+              <span class="text-muted-foreground">{{ $t(`patterns.${field.label}`) }}:</span>
               <Input
                 type="number"
                 min="0"
@@ -131,7 +104,7 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
             class="max-w-[16rem] text-xs text-destructive"
             role="alert"
           >
-            Add at least one copy or remove this piece.
+            {{ $t('optimizations.pieceNeedsCopy') }}
           </p>
         </div>
 
@@ -153,9 +126,9 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
             <Label
               :for="`two-way-${piece.key}`"
               class="cursor-pointer text-xs font-medium"
-              title="Allow the piece to also be turned by 180°"
+              :title="$t('optimizations.allow180Rotation')"
             >
-              Two-way
+              {{ $t('optimizations.twoWay') }}
             </Label>
           </div>
         </div>

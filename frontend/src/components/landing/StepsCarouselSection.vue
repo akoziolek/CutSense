@@ -21,10 +21,10 @@
   <section class="w-full max-w-6xl mx-auto px-6 sm:px-10 py-18 text-center">
     <div class="max-w-3xl mx-auto mb-12 space-y-4">
       <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-inter">
-        See how easy it is to get started
+        {{ $t('landing.stepsTitle') }}
       </h2>
       <p class="text-sm sm:text-base text-muted-foreground leading-relaxed">
-        There are just few simple steps that you need to follow.
+        {{ $t('landing.stepsDescription') }}
       </p>
     </div>
 
@@ -47,7 +47,7 @@
             >
               <CardContent class="p-6">
                 <span class="text-2xl font-bold text-muted-foreground/40">
-                  Step {{ step.id }}
+                  {{ $t('landing.step', { number: step.id }) }}
                 </span>
               </CardContent>
             </Card>

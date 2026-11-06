@@ -1,5 +1,6 @@
 <script setup lang="ts" generic="F extends BaseFilters">
 import { computed, ref, watch, type Ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Check, ChevronDown, ListFilter, Search, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,6 +34,7 @@ const emit = defineEmits<{
   (e: 'apply', filters: F): void
   (e: 'opened'): void
 }>()
+const { t } = useI18n()
 
 const clone = (f: F): F => JSON.parse(JSON.stringify(f))
 const draft = ref(clone(props.modelValue)) as Ref<F>
@@ -52,7 +54,7 @@ watch(isOpen, (open) => {
 const rangeError = computed(() => {
   const { createdFrom, createdTo } = draft.value
   if (createdFrom && createdTo && createdFrom > createdTo)
-    return 'The start date must not be later than the end date.'
+    return t('common.filters.startDateAfterEndDate')
   return props.extraError?.(draft.value) ?? ''
 })
 
@@ -104,29 +106,29 @@ const apply = () => {
         data-testid="filter-trigger"
       >
         <ListFilter class="size-4" />
-        Filter
+        {{ t('common.actions.filter') }}
       </Button>
     </PopoverTrigger>
 
     <PopoverContent align="end" :sideOffset="12" class="w-[22rem] max-w-[calc(100vw-2rem)] p-0">
       <header class="flex items-center justify-between px-4 py-3">
-        <h2 class="text-sm font-bold font-inter">Detailed filters</h2>
+        <h2 class="text-sm font-bold font-inter">{{ t('common.filters.detailed') }}</h2>
         <button
           type="button"
           class="cursor-pointer text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
           data-testid="clear"
           @click="clearAll"
         >
-          Clear all
+          {{ t('common.actions.clearAll') }}
         </button>
       </header>
 
       <div class="max-h-[55vh] overflow-y-auto">
         <!-- Date range section using FilterSection component -->
-        <FilterSection title="Date range" :default-open="true">
+        <FilterSection :title="t('common.filters.dateRange')" :default-open="true">
           <div class="grid grid-cols-2 gap-2">
             <label class="space-y-1 text-xs">
-              <span>From</span>
+              <span>{{ t('common.filters.from') }}</span>
               <Input
                 v-model="draft.createdFrom"
                 type="date"
@@ -136,7 +138,7 @@ const apply = () => {
               />
             </label>
             <label class="space-y-1 text-xs">
-              <span>To</span>
+              <span>{{ t('common.filters.to') }}</span>
               <Input
                 v-model="draft.createdTo"
                 type="date"
@@ -151,10 +153,10 @@ const apply = () => {
         <!-- Only favourites -->
         <div v-if="showFavourites" class="flex items-center justify-between border-t border-border/60 px-4 py-3">
           <Label for="filter-fav-only" class="cursor-pointer text-sm font-semibold font-inter">
-            Only favourites
+            {{ t('common.filters.onlyFavourites') }}
           </Label>
           <div class="flex items-center gap-2">
-            <span class="text-xs">{{ draft.favouriteOnly ? 'Yes' : 'No' }}</span>
+            <span class="text-xs">{{ t(draft.favouriteOnly ? 'common.filters.yes' : 'common.filters.no') }}</span>
             <Switch id="filter-fav-only" v-model="draft.favouriteOnly" data-testid="fav-only" />
           </div>
         </div>
@@ -162,18 +164,18 @@ const apply = () => {
         <!-- Only community toggle -->
         <div v-if="showCommunity" class="flex items-center justify-between border-t border-border/60 px-4 py-3">
           <Label for="filter-community" class="cursor-pointer text-sm font-semibold font-inter">
-            Community
+            {{ t('common.filters.community') }}
           </Label>
           <div class="flex items-center gap-2">
-            <span class="text-xs">{{ (draft as any).communityOnly ? 'Yes' : 'No' }}</span>
+            <span class="text-xs">{{ t((draft as any).communityOnly ? 'common.filters.yes' : 'common.filters.no') }}</span>
             <Switch id="filter-community" v-model="(draft as any).communityOnly" data-testid="community-only" />
           </div>
         </div>
 
         <!-- Tags section -->
-        <FilterSection title="Tags" :default-open="false">
+        <FilterSection :title="t('common.filters.tags')" :default-open="false">
           <div class="space-y-2">
-            <p class="text-xs text-muted-foreground">Items with any of the selected tags.</p>
+            <p class="text-xs text-muted-foreground">{{ t('common.filters.itemsWithSelectedTags') }}</p>
 
             <div v-if="selectedTags.length" class="flex flex-wrap gap-1.5">
               <Badge
@@ -186,7 +188,7 @@ const apply = () => {
                 <button
                   type="button"
                   class="cursor-pointer"
-                  :aria-label="`Remove ${tag.name}`"
+                  :aria-label="t('common.actions.removeTag', { tag: tag.name })"
                   @click="toggleTag(tag.id)"
                 >
                   <X class="size-3" />
@@ -201,7 +203,7 @@ const apply = () => {
                 />
                 <Input
                   v-model="tagQuery"
-                  placeholder="Search tags..."
+                  :placeholder="t('common.filters.searchTags')"
                   class="h-8 pl-8 pr-14 text-xs"
                   data-testid="tag-search"
                 />
@@ -210,7 +212,7 @@ const apply = () => {
                     v-if="tagQuery"
                     type="button"
                     class="cursor-pointer p-1 text-muted-foreground hover:text-foreground"
-                    aria-label="Clear tag search"
+                    :aria-label="t('common.actions.clearSearch')"
                     @click="tagQuery = ''"
                   >
                     <X class="size-3.5" />
@@ -246,13 +248,13 @@ const apply = () => {
                   </button>
                 </li>
                 <li v-if="tagsLoading" class="px-3 py-2 text-xs text-muted-foreground">
-                  Loading tags...
+                  {{ t('common.status.loadingTags') }}
                 </li>
                 <li
                   v-else-if="!visibleTags.length"
                   class="px-3 py-2 text-xs text-muted-foreground"
                 >
-                  No matching tags
+                  {{ t('common.status.noMatchingTags') }}
                 </li>
               </ul>
             </div>
@@ -276,10 +278,10 @@ const apply = () => {
           data-testid="cancel"
           @click="cancel"
         >
-          Cancel
+          {{ t('common.actions.cancel') }}
         </Button>
         <Button type="button" size="sm" :disabled="!!rangeError" data-testid="apply" @click="apply">
-          Apply
+          {{ t('common.actions.apply') }}
         </Button>
       </footer>
     </PopoverContent>

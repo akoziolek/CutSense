@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { api, ApiError } from '@/api/client'
 import PatternForm, { type PatternFormPayload } from '@/components/patterns/PatternForm.vue'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
+import { useI18n } from 'vue-i18n'
 
 const emit = defineEmits<{
   (e: 'cancel'): void
@@ -13,6 +14,7 @@ const patternStore = usePatternAddingStore()
 const router = useRouter()
 const isSubmitting = ref(false)
 const submitError = ref('')
+const { t } = useI18n()
 
 const saveDetails = async (payload: Partial<PatternFormPayload>) => {
   const details: Parameters<typeof patternStore.updateDetails>[0] = {
@@ -37,7 +39,7 @@ const handleSubmit = async (payload: PatternFormPayload) => {
   submitError.value = ''
 
   if (payload.visibility !== 'PRIVATE' && payload.visibility !== 'PUBLIC') {
-    submitError.value = 'Select a valid pattern visibility.'
+    submitError.value = t('patterns.submitVisibilityError')
     return
   }
 
@@ -70,8 +72,7 @@ const handleSubmit = async (payload: PatternFormPayload) => {
 
   const validPieces = pieces.filter((piece) => piece !== null)
   if (validPieces.length === 0 || validPieces.length !== pieces.length) {
-    submitError.value =
-      'Pattern piece configuration is incomplete. Return to the previous steps and try again.'
+    submitError.value = t('patterns.detailsPiecesHelp')
     return
   }
 
@@ -96,8 +97,7 @@ const handleSubmit = async (payload: PatternFormPayload) => {
   })
 
   if (imageDimensions.some((dimensions) => dimensions === null)) {
-    submitError.value =
-      'Image calibration is incomplete. Return to the configuration step and try again.'
+    submitError.value = t('patterns.detailsImageHelp')
     return
   }
 
@@ -131,7 +131,7 @@ const handleSubmit = async (payload: PatternFormPayload) => {
   } catch (error) {
     console.error('Failed to create pattern:', error)
     submitError.value =
-      error instanceof ApiError ? error.body.message : 'Could not save pattern. Please try again.'
+      error instanceof ApiError ? error.body.message : t('patterns.saveError')
   } finally {
     isSubmitting.value = false
   }

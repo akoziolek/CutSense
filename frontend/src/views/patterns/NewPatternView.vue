@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
 import GridLayout from '@/components/layouts/GridLayout.vue'
@@ -14,8 +15,15 @@ import StepDetails from '@/components/patterns/new/StepDetails.vue'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
+import { provideWizardNav } from '@/composables/useWizardNav'
 
-const TITLES = ['Pattern source', 'Pattern configuration', 'Detected pieces', 'Pattern details']
+const { t } = useI18n()
+const titles = computed(() => [
+  t('patterns.sourceTitle'),
+  t('patterns.configurationTitle'),
+  t('patterns.piecesTitle'),
+  t('patterns.detailsTitle'),
+])
 
 const route = useRoute()
 const router = useRouter()
@@ -61,6 +69,11 @@ const step = computed({
   },
 })
 
+provideWizardNav({
+  canGoBack: computed(() => step.value > 1),
+  back: () => { step.value = step.value - 1 },
+})
+
 watch(
   [() => route.query.step, validStep, isInitializing],
   () => {
@@ -90,7 +103,7 @@ watch(
 
       <template v-else>
         <!-- TODO keep title at the top??, list overflowing behind the navigation -->
-        <PageHeader :title="TITLES[step - 1]" :show-back="step > 1" @back="step = step - 1">
+        <PageHeader :title="titles[step - 1]" show-cancel @cancel="handleCancel">
           <template #actions>
             <StepCounter :current-step="step" :total-steps="4" />
           </template>

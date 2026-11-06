@@ -19,9 +19,23 @@ export interface OptimizationDefaults {
 // Piece of a pattern as returned by GET /patterns/:id
 export interface PatternPieceDefaults {
   id: number
+  patternImageId: number
   points: [number, number][]
   normalCount: number
   mirroredCount: number
+}
+
+export interface PatternImageDetails {
+  id: number
+  url: string
+  imageWidthMm: number
+  imageHeightMm: number
+}
+
+export interface PatternDetails {
+  id: number
+  images: PatternImageDetails[]
+  pieces: PatternPieceDefaults[]
 }
 
 export interface OptimizationPieceConfig {

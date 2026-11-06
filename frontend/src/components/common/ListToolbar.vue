@@ -32,7 +32,7 @@ const emit = defineEmits<{ (e: 'submit'): void; (e: 'clear'): void }>()
         v-if="search"
         type="button"
         class="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded p-1 text-muted-foreground hover:text-foreground"
-        aria-label="Clear search"
+        :aria-label="$t('common.actions.clearSearch')"
         @click="emit('clear')"
       >
         <X class="size-4" />

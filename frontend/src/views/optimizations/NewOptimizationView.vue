@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -13,12 +14,14 @@ import StepAlgorithm from '@/components/optimizations/new/StepAlgorithm.vue'
 import StepElements from '@/components/optimizations/new/StepElements.vue'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
+import { provideWizardNav } from '@/composables/useWizardNav'
 
 const TOTAL_STEPS = 5
 
 const route = useRoute()
 const router = useRouter()
 const store = useOptimizationAddingStore()
+const { t } = useI18n()
 
 const { isCancelModalOpen, handleCancel, confirmExit } = useUnsavedChangesGuard({
   isDirty: computed(() => store.isDirty),
@@ -45,6 +48,11 @@ const step = computed({
   },
 })
 
+provideWizardNav({
+  canGoBack: computed(() => step.value > 1),
+  back: () => { step.value = step.value - 1 },
+})
+
 watch(
   [() => route.query.step, validStep],
   () => {
@@ -59,15 +67,17 @@ watch(
 const title = computed(() => {
   switch (step.value) {
     case 1:
-      return 'Fabric source'
+      return t('optimizations.fabricSource')
     case 2:
-      return store.fabricSource === 'custom' ? 'Custom dimensions' : 'Fabric library'
+      return store.fabricSource === 'custom'
+        ? t('optimizations.customDimensions')
+        : t('optimizations.fabricLibrary')
     case 3:
-      return 'Pattern library'
+      return t('optimizations.patternLibrary')
     case 4:
-      return 'Optimization elements'
+      return t('optimizations.elements')
     default:
-      return 'Nesting strategy'
+      return t('optimizations.strategy')
   }
 })
 </script>
@@ -75,7 +85,7 @@ const title = computed(() => {
 <template>
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
-      <PageHeader :title="title" :show-back="step > 1" @back="step = step - 1">
+      <PageHeader :title="title" show-cancel @cancel="handleCancel">
         <template #actions>
           <StepCounter :current-step="step" :total-steps="TOTAL_STEPS" />
         </template>

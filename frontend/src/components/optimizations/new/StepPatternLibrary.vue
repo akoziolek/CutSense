@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { Scissors } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -30,6 +31,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useOptimizationAddingStore()
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { state: authState } = useAuth()
@@ -69,18 +71,18 @@ const loadTags = async () => {
     tagsLoaded.value = true
   } catch (error) {
     tagsError.value =
-      error instanceof ApiError ? error.body.message : 'Could not load tags. Reopen to retry.'
+      error instanceof ApiError ? error.body.message : t('common.errors.tagsLoadFailed')
   } finally {
     tagsLoading.value = false
   }
 }
 
-const SORT_OPTIONS: SortOption<PatternSort>[] = [
-  { value: 'name_asc', label: 'Name (A to Z)' },
-  { value: 'name_desc', label: 'Name (Z to A)' },
-  { value: 'date_desc', label: 'Newest first' },
-  { value: 'date_asc', label: 'Oldest first' },
-]
+const SORT_OPTIONS = computed<SortOption<PatternSort>[]>(() => [
+  { value: 'name_asc', label: t('common.sort.nameAscending') },
+  { value: 'name_desc', label: t('common.sort.nameDescending') },
+  { value: 'date_desc', label: t('common.sort.newest') },
+  { value: 'date_asc', label: t('common.sort.oldest') },
+])
 
 const getMeta = (pattern: PatternListItem) => `${formatCardDate(pattern.createdAt)} • ${pattern.size}`
 </script>
@@ -92,12 +94,13 @@ const getMeta = (pattern: PatternListItem) => `${formatCardDate(pattern.createdA
       path="/patterns"
       noun="patterns"
       details-route-name="PatternDetails"
-      placeholder="Search patterns..."
-      ariaLabel="Search patterns"
+      :placeholder="$t('optimizations.searchPatterns')"
+      :ariaLabel="t('patterns.searchLabel')"
       default-sort="name_asc"
       :sort-options="SORT_OPTIONS"
       :selected-id="store.pattern?.id ?? null"
       :get-meta="getMeta"
+      :get-image="(pattern) => pattern.imageUrl"
       :filter-params="filterParams"
       :has-active-filters="hasActiveFilters"
       @select="(pattern) => store.selectPattern({ id: pattern.id, name: pattern.name })"
@@ -117,7 +120,7 @@ const getMeta = (pattern: PatternListItem) => `${formatCardDate(pattern.createdA
           @opened="loadTags"
         >
           <template #default="{ draft }">
-            <FilterSection title="Size" :default-open="true">
+            <FilterSection :title="$t('common.filters.size')" :default-open="true">
               <div class="flex flex-wrap gap-1.5">
                 <button
                   v-for="size in PATTERN_SIZES"
@@ -138,19 +141,19 @@ const getMeta = (pattern: PatternListItem) => `${formatCardDate(pattern.createdA
       <template #placeholder><Scissors class="size-8" /></template>
       <template #empty>
         <Scissors class="size-12 text-muted-foreground" />
-        <h2 class="text-lg font-bold font-inter">No patterns yet</h2>
+        <h2 class="text-lg font-bold font-inter">{{ $t('optimizations.noPatterns') }}</h2>
         <p class="max-w-xs text-xs text-muted-foreground">
-          Upload a pattern first, then come back to optimize it.
+          {{ $t('optimizations.noPatternsDescription') }}
         </p>
         <Button as-child size="sm" class="mt-2 rounded-lg">
-          <RouterLink :to="{ name: 'PatternNew' }">Add your first pattern</RouterLink>
+          <RouterLink :to="{ name: 'PatternNew' }">{{ $t('optimizations.addFirstPattern') }}</RouterLink>
         </Button>
       </template>
     </SelectableResourceList>
 
     <FormFloatingActions
-      cancel-label="Cancel"
-      next-label="Next"
+      :cancel-label="$t('common.actions.cancel')"
+      :next-label="$t('common.actions.next')"
       :disabled="!store.pattern"
       @cancel="emit('cancel')"
       @next="emit('next')"

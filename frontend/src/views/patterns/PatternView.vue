@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -67,6 +68,7 @@ const {
 })
 
 const props = defineProps<{ id: string }>()
+const { t } = useI18n()
 
 const pattern = ref<Pattern | null>(null)
 const isFetching = ref(true)
@@ -99,17 +101,17 @@ const metaItems = computed<MetaItem[]>(() =>
     ? [
         {
           icon: CalendarDays,
-          label: 'Added',
+          label: t('common.details.added'),
           value: new Date(pattern.value.createdAt).toLocaleDateString(),
         },
         {
           icon: pattern.value.visibility === 'PRIVATE' ? Lock : Globe,
-          label: 'Visibility',
-          value: pattern.value.visibility === 'PRIVATE' ? 'Private' : 'Public',
+          label: t('common.details.visibility'),
+          value: t(pattern.value.visibility === 'PRIVATE' ? 'patterns.private' : 'patterns.public'),
         },
         {
           icon: RulerDimensionLine,
-          label: 'Size',
+          label: t('common.details.size'),
           value: pattern.value.size,
         },
       ]
@@ -137,7 +139,7 @@ const fetchPattern = async (id: string, activeSignal = { active: true }) => {
     if (activeSignal.active) {
       isNotFound.value = e instanceof ApiError && e.status === 404
       error.value =
-        e instanceof ApiError ? e.body.message : 'Could not load pattern. Please try again.'
+        e instanceof ApiError ? e.body.message : t('patterns.loadFailed')
     }
   } finally {
     if (activeSignal.active) {
@@ -165,7 +167,7 @@ watch(
 <template>
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
-      <PageHeader :title="pattern?.name ?? (isFetching ? '' : 'Pattern details')">
+      <PageHeader :title="pattern?.name ?? (isFetching ? '' : t('patterns.details'))">
         <template #actions>
           <div class="flex items-center gap-2">
             <FavouriteButton
@@ -184,7 +186,7 @@ watch(
       </PageHeader>
       <!-- TODO - move this to card section?? -->
       <p v-if="pattern" class="-mt-4 text-sm ml-4 text-muted-foreground">
-        Author: {{ pattern.author.nickname }}
+        {{ t('common.details.author') }}: {{ pattern.author.nickname }}
       </p>
 
       <Transition
@@ -216,11 +218,11 @@ watch(
 
         <main v-else-if="error" key="error">
           <ErrorState
-            :title="isNotFound ? 'Pattern not found' : 'Unable to load pattern'"
+            :title="t(isNotFound ? 'patterns.notFound' : 'patterns.unableToLoad')"
             :message="
-              isNotFound ? 'This pattern does not exist or you do not have access to it.' : error
+              isNotFound ? t('patterns.notFoundMessage') : error
             "
-            :code="isNotFound ? 'Error 404' : 'Error'"
+            :code="t(isNotFound ? 'common.errors.notFoundCode' : 'common.errors.errorCode')"
           >
             <template #actions>
               <Button
@@ -230,12 +232,12 @@ watch(
                 @click="fetchPattern(props.id)"
               >
                 <RotateCcw class="w-4 h-4" />
-                <span>Try again</span>
+                <span>{{ t('common.actions.tryAgain') }}</span>
               </Button>
               <Button as-child variant="default" class="rounded-lg gap-2">
                 <RouterLink to="/patterns">
                   <ArrowLeft class="w-4 h-4" />
-                  <span>Back to patterns</span>
+                  <span>{{ t('common.actions.backToPatterns') }}</span>
                 </RouterLink>
               </Button>
             </template>
@@ -291,10 +293,10 @@ watch(
       :success-open="successOpen"
       :is-deleting="isDeleting"
       :error="deleteError"
-      :title="`Delete ${pattern?.name ?? 'this pattern'}?`"
-      description="This action cannot be undone and will permanently remove all associated optimizations."
-      success-title="Pattern deleted"
-      success-description="The pattern and its optimizations were deleted."
+      :title="t('patterns.deleteTitle', { name: pattern?.name ?? t('patterns.thisPattern') })"
+      :description="t('common.confirmations.deleteDescription')"
+      :success-title="t('patterns.deleted')"
+      :success-description="t('patterns.deletedDescription')"
       @confirm="confirmDelete"
       @cancel="confirmOpen = false"
       @close-success="closeSuccess"

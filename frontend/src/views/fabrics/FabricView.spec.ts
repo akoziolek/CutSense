@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent, h, type PropType } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, api } from '@/api/client'
+import i18n from '@/i18n'
 import type { MetaItem } from '@/components/common/DetailsCard.vue'
 import type { NameTag } from '@/types/fabric'
 import type { Point2D } from '@/types/geometry'
@@ -86,10 +87,12 @@ const GridLayoutStub = defineComponent({
   },
 })
 
-const mountView = (id = 'fabric-1') =>
-  mount(FabricView, {
+const mountView = (id = 'fabric-1') => {
+  i18n.global.locale.value = 'en'
+  return mount(FabricView, {
     props: { id },
     global: {
+      plugins: [i18n],
       stubs: {
         GridLayout: GridLayoutStub,
         PageHeader: PageHeaderStub,
@@ -102,6 +105,7 @@ const mountView = (id = 'fabric-1') =>
       },
     },
   })
+}
 
 const fabric = {
   id: 1,
@@ -157,7 +161,9 @@ describe('FabricView', () => {
     expect(wrapper.text()).toContain(fabric.description)
     expect(wrapper.text()).toContain('linen')
     expect(wrapper.text()).toContain('natural')
-    expect(wrapper.text()).toContain(`Added: ${new Date(fabric.createdAt).toLocaleDateString()}`)
+    expect(wrapper.text()).toContain(
+      `Added: ${new Date(fabric.createdAt).toLocaleDateString('en-US')}`,
+    )
     expect(wrapper.text()).toContain('Area: 12.50 m²')
   })
 

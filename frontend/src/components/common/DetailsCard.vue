@@ -50,7 +50,7 @@ withDefaults(
 
         <div class="space-y-1.5">
           <h3 class="font-semibold font-inter text-base text-foreground tracking-tight">
-            Description
+            {{ $t('common.details.description') }}
           </h3>
           <div
             v-if="description"
@@ -64,8 +64,8 @@ withDefaults(
           >
             <p class="text-muted-foreground">
               <FileText class="inline-block h-4 w-4 align-text-center mr-1.5 text-foreground" />
-              <strong class="text-foreground">No description yet.</strong> Add fabric details or
-              instructions.
+              <strong class="text-foreground">{{ $t('common.details.noDescription') }}</strong>
+              {{ $t('common.details.addFabricDetails') }}
             </p>
           </div>
         </div>

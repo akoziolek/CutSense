@@ -27,8 +27,8 @@ const props = withDefaults(defineProps<Props>(), {
   open: false,
   title: '',
   description: '',
-  confirmLabel: 'Confirm',
-  cancelLabel: 'Cancel',
+  confirmLabel: '',
+  cancelLabel: '',
   showCancel: false,
   showConfirm: true,
   confirmDisabled: false,
@@ -100,7 +100,7 @@ const handleEscapeKeyDown = (event: Event) => {
           @click="(e: MouseEvent) => emit('cancel', e)"
         >
           <slot name="cancel-icon" />
-          <slot name="cancel-label">{{ cancelLabel }}</slot>
+          <slot name="cancel-label">{{ cancelLabel || $t('common.actions.cancel') }}</slot>
         </Button>
 
         <Button
@@ -114,7 +114,7 @@ const handleEscapeKeyDown = (event: Event) => {
           ]"
           @click="(e: MouseEvent) => emit('confirm', e)"
         >
-          <slot name="confirm-label">{{ confirmLabel }}</slot>
+          <slot name="confirm-label">{{ confirmLabel || $t('common.actions.confirm') }}</slot>
           <slot name="confirm-icon" />
         </Button>
       </div>

@@ -98,6 +98,7 @@ const getMeta = (pattern: PatternListItem) => `${formatCardDate(pattern.createdA
       :sort-options="SORT_OPTIONS"
       :selected-id="store.pattern?.id ?? null"
       :get-meta="getMeta"
+      :get-image="(pattern) => pattern.imageUrl"
       :filter-params="filterParams"
       :has-active-filters="hasActiveFilters"
       @select="(pattern) => store.selectPattern({ id: pattern.id, name: pattern.name })"

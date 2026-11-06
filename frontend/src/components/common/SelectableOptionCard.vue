@@ -18,7 +18,7 @@ const emit = defineEmits<{ (e: 'select'): void }>()
     @click="emit('select')"
   >
     <Card
-      class="items-center gap-3 border-2 px-6 py-8 text-center transition-all duration-200 group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring"
+      class="items-center gap-3 border-1 px-6 py-8 text-center transition-all duration-200 group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring"
       :class="selected ? 'border-primary shadow-lg' : 'border-border'"
     >
       <div

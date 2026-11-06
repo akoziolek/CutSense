@@ -8,7 +8,12 @@ import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import AllowancesPanel from '@/components/optimizations/new/AllowancesPanel.vue'
 import OptimizationPieceCard from '@/components/optimizations/new/OptimizationPieceCard.vue'
 import { api, ApiError } from '@/api/client'
-import type { OptimizationDefaults, PatternPieceDefaults } from '@/types/optimization'
+import type {
+  OptimizationDefaults,
+  PatternDetails,
+  PatternPieceDefaults,
+} from '@/types/optimization'
+import type { Point2D } from '@/types/geometry'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { mmToCm } from '@/utils/optimizationConfig'
 import type { PieceImageSource } from '@/types/geometry'
@@ -21,16 +26,55 @@ const emit = defineEmits<{
 const store = useOptimizationAddingStore()
 
 const patternPieces = ref<PatternPieceDefaults[]>([])
+const patternDetails = ref<PatternDetails | null>(null)
 const isLoading = ref(true)
 const loadError = ref('')
 
-const pointsById = computed(() => new Map(patternPieces.value.map((p) => [p.id, p.points])))
+const previewsById = computed(() => {
+  if (!patternDetails.value) return new Map()
 
+  const imagesById = new Map(patternDetails.value.images.map((image) => [image.id, image]))
+  const shapesByImage = new Map<number, Point2D[][]>()
+  const shapeIndexes = new Map<number, number>()
 
-const patternImages = ref<(PieceImageSource & { id: number })[]>([])
+  for (const piece of patternPieces.value) {
+    const image = imagesById.get(piece.patternImageId)
+    if (!image) continue
 
-const piecesById = computed(() => new Map(patternPieces.value.map((p) => [p.id, p])))
-const imagesById = computed(() => new Map(patternImages.value.map((i) => [i.id, i])))
+    const imageWidth = image.imageWidthMm || 1
+    const imageHeight = image.imageHeightMm || 1
+    const points = piece.points.map(([x, y]) => ({
+      pctX: (x / imageWidth) * 100,
+      pctY: ((imageHeight - y) / imageHeight) * 100,
+    }))
+    const imageShapes = shapesByImage.get(image.id) ?? []
+
+    shapeIndexes.set(piece.id, imageShapes.length)
+    imageShapes.push(points)
+    shapesByImage.set(image.id, imageShapes)
+  }
+
+  return new Map(
+    patternPieces.value.flatMap((piece) => {
+      const image = imagesById.get(piece.patternImageId)
+      const shapeIndex = shapeIndexes.get(piece.id)
+      const allShapes = shapesByImage.get(piece.patternImageId)
+      if (!image || shapeIndex === undefined || !allShapes) return []
+
+      return [
+        [
+          piece.id,
+          {
+            imageUrl: image.url,
+            points: allShapes[shapeIndex]!,
+            shapeIndex,
+            allShapes,
+          },
+        ],
+      ]
+    }),
+  )
+})
 
 // "Piece #1", and "Piece #1.1", "Piece #1.2" for its copies
 const labeledPieces = computed(() => {
@@ -45,8 +89,7 @@ const labeledPieces = computed(() => {
     return {
       piece,
       label: copy === 0 ? `Piece #${number}` : `Piece #${number}.${copy}`,
-      points: source?.points ?? [],
-      image: source ? imagesById.value.get(source.patternImageId) : undefined,
+      ...previewsById.value.get(piece.patternPieceId),
     }
   })
 })
@@ -58,15 +101,11 @@ const load = async () => {
   loadError.value = ''
   try {
     const [details, defaults] = await Promise.all([
-      api<{
-        id: number
-        pieces: PatternPieceDefaults[]
-        images: (PieceImageSource & { id: number })[]
-      }>(`/patterns/${pattern.id}`),
+      api<PatternDetails>(`/patterns/${pattern.id}`),
       api<OptimizationDefaults>('/optimizations/defaults'),
     ])
     patternPieces.value = details.pieces
-    patternImages.value = details.images
+    patternDetails.value = details
 
     if (store.piecesPatternId !== pattern.id) store.initPieces(pattern.id, details.pieces)
     if (store.seamAllowanceCm === '') store.seamAllowanceCm = mmToCm(defaults.seamAllowanceMm)
@@ -113,7 +152,9 @@ onMounted(load)
           :piece="item.piece"
           :label="item.label"
           :points="item.points"
-          :image="item.image"
+          :image-url="item.imageUrl"
+          :shape-index="item.shapeIndex"
+          :all-shapes="item.allShapes"
           :can-delete="store.pieces.length > 1"
           @update="(partial) => store.updatePiece(item.piece.key, partial)"
           @duplicate="store.duplicatePiece(item.piece.key)"

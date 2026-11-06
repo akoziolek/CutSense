@@ -25,6 +25,19 @@ export interface PatternPieceDefaults {
   mirroredCount: number
 }
 
+export interface PatternImageDetails {
+  id: number
+  url: string
+  imageWidthMm: number
+  imageHeightMm: number
+}
+
+export interface PatternDetails {
+  id: number
+  images: PatternImageDetails[]
+  pieces: PatternPieceDefaults[]
+}
+
 export interface OptimizationPieceConfig {
   key: string
   patternPieceId: number

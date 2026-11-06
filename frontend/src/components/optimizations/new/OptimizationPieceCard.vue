@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import SidebarThreadDirection from '@/components/spatial/sidebar/SidebarThreadDirection.vue'
+import PatternPiecePreview from '@/components/patterns/PatternPiecePreview.vue'
+import type { Point2D } from '@/types/geometry'
 import type { OptimizationPieceConfig } from '@/types/optimization'
 import { MAX_PIECE_COPIES } from '@/utils/optimizationConfig'
 import type { PieceImageSource } from '@/types/geometry'
@@ -12,7 +14,10 @@ import type { PieceImageSource } from '@/types/geometry'
 const props = defineProps<{
   piece: OptimizationPieceConfig
   label: string
-  points: [number, number][]
+  points: Point2D[]
+  imageUrl?: string
+  shapeIndex: number
+  allShapes: Point2D[][]
   image?: PieceImageSource
   canDelete: boolean
 }>()
@@ -39,9 +44,12 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
   <article
     class="flex flex-col items-center gap-5 overflow-hidden rounded-md border border-muted bg-card p-4 shadow-xs transition-all hover:shadow-md sm:p-5 xl:flex-row xl:items-start"
   >
-    <div class="size-32 shrink-0 rounded-xl border border-border/40 bg-muted/20 p-3 sm:size-36">
-      <PatternPieceImage :points="points" :image="image" :label="label" class="h-full w-full" />
-    </div>
+    <PatternPiecePreview
+      :image-url="imageUrl"
+      :points="points"
+      :shape-index="shapeIndex"
+      :all-shapes="allShapes"
+    />
 
     <div class="flex w-full min-w-0 flex-1 flex-col py-0.5">
       <div class="mb-4 flex items-center justify-between gap-4 border-b border-border/60 pb-2">

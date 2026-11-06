@@ -63,7 +63,7 @@ const polygonPointsStr = computed(() => props.points.map((p) => `${p.pctX},${p.p
   <ImagePreview
     v-if="imageUrl"
     :src="imageUrl"
-    alt="Pattern piece preview"
+    :alt="$t('patterns.piecePreview')"
     :shapes="allShapes || [points]"
     :active-shape-index="shapeIndex"
     :all-shapes-edges="allShapesEdges"

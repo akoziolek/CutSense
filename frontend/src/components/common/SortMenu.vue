@@ -21,7 +21,7 @@ const model = defineModel<T>({ required: true })
         class="gap-2 data-[state=open]:bg-brand-pink hover:bg-brand-pink data-[state=open]:text-accent-foreground"
       >
         <ArrowDownAZ class="size-4" />
-        Sort
+        {{ $t('common.actions.sort') }}
       </Button>
     </DropdownMenuTrigger>
 

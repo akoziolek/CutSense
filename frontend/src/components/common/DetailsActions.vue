@@ -27,7 +27,7 @@ const emit = defineEmits<{ (e: 'delete'): void }>()
         variant="ghost"
         size="icon"
         class="h-9 w-9 border-2 hover:bg-brand-pink"
-        aria-label="Actions menu"
+        :aria-label="$t('common.actions.actionsMenu')"
       >
         <EllipsisVertical class="w-5 h-5" />
       </Button>
@@ -44,7 +44,7 @@ const emit = defineEmits<{ (e: 'delete'): void }>()
       >
         <RouterLink :to="editTo">
           <Pencil class="w-4 h-4 mr-2" />
-          Edit
+          {{ $t('common.actions.edit') }}
         </RouterLink>
       </DropdownMenuItem>
 
@@ -53,7 +53,7 @@ const emit = defineEmits<{ (e: 'delete'): void }>()
         @select="emit('delete')"
       >
         <Trash2 class="w-4 h-4 mr-2 flex items-center text-destructive"/>
-        Delete
+        {{ $t('common.actions.delete') }}
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>

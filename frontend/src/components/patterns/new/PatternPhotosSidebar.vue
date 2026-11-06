@@ -45,14 +45,14 @@ const handlePhotoHeaderClick = (photoIdx: number) => {
       <div class="flex items-center gap-2 min-w-0" :class="isCollapsed ? 'flex lg:hidden' : 'flex'">
         <Images class="h-4 w-4 shrink-0" />
         <h3 class="text-xs font-bold font-inter text-foreground uppercase tracking-wider truncate">
-          Photos & Pieces
+          {{ $t('patterns.photosAndPieces') }}
         </h3>
       </div>
 
       <button
         type="button"
         class="hidden lg:flex p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors cursor-pointer"
-        :title="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        :title="$t(isCollapsed ? 'patterns.expandSidebar' : 'patterns.collapseSidebar')"
         @click="isCollapsed = !isCollapsed"
       >
         <PanelLeftOpen v-if="isCollapsed" class="h-4 w-4" />
@@ -82,7 +82,7 @@ const handlePhotoHeaderClick = (photoIdx: number) => {
                 ? 'p-[2px] bg-violet-600 shadow-md shadow-violet-500/30 scale-105'
                 : 'p-[1px] bg-border/60 opacity-75 hover:opacity-100 hover:bg-violet-400 hover:scale-105',
             ]"
-            :title="`Photo #${photoIdx + 1}`"
+            :title="$t('patterns.photoNumber', { number: photoIdx + 1 })"
             @click="handlePhotoHeaderClick(photoIdx)"
           >
             <img
@@ -118,10 +118,10 @@ const handlePhotoHeaderClick = (photoIdx: number) => {
 
               <div class="min-w-0 flex-1">
                 <p class="text-xs font-inter font-semibold text-foreground truncate">
-                  Photo #{{ photoIdx + 1 }}
+                  {{ $t('patterns.photoNumber', { number: photoIdx + 1 }) }}
                 </p>
                 <p class="text-[10px] font-mono text-muted-foreground">
-                  {{ props.photoConfigs[photoIdx]?.shapes?.length || 0 }} pcs
+                  {{ $t('patterns.piecesShort', { count: props.photoConfigs[photoIdx]?.shapes?.length || 0 }) }}
                 </p>
               </div>
             </div>
@@ -148,7 +148,7 @@ const handlePhotoHeaderClick = (photoIdx: number) => {
               @mouseenter="emit('hoverShape', shapeIdx)"
               @mouseleave="emit('hoverShape', null)"
             >
-              <span class="truncate">Piece {{ shapeIdx + 1 }}</span>
+              <span class="truncate">{{ $t('patterns.piece', { number: shapeIdx + 1 }) }}</span>
 
               <button
                 type="button"
@@ -160,8 +160,8 @@ const handlePhotoHeaderClick = (photoIdx: number) => {
                 "
                 :title="
                   props.photoConfigs[photoIdx]?.hiddenShapes?.[shapeIdx]
-                    ? 'Show length labels for this piece'
-                    : 'Hide length labels for this piece'
+                    ? $t('patterns.showLengthLabels')
+                    : $t('patterns.hideLengthLabels')
                 "
                 @click.stop="emit('toggleVisibility', photoIdx, shapeIdx)"
               >

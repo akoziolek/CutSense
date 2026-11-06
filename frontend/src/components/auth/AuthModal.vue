@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import NickNameModal from '@/components/auth/NickNameModal.vue'
 import LoginModal from '@/components/auth/LoginModal.vue'
@@ -10,10 +11,11 @@ import { clearReturnTo, consumeReturnTo } from '@/utils/returnTo'
 const route = useRoute()
 const router = useRouter()
 const { loadUser, logout } = useAuth()
+const { t } = useI18n()
 
 // ---------- login modal ----------
 const authError = computed(() =>
-  route.query.error === 'google_auth_failed' ? 'Google sign-in failed. Please try again.' : '',
+  route.query.error === 'google_auth_failed' ? t('auth.googleSignInFailed') : '',
 )
 const registrationCancelled = computed(() => route.query.registration_cancelled === '1')
 const dismissError = ref('')
@@ -40,7 +42,7 @@ async function closeLogin() {
     try {
       await logout()
     } catch {
-      dismissError.value = 'Could not log out. Please try again.'
+      dismissError.value = t('auth.logoutFailed')
       return
     }
   }
@@ -78,7 +80,7 @@ async function onSave(nickname: string) {
         regError.value = e.body.message
       }
     } else {
-      regError.value = 'Something went wrong. Please try again.'
+      regError.value = t('common.errors.somethingWentWrongRetry')
     }
   } finally {
     saving.value = false
@@ -92,7 +94,7 @@ async function onCancel() {
     await logout()
     await router.replace({ name: 'Landing', query: { registration_cancelled: '1' } })
   } catch {
-    regError.value = 'Could not cancel registration. Please try again.'
+    regError.value = t('auth.cancelRegistrationFailed')
   }
 }
 </script>

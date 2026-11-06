@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import Autoplay from 'embla-carousel-autoplay'
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import TextHighlight from '@/components/common/TextHighlight.vue'
 import CreatorCard from './CreatorCard.vue'
 import {
@@ -18,32 +20,33 @@ interface Creator {
   //avatar?: string
 }
 
-const creators: Creator[] = [
+const { t } = useI18n()
+const creators = computed<Creator[]>(() => [
   {
     id: '1',
     firstName: 'Aleksandra',
     lastName: 'Kozioł',
-    description: 'Some description about us.',
+    description: t('landing.creatorDescription'),
   },
   {
     id: '2',
     firstName: 'Maja',
     lastName: 'Kurczyna',
-    description: 'Some description about us.',
+    description: t('landing.creatorDescription'),
   },
   {
     id: '3',
     firstName: 'Anna',
     lastName: 'Wędrychowicz',
-    description: 'Some description about us.',
+    description: t('landing.creatorDescription'),
   },
-]
+])
 
 // doubled for carousel loop to work
-const mobileLoopedCreators = [
-  ...creators.map((c) => ({ ...c, uniqueKey: `a-${c.id}` })),
-  ...creators.map((c) => ({ ...c, uniqueKey: `b-${c.id}` })),
-]
+const mobileLoopedCreators = computed(() => [
+  ...creators.value.map((c) => ({ ...c, uniqueKey: `a-${c.id}` })),
+  ...creators.value.map((c) => ({ ...c, uniqueKey: `b-${c.id}` })),
+])
 
 const autoplayPlugin = Autoplay({
   delay: 3200,
@@ -55,7 +58,7 @@ const autoplayPlugin = Autoplay({
   <section class="w-full max-w-6xl mx-auto px-6 sm:px-10 py-18 text-center">
     <div class="max-w-3xl mx-auto mb-12 space-y-4">
       <h2 class="text-3xl sm:text-4xl lg:text-5xl">
-        <TextHighlight color="var(--accent)"> Creators </TextHighlight>
+        <TextHighlight color="var(--accent)">{{ $t('landing.creators') }}</TextHighlight>
       </h2>
     </div>
 

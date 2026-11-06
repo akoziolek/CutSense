@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
@@ -77,7 +78,12 @@ watch(
   { immediate: true },
 )
 
-const TITLES = ['Upload Fabric Photo', 'Fabric Configuration', 'Fabric Details']
+const { t } = useI18n()
+const titles = computed(() => [
+  t('fabrics.uploadTitle'),
+  t('fabrics.configurationTitle'),
+  t('fabrics.detailsTitle'),
+])
 </script>
 
 <template>
@@ -89,7 +95,7 @@ const TITLES = ['Upload Fabric Photo', 'Fabric Configuration', 'Fabric Details']
       </div>
 
       <template v-else>
-        <PageHeader :title="TITLES[step - 1]" :show-back="step > 1" @back="step = step - 1">
+        <PageHeader :title="titles[step - 1]" :show-back="step > 1" @back="step = step - 1">
           <template #actions>
             <StepCounter :current-step="step" :total-steps="3" />
           </template>

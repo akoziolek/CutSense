@@ -19,6 +19,7 @@ import {
   DEFAULT_CUTTING_ALLOWANCE_MM,
   DEFAULT_SEAM_ALLOWANCE_MM,
 } from './optimizations.constants.js';
+import { OPTIMIZER_ENGINE, OptimizerEngine } from '../optimizer-engine/optimizer-engine.types.js';
 
 const isSet = (value: unknown) => value !== undefined && value !== null;
 
@@ -27,6 +28,7 @@ export class OptimizationsService {
   constructor(
     @Inject(DRIZZLE)
     private readonly db: DrizzleDB,
+    @Inject(OPTIMIZER_ENGINE) private readonly engine: OptimizerEngine,
   ) {}
 
   getDefaults(): OptimizationDefaultsDto {

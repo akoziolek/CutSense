@@ -85,7 +85,6 @@ const labeledPieces = computed(() => {
     const copy = copies.get(piece.patternPieceId) ?? 0
     copies.set(piece.patternPieceId, copy + 1)
     const number = order.get(piece.patternPieceId)!
-    const source = piecesById.value.get(piece.patternPieceId)
     return {
       piece,
       label: copy === 0 ? `Piece #${number}` : `Piece #${number}.${copy}`,

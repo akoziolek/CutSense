@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "home": "Strona główna",
+    "optimizations": "Optymalizacje",
+    "fabrics": "Tkaniny",
+    "patterns": "Wzory"
+  },
+  "auth": {
+    "getStarted": "Rozpocznij",
+    "myAccount": "Moje konto",
+    "signOut": "Wyloguj się",
+    "signedAs": "Zalogowano jako"
+  },
+  "lang": {
+    "pl": "Polski",
+    "en": "Angielski"
+  }
+}

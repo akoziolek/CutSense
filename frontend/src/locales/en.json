@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "home": "Home",
+    "optimizations": "Optimizations",
+    "fabrics": "Fabrics",
+    "patterns": "Patterns"
+  },
+  "auth": {
+    "getStarted": "Get started",
+    "myAccount": "My account",
+    "signOut": "Sign out",
+    "signedAs": "Signed as"
+  },
+  "lang": {
+    "pl": "Polish",
+    "en": "English"
+  }
+}

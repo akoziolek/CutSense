@@ -15,6 +15,7 @@ import StepDetails from '@/components/patterns/new/StepDetails.vue'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
+import { provideWizardNav } from '@/composables/useWizardNav'
 
 const { t } = useI18n()
 const titles = computed(() => [
@@ -68,6 +69,11 @@ const step = computed({
   },
 })
 
+provideWizardNav({
+  canGoBack: computed(() => step.value > 1),
+  back: () => { step.value = step.value - 1 },
+})
+
 watch(
   [() => route.query.step, validStep, isInitializing],
   () => {
@@ -97,7 +103,7 @@ watch(
 
       <template v-else>
         <!-- TODO keep title at the top??, list overflowing behind the navigation -->
-        <PageHeader :title="titles[step - 1]" :show-back="step > 1" @back="step = step - 1">
+        <PageHeader :title="titles[step - 1]" show-cancel @cancel="handleCancel">
           <template #actions>
             <StepCounter :current-step="step" :total-steps="4" />
           </template>

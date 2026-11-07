@@ -15,6 +15,7 @@ import {
   Globe,
   ArrowLeft,
   RotateCcw,
+  ChevronDown,
 } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import PatternPiecesCarousel, {
@@ -28,6 +29,11 @@ import FavouriteButton from '@/components/common/FavouriteButton.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
 import { useDeleteResource } from '@/composables/useDeleteResource'
 import PatternPieceCard from '@/components/patterns/PatternPieceCard.vue'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 
 interface Pattern {
   id: number
@@ -263,30 +269,35 @@ watch(
             />
           </div>
 
-          <div class="md:col-span-5 space-y-4">
-            <div class="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 class="text-lg font-bold font-inter text-foreground">
-                Pattern pieces ({{ pattern.pieces.length }})
-              </h2>
+          <Collapsible default-open class="md:col-span-5 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <CollapsibleTrigger
+                class="group flex cursor-pointer items-center gap-2 rounded-md text-lg font-bold font-inter text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <ChevronDown class="size-5 transition-transform group-data-[state=closed]:-rotate-90" />
+                <span>Pattern pieces ({{ pattern.pieces.length }})</span>
+              </CollapsibleTrigger>
               <p class="text-xs text-muted-foreground">
                 Total: {{ totalNormal }} normal, {{ totalMirrored }} mirrored
               </p>
             </div>
 
-            <div
-              v-if="pattern.pieces.length"
-              class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-            >
-              <PatternPieceCard
-                v-for="(piece, index) in pattern.pieces"
-                :key="piece.id"
-                :piece="piece"
-                :label="`Piece #${index + 1}`"
-                :image="imagesById.get(piece.patternImageId)"
-              />
-            </div>
-            <p v-else class="text-sm text-muted-foreground">This pattern has no pieces.</p>
-          </div>
+            <CollapsibleContent>
+              <div
+                v-if="pattern.pieces.length"
+                class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+              >
+                <PatternPieceCard
+                  v-for="(piece, index) in pattern.pieces"
+                  :key="piece.id"
+                  :piece="piece"
+                  :label="`Piece #${index + 1}`"
+                  :image="imagesById.get(piece.patternImageId)"
+                />
+              </div>
+              <p v-else class="text-sm text-muted-foreground">This pattern has no pieces.</p>
+            </CollapsibleContent>
+          </Collapsible>
         </main>
       </Transition>
     </div>

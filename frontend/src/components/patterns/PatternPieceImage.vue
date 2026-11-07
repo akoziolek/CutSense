@@ -16,6 +16,9 @@ const hasImage = computed(
   () => !!props.image?.url && props.image.imageWidthMm > 0 && props.image.imageHeightMm > 0,
 )
 
+const fit = (start: number, size: number, limit: number) =>
+  size >= limit ? (limit - size) / 2 : Math.min(Math.max(start, 0), limit - size)
+
 const view = computed(() => {
   const pts = props.points
   if (pts.length === 0) return null
@@ -26,13 +29,24 @@ const view = computed(() => {
   const maxX = Math.max(...xs)
   const minY = Math.min(...ys)
   const maxY = Math.max(...ys)
-  const size = Math.max(maxX - minX, maxY - minY, 1) * props.margin
   const cx = (minX + maxX) / 2
   const cy = (minY + maxY) / 2
+  const pieceSize = Math.max(maxX - minX, maxY - minY, 1)
+
+  let size = pieceSize * props.margin
+  let left = cx - size / 2
+  let bottom = cy - size / 2
+
+  if (hasImage.value) {
+    const { imageWidthMm: w, imageHeightMm: h } = props.image!
+    size = Math.max(pieceSize, Math.min(size, w, h))
+    left = fit(cx - size / 2, size, w)
+    bottom = fit(cy - size / 2, size, h)
+  }
 
   const ring = pts.map(([x, y]) => `${x},${-y}`)
   return {
-    viewBox: `${cx - size / 2} ${-cy - size / 2} ${size} ${size}`,
+    viewBox: `${left} ${-(bottom + size)} ${size} ${size}`,
     polygon: ring.join(' '),
     ringPath: `M${ring.join(' L')} Z`,
   }

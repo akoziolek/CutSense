@@ -9,8 +9,10 @@ const props = withDefaults(
     label?: string
     margin?: number
     showDimensions?: boolean
+    // px at the top of the picture kept free of dimension pills (e.g. for overlay pills)
+    reserveTop?: number
   }>(),
-  { margin: 1.15, showDimensions: false },
+  { margin: 1.15, showDimensions: false, reserveTop: 0 },
 )
 
 // pill size used for overlap checks, in px
@@ -81,7 +83,8 @@ const outsidePath = computed(() => {
 })
 
 // Longest edges first. Each pill starts at the middle of its edge; if that spot is taken
-// it is moved a bit along / across the edge. A pill is dropped only when no free spot is found.
+// (or under the reserved top band) it is moved a bit along / across the edge.
+// A pill is dropped only when no free spot is found nearby.
 const dimensionLabels = computed(() => {
   if (!props.showDimensions || !view.value) return []
   const { size, left, top } = view.value
@@ -90,7 +93,8 @@ const dimensionLabels = computed(() => {
   const k = W / size // px per unit
 
   const clampX = (v: number) => Math.min(Math.max(v, LABEL_W / 2), W - LABEL_W / 2)
-  const clampY = (v: number) => Math.min(Math.max(v, LABEL_H / 2), W - LABEL_H / 2)
+  const clampY = (v: number) =>
+    Math.min(Math.max(v, props.reserveTop + LABEL_H / 2), W - LABEL_H / 2)
 
   const candidates = pts.map(([x1, y1], i) => {
     const [x2, y2] = pts[(i + 1) % pts.length]!

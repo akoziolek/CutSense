@@ -14,16 +14,16 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAuth, login } from '@/composables/useAuth'
 import { useI18n } from 'vue-i18n'
+import LangToggle from '../accessibility/LangToggle.vue'
 
 const route = useRoute()
 const router = useRouter()
 const { state, logout } = useAuth()
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const isLoggedIn = computed(() => !!state.user)
 const userName = computed(() => state.user?.nickname ?? '')
 const isLoginMenuOpen = ref(false)
-const isLangMenuOpen = ref(false)
 
 function isActive(path: string) {
   return route.path === path
@@ -95,42 +95,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
             >
               <Moon class="w-5 h-5" />
             </Button>
-
-            <DropdownMenu :modal="false" v-model:open="isLangMenuOpen">
-              <DropdownMenuTrigger as-child>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  class="h-9 w-9"
-                  :aria-label="t('common.navigation.selectLanguage')"
-                >
-                  <Globe class="w-5 h-5" />
-                </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent
-                :align="'end'"
-                :align-offset="-24"
-                :side-offset="12"
-                class="hidden lg:block w-48 border-2 p-0 overflow-hidden"
-              >
-                <DropdownMenuItem
-                  class="cursor-pointer rounded-none px-4 py-2.5 focus:bg-brand-green"
-                  :class="{ 'font-bold bg-muted/70': locale == 'pl' }"
-                  @select="setLanguage('pl')"
-                >
-                  {{ t('common.language.pl') }}
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  class="cursor-pointer rounded-none px-4 py-2.5 focus:bg-brand-green"
-                  :class="{ 'font-bold bg-muted/70': locale == 'en' }"
-                  @select="setLanguage('en')"
-                >
-                  {{ t('common.language.en') }}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <LangToggle />
 
             <div class="hidden lg:flex items-center">
               <template v-if="!isLoggedIn">
@@ -237,24 +202,6 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
           </RouterLink>
 
           <Separator class="my-1" />
-          <div class="flex gap-2 py-1">
-            <Button
-              size="sm"
-              :variant="locale === 'pl' ? 'default' : 'outline'"
-              class="flex-1"
-              @click="setLanguage('pl')"
-            >
-              {{ t('common.language.pl') }}
-            </Button>
-            <Button
-              size="sm"
-              :variant="locale === 'en' ? 'default' : 'outline'"
-              class="flex-1"
-              @click="setLanguage('en')"
-            >
-              {{ t('common.language.en') }}
-            </Button>
-          </div>
 
           <template v-if="!isLoggedIn">
             <Button

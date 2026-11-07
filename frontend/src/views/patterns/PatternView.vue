@@ -34,6 +34,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 interface Pattern {
   id: number
@@ -75,6 +77,8 @@ const {
 
 const props = defineProps<{ id: string }>()
 const { t } = useI18n()
+
+const showDimensions = ref(false)
 
 const pattern = ref<Pattern | null>(null)
 const isFetching = ref(true)
@@ -277,9 +281,17 @@ watch(
                 <ChevronDown class="size-5 transition-transform group-data-[state=closed]:-rotate-90" />
                 <span>Pattern pieces ({{ pattern.pieces.length }})</span>
               </CollapsibleTrigger>
-              <p class="text-xs text-muted-foreground">
-                Total: {{ totalNormal }} normal, {{ totalMirrored }} mirrored
-              </p>
+              <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+                <div class="flex items-center gap-2">
+                  <Switch id="show-dimensions" v-model="showDimensions" />
+                  <Label for="show-dimensions" class="cursor-pointer text-xs font-medium">
+                    Show dimensions
+                  </Label>
+                </div>
+                <p class="text-xs text-muted-foreground">
+                  Total: {{ totalNormal }} normal, {{ totalMirrored }} mirrored
+                </p>
+              </div>
             </div>
 
             <CollapsibleContent>
@@ -293,6 +305,7 @@ watch(
                   :piece="piece"
                   :label="`Piece #${index + 1}`"
                   :image="imagesById.get(piece.patternImageId)"
+                  :show-dimensions="showDimensions"
                 />
               </div>
               <p v-else class="text-sm text-muted-foreground">This pattern has no pieces.</p>

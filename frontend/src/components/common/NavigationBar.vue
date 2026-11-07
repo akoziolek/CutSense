@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { Moon, Globe, User, Menu, X } from 'lucide-vue-next'
+import { User, Menu, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -15,6 +15,7 @@ import {
 import { useAuth, login } from '@/composables/useAuth'
 import { useI18n } from 'vue-i18n'
 import LangToggle from '../accessibility/LangToggle.vue'
+import ThemeToggle from '../accessibility/ThemeToggle.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,11 +28,6 @@ const isLoginMenuOpen = ref(false)
 
 function isActive(path: string) {
   return route.path === path
-}
-
-function setLanguage(newLocale: string) {
-  locale.value = newLocale
-  localStorage.setItem('user-locale', newLocale)
 }
 
 async function onLogout() {
@@ -87,14 +83,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
           </div>
 
           <div class="flex items-center gap-1.5 text-foreground">
-            <Button
-              variant="ghost"
-              size="icon"
-              class="h-9 w-9"
-              :aria-label="t('common.navigation.toggleTheme')"
-            >
-              <Moon class="w-5 h-5" />
-            </Button>
+            <ThemeToggle />
             <LangToggle />
 
             <div class="hidden lg:flex items-center">

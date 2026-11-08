@@ -71,7 +71,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               v-for="link in navLinks"
               :key="link.path"
               :to="link.path"
-              class="relative py-1 px-3 text-foreground transition-colors hover:bg-muted/40 hover:[text-shadow:_0.2px_0_0_currentColor] rounded-md"
+              class="relative py-1 px-3 text-foreground transition-colors hover:bg-muted/50 hover:[text-shadow:_0.2px_0_0_currentColor] rounded-md"
               :class="{ 'font-semibold': isActive(link.path) }"
             >
               {{ t(link.key) }}
@@ -118,7 +118,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
                   >
                     <DropdownMenuItem
                       as-child
-                      class="cursor-pointer rounded-none px-4 py-2.5 focus:bg-brand-green"
+                      class="cursor-pointer rounded-none px-4 py-2.5 focus:bg-brand-green focus:text-brand-green-foreground"
                     >
                       <RouterLink to="/account">{{ t('common.navigation.account') }}</RouterLink>
                     </DropdownMenuItem>

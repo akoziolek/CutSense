@@ -34,8 +34,8 @@ watch(
     </p>
 
     <div
-      class="mx-auto grid w-full grid-cols-1 gap-6 pb-14"
-      :class="isLoggedIn ? 'max-w-2xl sm:grid-cols-2' : 'max-w-4xl'"
+      class="mx-auto grid w-full grid-cols-1 gap-6 pb-14 sm:mt-14"
+      :class="isLoggedIn ? 'max-w-3xl sm:grid-cols-2' : 'max-w-4xl'"
     >
       <SelectableOptionCard
         :title="$t('optimizations.customDimensions')"

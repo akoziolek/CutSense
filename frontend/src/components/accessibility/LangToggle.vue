@@ -46,7 +46,7 @@ function setLanguage(newLocale: string) {
       <DropdownMenuItem
         v-for="lang in supportedLocales"
         :key="lang.code"
-        class="cursor-pointer rounded-none px-4 py-2.5 focus:bg-brand-green"
+        class="cursor-pointer rounded-none px-4 py-2.5 focus:bg-brand-green focus:text-brand-green-foreground"
         :class="{ 'font-bold bg-muted/70': locale === lang.code }"
         @select="setLanguage(lang.code)"
       >

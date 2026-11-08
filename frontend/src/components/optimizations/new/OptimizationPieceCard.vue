@@ -10,7 +10,7 @@ import type { Point2D } from '@/types/geometry'
 import type { OptimizationPieceConfig } from '@/types/optimization'
 import { MAX_PIECE_COPIES } from '@/utils/optimizationConfig'
 
-const props = defineProps<{
+defineProps<{
   piece: OptimizationPieceConfig
   label: string
   points: Point2D[]
@@ -50,7 +50,7 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
     />
 
     <div class="flex w-full min-w-0 flex-1 flex-col py-0.5">
-      <div class="mb-4 flex items-center justify-between gap-4 border-b border-border/60 pb-2">
+      <div class="mb-4 flex items-center justify-between gap-4 border-b border-border/60 dark:border-muted pb-2">
         <h2 class="truncate text-xl font-bold font-inter tracking-tight text-foreground">
           {{ label }}
         </h2>
@@ -70,7 +70,7 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
             type="button"
             size="icon"
             variant="ghost"
-            class="h-8 w-8 cursor-pointer rounded-lg bg-destructive/15 text-destructive transition-colors hover:bg-destructive/20 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+            class="h-8 w-8 cursor-pointer rounded-lg bg-destructive/15! text-destructive! transition-colors hover:bg-destructive/20! hover:text-destructive! disabled:cursor-not-allowed disabled:opacity-40"
             :disabled="!canDelete"
             :title="$t('optimizations.removePiece')"
             @click="emit('remove')"

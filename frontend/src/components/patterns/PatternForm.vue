@@ -135,10 +135,7 @@ const loadAvailableTags = async () => {
   try {
     availableTags.value = await api<NameTag[]>('/patterns/tags')
   } catch (error) {
-    tagLoadError.value =
-      error instanceof ApiError
-        ? error.body.message
-        : t('patterns.tagLoadError')
+    tagLoadError.value = error instanceof ApiError ? error.body.message : t('patterns.tagLoadError')
   }
 }
 
@@ -272,8 +269,9 @@ onMounted(() => {
           v-model="patternName"
           :placeholder="t('patterns.namePlaceholder')"
           :maxlength="MAX_NAME_LENGTH"
+          class="bg-primary-foreground/85! rounded-md"
         />
-        <InputGroupAddon align="block-end">
+        <InputGroupAddon align="block-end" class="bg-primary-foreground/85! rounded-md">
           <InputGroupText class="ml-auto text-xs font-mono text-muted-foreground">
             {{ patternName.length }}/{{ MAX_NAME_LENGTH }}
           </InputGroupText>
@@ -286,7 +284,9 @@ onMounted(() => {
         {{ t('patterns.size') }} <span class="text-destructive">*</span>
       </Label>
       <Select v-model="size">
-        <SelectTrigger class="w-full h-10 rounded-md bg-background border-input font-inter">
+        <SelectTrigger
+          class="w-full h-10 rounded-md border-input font-inter bg-primary-foreground/85!"
+        >
           <SelectValue :placeholder="t('patterns.selectSize')" />
         </SelectTrigger>
         <SelectContent class="rounded-md border-border bg-popover font-inter">
@@ -296,7 +296,7 @@ onMounted(() => {
               v-for="size in SIZES"
               :key="size"
               :value="size"
-              class="rounded-md cursor-pointer"
+              class="rounded-md cursor-pointer hover:bg-accent! hover:text-accent-foreground"
             >
               {{ size }}
             </SelectItem>
@@ -336,8 +336,9 @@ onMounted(() => {
           :placeholder="t('patterns.descriptionPlaceholder')"
           :maxlength="MAX_DESC_LENGTH"
           rows="4"
+          class="bg-primary-foreground/85! rounded-md"
         />
-        <InputGroupAddon align="block-end">
+        <InputGroupAddon align="block-end" class="bg-primary-foreground/85! rounded-md">
           <InputGroupText class="ml-auto text-xs font-mono text-muted-foreground">
             {{ description.length }}/{{ MAX_DESC_LENGTH }}
           </InputGroupText>
@@ -346,7 +347,9 @@ onMounted(() => {
     </div>
 
     <div class="space-y-2">
-      <Label class="text-md font-semibold font-inter text-foreground">{{ t('common.details.tags') }}</Label>
+      <Label class="text-md font-semibold font-inter text-foreground">{{
+        t('common.details.tags')
+      }}</Label>
 
       <Popover v-model:open="open">
         <ListboxRoot v-model="selectedTagNames" highlight-on-hover multiple>
@@ -355,7 +358,7 @@ onMounted(() => {
               <TagsInput
                 v-slot="{ modelValue: tagItems }"
                 v-model="selectedTagNames"
-                class="w-full flex-col items-start gap-2 p-3 font-inter bg-background border border-input rounded-md focus-within:ring-2 focus-within:ring-ring"
+                class="w-full flex-col items-start gap-2 p-3 font-inter bg-background! border border-input rounded-md focus-within:ring-2 focus-within:ring-ring"
               >
                 <div v-if="tagItems.length > 0" class="flex flex-wrap gap-1.5 w-full">
                   <TagsInputItem
@@ -419,6 +422,7 @@ onMounted(() => {
       </p>
     </div>
 
+    <!-- TODO - display modal instead? -->
     <p v-if="submitError" class="text-xs text-destructive" role="alert">
       {{ submitError }}
     </p>

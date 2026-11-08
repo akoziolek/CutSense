@@ -82,7 +82,8 @@
       "startDateAfterEndDate": "Data początkowa nie może być późniejsza niż data końcowa.",
       "searchTags": "Szukaj tagów...",
       "area": "Powierzchnia",
-      "size": "Rozmiar"
+      "size": "Rozmiar",
+      "noItemsFound": "Brak wyników"
     },
     "status": {
       "loadingTags": "Wczytywanie tagów...",

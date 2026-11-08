@@ -24,8 +24,8 @@ import NavigationBar from '../common/NavigationBar.vue'
 <style scoped>
 .bg-grid {
   background-image:
-    linear-gradient(to right, rgba(0, 0, 0, 0.07) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+    linear-gradient(to right, var(--grid-color), transparent 1px),
+    linear-gradient(to bottom, var(--grid-color), transparent 1px);
   background-size: 24px 24px;
 }
 </style>

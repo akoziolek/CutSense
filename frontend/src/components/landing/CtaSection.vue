@@ -65,7 +65,7 @@ const onStart = () => (state.user ? router.push('/home') : login())
                  shadow-[3px_3px_0px_0px_rgba(24,24,27,1)] sm:shadow-[4px_4px_0px_0px_rgba(24,24,27,1)] 
                  px-5 py-2 sm:px-8 sm:py-2 
                  text-sm sm:text-sm font-bold 
-                 hover:bg-pink-100 hover:-translate-x-1 hover:-translate-y-1 
+                 hover:bg-pink-100 hover:text-foreground hover:-translate-x-1 hover:-translate-y-1 
                  active:translate-x-0 active:translate-y-0 
                  transition-all duration-200 ease-out rounded-lg"
         >

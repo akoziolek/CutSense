@@ -22,7 +22,7 @@ const tickerItems = computed(
 </script>
 
 <template>
-  <div class="relative w-full overflow-hidden bg-accent text-accent-foreground py-2 select-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.06),inset_0_-2px_4px_rgba(0,0,0,0.06)]">
+  <div class="relative w-full overflow-hidden bg-accent text-secondary-foreground py-2 select-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.06),inset_0_-2px_4px_rgba(0,0,0,0.06)]">
     <div class="flex w-max items-center animate-ticker">
       
       <div class="flex items-center shrink-0">

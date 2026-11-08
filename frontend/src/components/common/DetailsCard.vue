@@ -28,7 +28,7 @@ withDefaults(
   <Card class="overflow-hidden border border-muted shadow-sm rounded-md gap-0 py-0">
     <div
       v-if="metaItems.length || $slots.header"
-      class="bg-brand-green px-5 py-3 sm:py-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-foreground"
+      class="bg-brand-green px-5 py-3 sm:py-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-brand-green-foreground"
     >
       <slot name="header">
         <div v-for="(item, index) in metaItems" :key="index" class="flex items-center gap-2">
@@ -60,7 +60,7 @@ withDefaults(
           </div>
           <div
             v-else
-            class="bg-white text-xs sm:text-sm border border-muted rounded-md p-3 text-center"
+            class="bg-popover text-xs sm:text-sm border border-muted rounded-md p-3 text-center"
           >
             <p class="text-muted-foreground">
               <FileText class="inline-block h-4 w-4 align-text-center mr-1.5 text-foreground" />

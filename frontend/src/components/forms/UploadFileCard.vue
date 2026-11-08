@@ -177,7 +177,7 @@ onUnmounted(() => {
         'min-h-[280px] sm:min-h-[350px] w-full rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center bg-card',
         isDragging
           ? 'border-primary/30 bg-primary/5 scale-[0.99]'
-          : 'border-muted hover:border-primary/30 hover:bg-accent/40 shadow-xs hover:shadow-md',
+          : 'border-muted hover:border-primary/30 hover:bg-accent/40 dark:hover:bg-brand-grey shadow-xs hover:shadow-md',
       ]"
     >
       <div
@@ -211,7 +211,7 @@ onUnmounted(() => {
           type="button"
           size="icon"
           variant="ghost"
-          class="absolute top-3 right-3 z-10 p-5 h-8 w-8 bg-destructive/10 rounded-lg transition-colors cursor-pointer text-destructive hover:bg-destructive/15 hover:text-destructive"
+          class="absolute top-3 right-3 z-10 p-5 h-8 w-8 bg-destructive/10! rounded-lg transition-colors cursor-pointer text-destructive hover:bg-destructive/15! hover:text-destructive!"
           :title="t('common.actions.removeImage')"
           @click.stop="removeImage(activeIndex)"
         >
@@ -289,7 +289,7 @@ onUnmounted(() => {
             type="button"
             variant="outline"
             size="sm"
-            class="text-xs font-medium rounded-md bg-white hover:bg-white hover:-translate-y-0.5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer"
+            class="text-xs font-medium rounded-md bg-white hover:text-foreground! hover:-translate-y-0.5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer"
             @click="fileInputRef?.click()"
           >
             <RefreshCw class="w-3.5 h-3.5 mr-1.5" />

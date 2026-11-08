@@ -39,7 +39,7 @@ const emit = defineEmits<{
       variant="ghost"
       class="h-7 w-7 rounded-lg cursor-pointer transition-colors"
       :class="
-        props.activeTool === 'select' && !props.isMoveMode ? 'bg-brand-green text-foreground' : ''
+        props.activeTool === 'select' && !props.isMoveMode ? 'bg-accent text-accent-foreground' : ''
       "
       :title="$t('spatial.rulerTool')"
       @click.stop="emit('update:activeTool', 'select')"
@@ -54,7 +54,7 @@ const emit = defineEmits<{
       size="icon"
       variant="ghost"
       class="h-7 w-7 rounded-lg cursor-pointer transition-colors"
-      :class="props.isMoveMode ? 'bg-brand-green text-foreground' : ''"
+      :class="props.isMoveMode ? 'bg-accent text-accent-foreground' : ''"
       :title="$t('spatial.panToolDescription')"
       @click.stop="emit('update:activeTool', 'pan')"
     >
@@ -87,7 +87,7 @@ const emit = defineEmits<{
       class="h-7 w-7 rounded-lg transition-colors cursor-pointer"
       :class="
         props.canDelete
-          ? 'text-destructive hover:bg-destructive/15 hover:text-destructive'
+          ? 'text-destructive hover:bg-destructive/15! hover:text-destructive! '
           : 'text-muted-foreground/30 cursor-not-allowed'
       "
       :disabled="!props.canDelete"

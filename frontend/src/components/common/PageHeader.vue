@@ -68,7 +68,7 @@ const handleBack = (event: MouseEvent) => {
       v-if="props.showCancel"
       type="button"
       variant="ghost"
-      class="shrink-0 mt-1 h-10 w-10 border-2 !border-warning-foreground !text-warning-foreground hover:!bg-warning/70 shadow-sm hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+      class="shrink-0 mt-2 h-8 w-8 border-2 border-warning-foreground !text-warning-foreground hover:!bg-warning/70 shadow-sm hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
       @click="emit('cancel', $event)"
     >
       <X class="!size-6 stroke-[2.5]" />

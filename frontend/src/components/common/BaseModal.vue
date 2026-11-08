@@ -57,7 +57,7 @@ const handleEscapeKeyDown = (event: Event) => {
     <DialogContent
       @pointer-down-outside="handlePointerDownOutside"
       @escape-key-down="handleEscapeKeyDown"
-      class="p-7 sm:p-8 rounded-xl bg-background text-foreground shadow-2xl [&>button]:hidden"
+      class="p-7 sm:p-8 rounded-xl bg-popover text-foreground shadow-2xl [&>button]:hidden"
     >
       <DialogHeader
         v-if="title || $slots.title || description || $slots.description"
@@ -96,7 +96,7 @@ const handleEscapeKeyDown = (event: Event) => {
           v-if="showCancel"
           type="button"
           variant="ghost"
-          class="h-9 rounded-lg text-xs sm:text-sm"
+          class="h-9 rounded-lg text-xs sm:text-sm hover:bg-brand-green hover:text-brand-green-foreground"
           @click="(e: MouseEvent) => emit('cancel', e)"
         >
           <slot name="cancel-icon" />

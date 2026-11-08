@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { Puzzle, RotateCcw } from 'lucide-vue-next'
-import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import ErrorState from '@/components/common/ErrorState.vue'
 import SelectableOptionCard from '@/components/common/SelectableOptionCard.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import { api, ApiError } from '@/api/client'
-import type { OptimizationAlgorithm, PreparedOptimizerInput } from '@/types/optimization'
+import type { OptimizationAlgorithm, OptimizationView } from '@/types/optimization'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 
 const emit = defineEmits<{
@@ -16,6 +16,7 @@ const emit = defineEmits<{
   (e: 'cancel'): void
 }>()
 
+const router = useRouter()
 const store = useOptimizationAddingStore()
 
 const algorithms = ref<OptimizationAlgorithm[]>([])
@@ -33,7 +34,7 @@ const load = async () => {
       error.value = 'No nesting algorithms are available right now.'
       return
     }
-    // single algorithm fir now
+    // single algorithm for now
     if (store.algorithmId === null && algorithms.value.length === 1) {
       store.selectAlgorithm(algorithms.value[0]!.id)
     }
@@ -58,18 +59,14 @@ const handleSubmit = async () => {
   submitError.value = ''
   isSubmitting.value = true
   try {
-    const prepared = await api<PreparedOptimizerInput>('/optimizations', {
+    const view = await api<OptimizationView>('/optimizations/run', {
       method: 'POST',
       body: JSON.stringify(payload),
     })
-    toast.success(
-      `Prepared ${prepared.pieces.length} piece settings. Optimizer integration is not connected yet.`,
-    )
+    await router.push({ name: 'OptimizationRun', params: { runId: view.runId! } })
   } catch (e) {
     submitError.value =
-      e instanceof ApiError
-        ? e.body.message
-        : 'Could not prepare the optimization configuration. Please try again.'
+      e instanceof ApiError ? e.body.message : 'Could not run the optimization. Please try again.'
   } finally {
     isSubmitting.value = false
   }
@@ -118,7 +115,7 @@ const handleSubmit = async () => {
 
     <FormFloatingActions
       cancel-label="Cancel"
-      next-label="Prepare configuration"
+      :next-label="isSubmitting ? 'Optimizing...' : 'Run optimization'"
       :disabled="isLoading || !!error || isSubmitting || store.algorithmId === null || !store.canSubmit"
       @cancel="emit('cancel')"
       @next="handleSubmit"

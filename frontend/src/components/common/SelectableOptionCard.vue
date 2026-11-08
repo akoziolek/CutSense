@@ -18,12 +18,12 @@ const emit = defineEmits<{ (e: 'select'): void }>()
     @click="emit('select')"
   >
     <Card
-      class="items-center gap-3 border-1 px-6 py-8 text-center transition-all duration-200 group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-ring"
-      :class="selected ? 'border-primary shadow-lg' : 'border-border'"
+      class="items-center gap-3 border-1 px-6 sm:py-20 text-center transition-all duration-200 group-hover:shadow-lg! hover:bg-card/80 group-focus-visible:ring-2 group-focus-visible:ring-ring"
+      :class="selected ? 'border-muted-foreground shadow-lg' : 'border-muted'"
     >
       <div
         class="flex size-20 items-center justify-center rounded-full transition-colors"
-        :class="selected ? 'bg-brand-green' : 'bg-muted'"
+        :class="selected ? 'bg-brand-green text-brand-green-foreground' : 'bg-muted'"
       >
         <slot name="icon" />
       </div>

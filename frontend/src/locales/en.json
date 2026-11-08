@@ -89,7 +89,8 @@
       "startDateAfterEndDate": "The start date must not be later than the end date.",
       "searchTags": "Search tags...",
       "area": "Area",
-      "size": "Size"
+      "size": "Size",
+      "noItemsFound": "No items found"
     },
     "status": {
       "loadingTags": "Loading tags...",

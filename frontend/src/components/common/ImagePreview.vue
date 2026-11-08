@@ -116,7 +116,7 @@ const resetZoom = () => {
         <SpatialCanvas
           :image-url="src"
           :shapes="showOverlay ? props.shapes : []"
-          :active-shape-index="props.activeShapeIndex ?? undefined"
+          :active-shape-index="props.activeShapeIndex"
           :all-shapes-edges="showOverlay ? props.allShapesEdges : []"
           :show-labels="showOverlay"
           :zoom-level="zoomLevel"

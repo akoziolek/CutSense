@@ -21,7 +21,13 @@ import { formatCardDate } from '@/utils/formatCardDate'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 import { SearchX } from 'lucide-vue-next'
 import {
-  countActiveFilters, emptyFilters, filtersFromQuery, filtersToApiParams, filtersToQuery, areaRangeError, type FabricFilters,
+  countActiveFilters,
+  emptyFilters,
+  filtersFromQuery,
+  filtersToApiParams,
+  filtersToQuery,
+  areaRangeError,
+  type FabricFilters,
 } from '@/utils/fabricFilters'
 import { useSelection } from '@/composables/useSelection'
 import BulkDeleteControls from '@/components/common/BulkDeleteControls.vue'
@@ -64,7 +70,7 @@ const tagsLoaded = ref(false)
 const tagsLoading = ref(false)
 const tagsError = ref('')
 const loadTags = async () => {
-  if (tagsLoaded.value || tagsLoading.value ) return
+  if (tagsLoaded.value || tagsLoading.value) return
   tagsError.value = ''
   tagsLoading.value = true
   try {
@@ -169,7 +175,8 @@ const fetchFabrics = async (activeSignal = { active: true }) => {
     if (search.value) {
       params.set('q', search.value)
     }
-    for (const [key, value] of Object.entries(filtersToApiParams(filters.value))) params.set(key, value)
+    for (const [key, value] of Object.entries(filtersToApiParams(filters.value)))
+      params.set(key, value)
 
     const result = await api<FabricListResponse>(`/fabrics?${params}`)
     if (!activeSignal.active) return
@@ -186,8 +193,7 @@ const fetchFabrics = async (activeSignal = { active: true }) => {
     data.value = result
   } catch (e) {
     if (activeSignal.active) {
-      error.value =
-        e instanceof ApiError ? e.body.message : t('fabrics.loadFailed')
+      error.value = e instanceof ApiError ? e.body.message : t('fabrics.loadFailed')
     }
   } finally {
     if (activeSignal.active) {
@@ -197,9 +203,6 @@ const fetchFabrics = async (activeSignal = { active: true }) => {
     }
   }
 }
-
-
-
 
 const { toggle: toggleFavourite } = useFavouriteToggle()
 
@@ -228,7 +231,8 @@ watch(
   { immediate: true },
 )
 
-const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
+const noSpinner =
+  '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
 </script>
 
 <template>
@@ -295,7 +299,10 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
                       :class="['h-8 pr-8 text-xs', noSpinner]"
                       data-testid="area-min"
                     />
-                    <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">m²</span>
+                    <span
+                      class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground"
+                      >m²</span
+                    >
                   </div>
                 </label>
                 <label class="space-y-1 text-xs">
@@ -310,7 +317,10 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
                       :class="['h-8 pr-8 text-xs', noSpinner]"
                       data-testid="area-max"
                     />
-                    <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">m²</span>
+                    <span
+                      class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground"
+                      >m²</span
+                    >
                   </div>
                 </label>
               </div>
@@ -345,7 +355,11 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
 
         <!-- error -->
         <div v-else-if="error" key="error">
-          <ErrorState :title="t('fabrics.unableToLoadMany')" :message="error" :code="t('common.errors.errorCode')">
+          <ErrorState
+            :title="t('fabrics.unableToLoadMany')"
+            :message="error"
+            :code="t('common.errors.errorCode')"
+          >
             <template #actions>
               <Button variant="outline" class="rounded-lg gap-2" @click="fetchFabrics()">
                 <RotateCcw class="w-4 h-4" />
@@ -367,11 +381,12 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
           key="no-match"
           class="flex flex-col items-center justify-center gap-2 py-20 text-center"
         >
-          <SearchX class="size-8 text-muted-foreground" />
+          <SearchX class="size-10 md:size-12 text-muted-foreground" />
+          <h2 class="text-lg font-bold font-inter">{{ t('common.filters.noItemsFound') }}</h2>
           <p class="max-w-xs text-xs text-muted-foreground">
             {{ t('common.errors.noResults', { resource: t('fabrics.plural') }) }}
           </p>
-          <Button variant="outline" size="sm" class="mt-2 rounded-lg" @click="resetCriteria">
+          <Button size="sm" class="mt-2 rounded-lg" @click="resetCriteria">
             {{ t('common.actions.clearFilters') }}
           </Button>
         </div>
@@ -382,8 +397,8 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
           key="empty"
           class="flex flex-col items-center justify-center gap-2 py-20 text-center"
         >
-          <Shirt class="size-8 text-muted-foreground" />
-          <h2 class="text-sm font-bold font-inter">{{ t('fabrics.noItems') }}</h2>
+          <Shirt class="size-10 md:size-12 text-muted-foreground" />
+          <h2 class="text-lg font-bold font-inter">{{ t('fabrics.noItems') }}</h2>
           <p class="max-w-xs text-xs text-muted-foreground">
             {{ t('fabrics.emptyDescription') }}
           </p>
@@ -433,7 +448,5 @@ const noSpinner = '[appearance:textfield] [&::-webkit-inner-spin-button]:appeara
       @cancelled="stopSelecting"
       @finished="onBulkDeleted"
     />
-
-
   </GridLayout>
 </template>

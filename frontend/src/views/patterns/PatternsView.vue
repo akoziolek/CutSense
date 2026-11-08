@@ -310,10 +310,10 @@ watch(
                   v-for="size in PATTERN_SIZES"
                   :key="size"
                   type="button"
-                  class="cursor-pointer rounded-md border px-2.5 py-1 text-xs hover:bg-brand-green"
+                  class="cursor-pointer rounded-md border px-2.5 py-1 text-xs hover:bg-brand-green hover:text-brand-green-foreground"
                   :class="
                     draft.sizes.includes(size)
-                      ? 'border-foreground bg-brand-green'
+                      ? 'border-foreground bg-brand-green text-brand-green-foreground dark:bg-brand-grey'
                       : 'border-border'
                   "
                   :aria-pressed="draft.sizes.includes(size)"
@@ -371,16 +371,17 @@ watch(
         </div>
 
         <!-- search or filters match nothing -->
-        <div
+         <div
           v-else-if="data && data.total === 0 && hasActiveCriteria"
           key="no-match"
           class="flex flex-col items-center justify-center gap-2 py-20 text-center"
         >
-          <SearchX class="size-8 text-muted-foreground" />
+          <SearchX class="size-10 md:size-12 text-muted-foreground" />
+          <h2 class="text-lg font-bold font-inter">{{ t('common.filters.noItemsFound') }}</h2>
           <p class="max-w-xs text-xs text-muted-foreground">
             {{ t('common.errors.noResults', { resource: t('patterns.plural') }) }}
           </p>
-          <Button variant="outline" size="sm" class="mt-2 rounded-lg" @click="resetCriteria">
+          <Button size="sm" class="mt-2 rounded-lg" @click="resetCriteria">
             {{ t('common.actions.clearFilters') }}
           </Button>
         </div>
@@ -391,7 +392,7 @@ watch(
           key="empty"
           class="flex flex-col items-center justify-center gap-2 py-20 text-center"
         >
-          <Scissors class="size-12 text-muted-foreground" />
+          <Scissors class="size-10 md:size-12 text-muted-foreground" />
           <h2 class="text-lg font-bold font-inter">{{ t('patterns.noItems') }}</h2>
           <p class="max-w-xs text-xs text-muted-foreground">
             {{ t('patterns.emptyDescription') }}

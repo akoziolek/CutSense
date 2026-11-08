@@ -54,7 +54,7 @@ const updateQuantity = (pieceId: string, field: 'normal' | 'mirrored', rawVal: s
         />
 
         <div class="w-full flex-1 min-w-0 flex flex-col justify-between py-0.5">
-          <div class="flex items-center justify-between gap-4 border-b border-border/60 pb-2 mb-4">
+          <div class="flex items-center justify-between gap-4 border-b border-border/60 dark:border-muted pb-2 mb-4">
             <h2
               class="font-inter text-xl font-bold tracking-tight text-foreground select-none truncate"
             >
@@ -65,7 +65,7 @@ const updateQuantity = (pieceId: string, field: 'normal' | 'mirrored', rawVal: s
               type="button"
               size="icon"
               variant="ghost"
-              class="h-8 w-8 rounded-lg transition-colors cursor-pointer text-destructive bg-destructive/15 hover:bg-destructive/20 hover:text-destructive shrink-0"
+              class="h-8 w-8 rounded-lg transition-colors cursor-pointer text-destructive! bg-destructive/15! hover:bg-destructive/20! hover:text-destructive! shrink-0"
               :title="$t('common.actions.deletePiece')"
               @click="patternStore.removePieceById(piece.id)"
             >

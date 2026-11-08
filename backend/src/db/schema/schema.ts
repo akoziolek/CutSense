@@ -304,6 +304,8 @@ export const optimizationResults = pgTable(
       .primaryKey()
       .generatedByDefaultAsIdentity(),
     name: varchar('name', { length: 35 }).notNull(),
+    userId: bigint('user_id', { mode: 'number' })
+      .references(() => users.id, { onDelete: 'cascade' }),
     patternId: bigint('pattern_id', { mode: 'number' })
       .notNull()
       .references(() => patterns.id, { onDelete: 'cascade' }),

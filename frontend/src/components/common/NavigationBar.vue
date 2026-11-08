@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { User, Menu, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -24,14 +24,20 @@ const { t } = useI18n()
 
 const isLoggedIn = computed(() => !!state.user)
 const userName = computed(() => state.user?.nickname ?? '')
-const isLoginMenuOpen = ref(false)
+const isDesktopMenuOpen = ref(false)
+const isMobileMenuOpen = ref(false)
 
 function isActive(path: string) {
   return route.path === path
 }
 
+function closeMobileMenu() {
+  isMobileMenuOpen.value = false
+}
+
 async function onLogout() {
-  isLoginMenuOpen.value = false
+  isDesktopMenuOpen.value = false
+  isMobileMenuOpen.value = false
   await logout()
   if (!route.meta.isPublic) router.replace({ name: 'Landing' })
 }
@@ -49,6 +55,13 @@ const authLinks = [
 ]
 
 const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
+
+watch(
+  () => route.path,
+  () => {
+    closeMobileMenu()
+  },
+)
 </script>
 
 <template>
@@ -98,7 +111,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               </template>
 
               <template v-else>
-                <DropdownMenu :modal="false" v-model:open="isLoginMenuOpen">
+                <DropdownMenu :modal="false" v-model:open="isDesktopMenuOpen">
                   <DropdownMenuTrigger as-child>
                     <Button
                       variant="ghost"
@@ -147,9 +160,9 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               size="icon"
               class="lg:hidden h-9 w-9 ml-1"
               :aria-label="t('common.navigation.toggleNavigation')"
-              @click="isLoginMenuOpen = !isLoginMenuOpen"
+              @click="isMobileMenuOpen = !isMobileMenuOpen"
             >
-              <Menu v-if="!isLoginMenuOpen" class="w-6 h-6" />
+              <Menu v-if="!isMobileMenuOpen" class="w-6 h-6" />
               <X v-else class="w-6 h-6" />
             </Button>
           </div>
@@ -166,7 +179,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
         leave-to-class="opacity-0 -translate-y-2"
       >
         <div
-          v-if="isLoginMenuOpen"
+          v-if="isMobileMenuOpen"
           class="lg:hidden absolute left-4 right-4 sm:left-6 sm:right-6 top-[calc(100%+8px)] z-50 p-5 pb-4 bg-popover text-foreground border-2 border-border rounded-lg shadow-xl flex flex-col gap-2 font-medium"
         >
           <div v-if="isLoggedIn" class="text-xs text-muted-foreground">
@@ -181,7 +194,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
             :to="link.path"
             class="relative py-2 px-3 rounded-md transition-colors text-foreground hover:bg-muted/40"
             :class="{ 'font-semibold': isActive(link.path) }"
-            @click="isLoginMenuOpen = false"
+            @click="closeMobileMenu"
           >
             {{ t(link.key) }}
             <span
@@ -198,7 +211,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               class="border-2 border-border mt-2 w-full justify-center transition-shadow hover:shadow-lg"
               @click="
                 () => {
-                  isLoginMenuOpen = false
+                  closeMobileMenu()
                   login('/home')
                 }
               "
@@ -212,7 +225,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               to="/account"
               class="relative py-2 px-3 rounded-md transition-colors text-foreground hover:bg-muted/40"
               :class="{ 'font-semibold': isActive('/account') }"
-              @click="isLoginMenuOpen = false"
+              @click="closeMobileMenu"
             >
               {{ t('common.navigation.account') }}
               <span

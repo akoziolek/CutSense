@@ -1,10 +1,13 @@
 import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
 import type { OptimizerInputDto, OptimizerPointDto } from '../optimizations/dto/optimizer-input.dto.js';
 import type {
-  EngineFabric, EngineInput, EnginePiece, EnginePoint, EngineResult,
+  EngineFabric,
+  EngineInput,
+  EnginePiece,
+  EnginePoint,
+  EngineResult,
 } from './optimizer-engine.types.js';
 
-// engine int64 units per millimetre. CONFIRM with the engine author.
 export const SCALE = 1000;
 
 const pt = ([x, y]: OptimizerPointDto): EnginePoint => ({
@@ -31,36 +34,46 @@ export function toEngineInput(input: OptimizerInputDto): EngineInput {
         id: p.patternPieceId,
         points: p.boundary.map(pt),
         constraints: [],
-        seamAllowance: input.seamAllowanceMm * SCALE,
-        cuttingAllowance: input.cuttingAllowanceMm * SCALE,
+        seamAllowance: Math.round(input.seamAllowanceMm * SCALE),
+        cuttingAllowance: Math.round(input.cuttingAllowanceMm * SCALE),
       };
       byId.set(p.patternPieceId, piece);
     }
     if (p.normalCount > 0) {
       piece.constraints.push({
-        rotationAngle: p.direction, isMirrored: false,
-        requiredQuantity: p.normalCount, twoWay: p.twoWay,
+        rotationAngle: p.direction,
+        isMirrored: false,
+        requiredQuantity: p.normalCount,
+        twoWay: p.twoWay,
       });
     }
     if (p.mirroredCount > 0) {
       piece.constraints.push({
-        rotationAngle: p.direction, isMirrored: true,
-        requiredQuantity: p.mirroredCount, twoWay: p.twoWay,
+        rotationAngle: p.direction,
+        isMirrored: true,
+        requiredQuantity: p.mirroredCount,
+        twoWay: p.twoWay,
       });
     }
   }
 
-  const result = { fabric, pieces: [...byId.values()] };
+  const result: EngineInput = { fabric, pieces: [...byId.values()] };
   assertValidEngineInput(result);
   return result;
 }
 
-// The engine silently turns missing/NaN numbers into 0, so check here.
+// The engine would silently turn missing/NaN numbers into 0, so check here.
 function assertValidEngineInput({ fabric, pieces }: EngineInput): void {
-  const bad = (p: EnginePoint) => !Number.isSafeInteger(p.x) || !Number.isSafeInteger(p.y);
+  const badNumber = (n: number) => !Number.isSafeInteger(n);
+  const badPoint = (p: EnginePoint) => badNumber(p.x) || badNumber(p.y);
+
+  if ('width' in fabric && (badNumber(fabric.width) || badNumber(fabric.length) || fabric.width <= 0 || fabric.length <= 0)) {
+    throw new RequestValidationException('Optimizer input contains invalid fabric dimensions.');
+  }
+
   const polygons: EnginePoint[][] = pieces.map((p) => p.points);
   if ('boundary' in fabric) polygons.push(fabric.boundary);
-  if (polygons.some((poly) => poly.length < 3 || poly.some(bad))) {
+  if (polygons.some((poly) => poly.length < 3 || poly.some(badPoint))) {
     throw new RequestValidationException('Optimizer input contains an invalid polygon.');
   }
   if (pieces.length === 0 || pieces.some((p) => p.constraints.length === 0)) {
@@ -71,5 +84,12 @@ function assertValidEngineInput({ fabric, pieces }: EngineInput): void {
 export const fromEngineResult = (r: EngineResult): EngineResult => ({
   ...r,
   minLength: r.minLength / SCALE,
+  stats: {
+    ...r.stats,
+    usableScrapsArea: r.stats.usableScrapsArea / (SCALE * SCALE),
+    remainingFabricArea: r.stats.remainingFabricArea / (SCALE * SCALE),
+    wasteArea: r.stats.wasteArea / (SCALE * SCALE),
+    remainingFabricLength: r.stats.remainingFabricLength / SCALE,
+  },
   positions: r.positions.map((p) => ({ ...p, x: p.x / SCALE, y: p.y / SCALE })),
 });

@@ -7,3 +7,4 @@ export const MAX_SEAM_ALLOWANCE_MM = 200;
 export const MAX_CUTTING_ALLOWANCE_MM = 500;
 export const MAX_FABRIC_SIDE_MM = 100_000;
 export const MAX_PIECE_COPIES = 99;
+export const MAX_TOTAL_COPIES = 500;

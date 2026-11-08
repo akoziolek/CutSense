@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { Moon, Globe, User, Menu, X } from 'lucide-vue-next'
+import { User, Menu, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -13,38 +13,55 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuth, login } from '@/composables/useAuth'
+import { useI18n } from 'vue-i18n'
+import LangToggle from '../accessibility/LangToggle.vue'
+import ThemeToggle from '../accessibility/ThemeToggle.vue'
 
 const route = useRoute()
 const router = useRouter()
 const { state, logout } = useAuth()
+const { t } = useI18n()
 
 const isLoggedIn = computed(() => !!state.user)
 const userName = computed(() => state.user?.nickname ?? '')
-const isMenuOpen = ref(false)
+const isDesktopMenuOpen = ref(false)
+const isMobileMenuOpen = ref(false)
 
 function isActive(path: string) {
   return route.path === path
 }
 
+function closeMobileMenu() {
+  isMobileMenuOpen.value = false
+}
+
 async function onLogout() {
-  isMenuOpen.value = false
+  isDesktopMenuOpen.value = false
+  isMobileMenuOpen.value = false
   await logout()
   if (!route.meta.isPublic) router.replace({ name: 'Landing' })
 }
 
 const guestLinks = [
-  { name: 'Optimizations', path: '/optimizations' },
-  { name: 'Patterns', path: '/patterns' }
+  { key: 'common.navigation.optimizations', path: '/optimizations' },
+  { key: 'common.navigation.patterns', path: '/patterns' },
 ]
 
 const authLinks = [
-  { name: 'Home', path: '/home' },
-  { name: 'Optimizations', path: '/optimizations' },
-  { name: 'Fabrics', path: '/fabrics' },
-  { name: 'Patterns', path: '/patterns' },
+  { key: 'common.navigation.home', path: '/home' },
+  { key: 'common.navigation.optimizations', path: '/optimizations' },
+  { key: 'common.navigation.fabrics', path: '/fabrics' },
+  { key: 'common.navigation.patterns', path: '/patterns' },
 ]
 
 const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
+
+watch(
+  () => route.path,
+  () => {
+    closeMobileMenu()
+  },
+)
 </script>
 
 <template>
@@ -67,10 +84,10 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               v-for="link in navLinks"
               :key="link.path"
               :to="link.path"
-              class="relative py-1 px-3 text-foreground transition-colors hover:bg-muted/40 hover:[text-shadow:_0.2px_0_0_currentColor] rounded-md"
+              class="relative py-1 px-3 text-foreground transition-colors hover:bg-muted/50 hover:[text-shadow:_0.2px_0_0_currentColor] rounded-md"
               :class="{ 'font-semibold': isActive(link.path) }"
             >
-              {{ link.name }}
+              {{ t(link.key) }}
               <span
                 v-if="isActive(link.path)"
                 class="absolute left-3 right-3 bottom-0 h-[2.5px] bg-accent rounded-full pointer-events-none"
@@ -79,13 +96,8 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
           </div>
 
           <div class="flex items-center gap-1.5 text-foreground">
-            <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Toggle theme">
-              <Moon class="w-5 h-5" />
-            </Button>
-
-            <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Select language">
-              <Globe class="w-5 h-5" />
-            </Button>
+            <ThemeToggle />
+            <LangToggle />
 
             <div class="hidden lg:flex items-center">
               <template v-if="!isLoggedIn">
@@ -94,14 +106,19 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
                   variant="default"
                   class="px-5 ml-4 rounded-lg font-inter transition-shadow hover:shadow-lg"
                 >
-                  Get started
+                  {{ t('common.navigation.getStarted') }}
                 </Button>
               </template>
 
               <template v-else>
-                <DropdownMenu :modal="false" v-model:open="isMenuOpen">
+                <DropdownMenu :modal="false" v-model:open="isDesktopMenuOpen">
                   <DropdownMenuTrigger as-child>
-                    <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="User menu">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      class="h-9 w-9"
+                      :aria-label="t('common.navigation.userMenu')"
+                    >
                       <User class="w-5 h-5" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -114,22 +131,23 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
                   >
                     <DropdownMenuItem
                       as-child
-                      class="cursor-pointer rounded-none px-4 py-2.5 focus:bg-brand-green"
+                      class="cursor-pointer rounded-none px-4 py-2.5 focus:bg-brand-green focus:text-brand-green-foreground"
                     >
-                      <RouterLink to="/account">My account</RouterLink>
+                      <RouterLink to="/account">{{ t('common.navigation.account') }}</RouterLink>
                     </DropdownMenuItem>
 
                     <DropdownMenuItem
                       class="cursor-pointer rounded-none px-4 py-2.5 text-destructive focus:bg-destructive-foreground focus:text-destructive"
                       @select="onLogout"
                     >
-                      Sign out
+                      {{ t('common.navigation.signOut') }}
                     </DropdownMenuItem>
 
                     <DropdownMenuSeparator class="my-0" />
 
                     <DropdownMenuLabel class="font-normal text-xs text-muted-foreground px-4 py-3">
-                      Signed as <span class="font-bold text-foreground">{{ userName }}</span>
+                      {{ t('common.navigation.signedAs') }}
+                      <span class="font-bold text-foreground">{{ userName }}</span>
                     </DropdownMenuLabel>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -141,10 +159,10 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               variant="ghost"
               size="icon"
               class="lg:hidden h-9 w-9 ml-1"
-              aria-label="Toggle navigation"
-              @click="isMenuOpen = !isMenuOpen"
+              :aria-label="t('common.navigation.toggleNavigation')"
+              @click="isMobileMenuOpen = !isMobileMenuOpen"
             >
-              <Menu v-if="!isMenuOpen" class="w-6 h-6" />
+              <Menu v-if="!isMobileMenuOpen" class="w-6 h-6" />
               <X v-else class="w-6 h-6" />
             </Button>
           </div>
@@ -161,11 +179,12 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
         leave-to-class="opacity-0 -translate-y-2"
       >
         <div
-          v-if="isMenuOpen"
+          v-if="isMobileMenuOpen"
           class="lg:hidden absolute left-4 right-4 sm:left-6 sm:right-6 top-[calc(100%+8px)] z-50 p-5 pb-4 bg-popover text-foreground border-2 border-border rounded-lg shadow-xl flex flex-col gap-2 font-medium"
         >
           <div v-if="isLoggedIn" class="text-xs text-muted-foreground">
-            Signed as <span class="font-bold text-foreground">{{ userName }}</span>
+            {{ t('common.navigation.signedAs') }}
+            <span class="font-bold text-foreground">{{ userName }}</span>
             <Separator class="mt-4" />
           </div>
 
@@ -175,14 +194,16 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
             :to="link.path"
             class="relative py-2 px-3 rounded-md transition-colors text-foreground hover:bg-muted/40"
             :class="{ 'font-semibold': isActive(link.path) }"
-            @click="isMenuOpen = false"
+            @click="closeMobileMenu"
           >
-            {{ link.name }}
+            {{ t(link.key) }}
             <span
               v-if="isActive(link.path)"
               class="absolute left-3 right-3 bottom-0 h-[2.5px] bg-accent rounded-full pointer-events-none"
             />
           </RouterLink>
+
+          <Separator class="my-1" />
 
           <template v-if="!isLoggedIn">
             <Button
@@ -190,12 +211,12 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               class="border-2 border-border mt-2 w-full justify-center transition-shadow hover:shadow-lg"
               @click="
                 () => {
-                  isMenuOpen = false
+                  closeMobileMenu()
                   login('/home')
                 }
               "
             >
-              Get started
+              {{ t('common.navigation.getStarted') }}
             </Button>
           </template>
 
@@ -204,9 +225,9 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               to="/account"
               class="relative py-2 px-3 rounded-md transition-colors text-foreground hover:bg-muted/40"
               :class="{ 'font-semibold': isActive('/account') }"
-              @click="isMenuOpen = false"
+              @click="closeMobileMenu"
             >
-              My account
+              {{ t('common.navigation.account') }}
               <span
                 v-if="isActive('/account')"
                 class="absolute left-3 right-3 bottom-0 h-[2.5px] bg-accent rounded-full pointer-events-none"
@@ -220,7 +241,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               class="w-full text-left rounded-md px-3 py-2 text-destructive font-medium transition-colors hover:bg-destructive/10 focus:bg-destructive/10 focus:outline-none"
               @click="onLogout"
             >
-              Sign out
+              {{ t('common.navigation.signOut') }}
             </button>
           </template>
         </div>

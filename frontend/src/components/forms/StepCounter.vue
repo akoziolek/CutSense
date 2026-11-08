@@ -8,6 +8,6 @@ const props = defineProps<{
 
 <template>
   <div class="text-xs sm:text-sm font-medium font-inter text-muted-foreground whitespace-nowrap">
-    Step {{ props.currentStep }} of {{ props.totalSteps }}
+    {{ $t('common.status.stepOf', { current: props.currentStep, total: props.totalSteps }) }}
   </div>
 </template>

@@ -33,7 +33,7 @@ const threadAngles = [0, 45, 90, 135, 180, 225, 270, 315]
         <div class="flex items-center gap-2">
           <Compass class="h-4 w-4 text-foreground" />
           <h3 class="text-xs font-bold font-inter text-foreground uppercase tracking-wider">
-            Thread Direction
+            {{ $t('spatial.threadDirection') }}
           </h3>
         </div>
 
@@ -44,7 +44,7 @@ const threadAngles = [0, 45, 90, 135, 180, 225, 270, 315]
               class="text-muted-foreground hover:text-foreground transition-colors cursor-help focus:outline-hidden"
             >
               <Info class="h-3.5 w-3.5" />
-              <span class="sr-only">Thread direction info</span>
+              <span class="sr-only">{{ $t('spatial.threadDirectionInfo') }}</span>
             </button>
           </TooltipTrigger>
           <TooltipContent
@@ -53,18 +53,17 @@ const threadAngles = [0, 45, 90, 135, 180, 225, 270, 315]
             :side-offset="8"
             class="max-w-xs w-fit text-xs text-popover-foreground bg-popover/95 border border-border p-3 rounded-xl"
           >
-            Defines the primary thread direction (warp angle) used for nesting and pattern
-            alignment.
+            {{ $t('spatial.threadDirectionDescription') }}
           </TooltipContent>
         </Tooltip>
       </div>
 
       <div class="flex items-center justify-between gap-2">
-        <span class="text-xs text-muted-foreground font-medium">Primary angle:</span>
+        <span class="text-xs text-muted-foreground font-medium">{{ $t('spatial.primaryAngle') }}</span>
 
         <div class="flex items-center gap-2">
           <div
-            class="w-8 h-8 rounded-lg border bg-muted/30 border-border/50 flex items-center justify-center shrink-0"
+            class="w-8 h-8 rounded-lg border bg-muted/30 dark:bg-primary-foreground border-border/50 flex items-center justify-center shrink-0"
           >
             <ArrowUp
               class="h-4 w-4 text-violet-600 transition-transform duration-200 ease-out"
@@ -78,7 +77,7 @@ const threadAngles = [0, 45, 90, 135, 180, 225, 270, 315]
                 type="button"
                 variant="outline"
                 size="sm"
-                class="w-24 h-8 px-2.5 justify-between hover:bg-brand-green/70 text-xs font-mono font-semibold bg-background border border-border rounded-lg shadow-xs cursor-pointer"
+                class="w-24 h-8 px-2.5 justify-between hover:bg-brand-green/70 hover:text-brand-green-foreground text-xs font-mono font-semibold bg-background! border border-border rounded-lg shadow-xs cursor-pointer"
               >
                 <span>{{ props.threadAngle }}°</span>
                 <ChevronDown class="h-3.5 w-3.5 opacity-50 shrink-0" />
@@ -94,7 +93,7 @@ const threadAngles = [0, 45, 90, 135, 180, 225, 270, 315]
               <DropdownMenuItem
                 v-for="deg in threadAngles"
                 :key="deg"
-                class="cursor-pointer text-xs font-mono font-medium px-3 py-1.5 rounded-md focus:bg-brand-green focus:text-foreground"
+                class="cursor-pointer text-xs font-mono font-medium px-3 py-1.5 rounded-md data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
                 @select="emit('update:threadAngle', deg)"
               >
                 {{ deg }}°

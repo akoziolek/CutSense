@@ -18,10 +18,10 @@ const model = defineModel<T>({ required: true })
       <Button
         variant="outline"
         size="sm"
-        class="gap-2 data-[state=open]:bg-brand-pink hover:bg-brand-pink data-[state=open]:text-accent-foreground"
+        class="gap-2 py-4 data-[state=open]:bg-brand-pink hover:text-primary"
       >
         <ArrowDownAZ class="size-4" />
-        Sort
+        {{ $t('common.actions.sort') }}
       </Button>
     </DropdownMenuTrigger>
 
@@ -29,8 +29,8 @@ const model = defineModel<T>({ required: true })
       <DropdownMenuItem
         v-for="option in options"
         :key="option.value"
-        class="cursor-pointer rounded-none px-4 py-2 justify-between focus:bg-brand-green"
-        :class="{ 'bg-brand-green': option.value === model }"
+        class="cursor-pointer rounded-none px-4 py-2 justify-between focus:bg-brand-green focus:text-brand-green-foreground"
+        :class="{ 'bg-brand-green text-brand-green-foreground': option.value === model }"
         @select="model = option.value"
       >
         {{ option.label }}

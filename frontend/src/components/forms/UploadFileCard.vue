@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { toast } from 'vue-sonner'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import {
   UploadCloud,
@@ -23,6 +24,7 @@ const props = withDefaults(defineProps<Props>(), {
   maxSizeMb: 5,
   maxFiles: 10,
 })
+const { t } = useI18n()
 
 const model = defineModel<File | File[] | null>({ default: null })
 
@@ -39,9 +41,9 @@ const files = computed<File[]>(() => {
 const currentFile = computed<File | null>(() => files.value[activeIndex.value] ?? null)
 
 const formatBytes = (bytes: number) => {
-  if (bytes === 0) return '0 Bytes'
+  if (bytes === 0) return '0 B'
   const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
 }
@@ -78,15 +80,15 @@ const processFiles = (incomingFiles: FileList | File[]) => {
 
   Array.from(incomingFiles).forEach((file) => {
     if (!file.type.startsWith('image/')) {
-      toast.error('Invalid file format', {
-        description: `${file.name} is not an image (JPG, PNG, WEBP).`,
+      toast.error(t('common.upload.invalidFormat'), {
+        description: t('common.upload.notImage', { file: file.name }),
       })
       return
     }
 
     if (file.size > maxBytes) {
-      toast.error('File too large', {
-        description: `${file.name} exceeds allowed limit of ${props.maxSizeMb} MB.`,
+      toast.error(t('common.upload.fileTooLarge'), {
+        description: t('common.upload.exceedsLimit', { file: file.name, limit: props.maxSizeMb }),
       })
       return
     }
@@ -100,8 +102,8 @@ const processFiles = (incomingFiles: FileList | File[]) => {
     const isInitialUpload = files.value.length === 0
     const combined = [...files.value, ...validFiles]
     if (combined.length > props.maxFiles) {
-      toast.error('Too many files', {
-        description: `Maximum allowed files limit is ${props.maxFiles}.`,
+      toast.error(t('common.upload.tooManyFiles'), {
+        description: t('common.upload.maximumFiles', { count: props.maxFiles }),
       })
       updateModel(combined.slice(0, props.maxFiles))
     } else {
@@ -175,7 +177,7 @@ onUnmounted(() => {
         'min-h-[280px] sm:min-h-[350px] w-full rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center bg-card',
         isDragging
           ? 'border-primary/30 bg-primary/5 scale-[0.99]'
-          : 'border-muted hover:border-primary/30 hover:bg-accent/40 shadow-xs hover:shadow-md',
+          : 'border-muted hover:border-primary/30 hover:bg-accent/40 dark:hover:bg-brand-grey shadow-xs hover:shadow-md',
       ]"
     >
       <div
@@ -188,11 +190,12 @@ onUnmounted(() => {
 
       <div class="space-y-1">
         <p class="text-base font-semibold text-foreground">
-          Click to upload <span class="font-normal text-muted-foreground">or drag & drop</span>
+          {{ t('common.upload.clickToUpload') }}
+          <span class="font-normal text-muted-foreground">{{ t('common.upload.orDragDrop') }}</span>
         </p>
         <p class="text-xs text-muted-foreground">
-          {{ props.multiple ? 'High-resolution photos' : 'High-resolution photo' }}
-          (PNG, JPG, WEBP up to {{ props.maxSizeMb }}MB)
+          {{ props.multiple ? t('common.upload.highResolutionPhotos') : t('common.upload.highResolutionPhoto') }}
+          {{ t('common.upload.supportedFormats', { maxSizeMb: props.maxSizeMb }) }}
         </p>
       </div>
     </div>
@@ -208,12 +211,12 @@ onUnmounted(() => {
           type="button"
           size="icon"
           variant="ghost"
-          class="absolute top-3 right-3 z-10 p-5 h-8 w-8 bg-destructive/10 rounded-lg transition-colors cursor-pointer text-destructive hover:bg-destructive/15 hover:text-destructive"
-          title="Remove image"
+          class="absolute top-3 right-3 z-10 p-5 h-8 w-8 bg-destructive/10! rounded-lg transition-colors cursor-pointer text-destructive hover:bg-destructive/15! hover:text-destructive!"
+          :title="t('common.actions.removeImage')"
           @click.stop="removeImage(activeIndex)"
         >
           <Trash2 class="h-4 w-4" />
-          <span class="sr-only">Delete selected</span>
+          <span class="sr-only">{{ t('common.upload.deleteSelected') }}</span>
         </Button>
         <div
           v-if="props.multiple && files.length > 1"
@@ -252,7 +255,7 @@ onUnmounted(() => {
         />
         <div v-else class="flex flex-col items-center text-muted-foreground p-6">
           <FileImage class="h-12 w-12 mb-2 stroke-1" />
-          <span class="text-xs">No preview available</span>
+          <span class="text-xs">{{ t('common.upload.noPreview') }}</span>
         </div>
       </div>
       <div class="p-4 sm:p-5 flex items-center justify-between gap-4 border-t border-muted bg-card">
@@ -278,7 +281,7 @@ onUnmounted(() => {
             @click="fileInputRef?.click()"
           >
             <Plus class="w-3.5 h-3.5" />
-            Add photos
+            {{ t('common.upload.addPhotos') }}
           </Button>
 
           <Button
@@ -286,11 +289,11 @@ onUnmounted(() => {
             type="button"
             variant="outline"
             size="sm"
-            class="text-xs font-medium rounded-md bg-white hover:bg-white hover:-translate-y-0.5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer"
+            class="text-xs font-medium rounded-md bg-white hover:text-foreground! hover:-translate-y-0.5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer"
             @click="fileInputRef?.click()"
           >
             <RefreshCw class="w-3.5 h-3.5 mr-1.5" />
-            Change photo
+            {{ t('common.upload.changePhoto') }}
           </Button>
         </div>
       </div>

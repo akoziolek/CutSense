@@ -3,6 +3,7 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { Check, CheckCircle2, AlertCircle, Sparkles, Circle, Loader2 } from 'lucide-vue-next'
 import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator'
 import { api } from '@/api/client'
+import { useI18n } from 'vue-i18n'
 import { Input } from '@/components/ui/input'
 import BaseModal from '@/components/common/BaseModal.vue'
 
@@ -10,6 +11,7 @@ const props = withDefaults(
   defineProps<{ open?: boolean; userName?: string; error?: string; loading?: boolean }>(),
   { open: true, userName: '', error: '', loading: false },
 )
+const { t } = useI18n()
 
 const emit = defineEmits<{
   (e: 'save', nickname: string): void
@@ -31,7 +33,7 @@ const formatError = computed(() => {
   const value = nickname.value.trim()
   if (!value) return ''
   return !NICKNAME_REGEX.test(value)
-    ? 'Nickname must have 3–20 characters: letters, numbers and _ . -'
+    ? t('auth.nicknameFormat')
     : ''
 })
 
@@ -75,13 +77,13 @@ watch(nickname, (val) => {
       if (res.available) {
         isAvailable.value = true
       } else {
-        availabilityError.value = 'This nickname is already taken'
+        availabilityError.value = t('auth.nicknameTaken')
       }
     } catch (e: unknown) {
       if (e instanceof Error && e.name === 'AbortError') {
         return
       }
-      availabilityError.value = 'Could not verify nickname. Try again.'
+      availabilityError.value = t('auth.nicknameCheckFailed')
     } finally {
       isChecking.value = false
     }
@@ -115,9 +117,9 @@ const handleSave = () => {
 <template>
   <BaseModal
     :open="open"
-    description="Choose a unique nickname to get started."
-    confirm-label="Save"
-    cancel-label="Cancel"
+    :description="t('auth.nicknameDescription')"
+    :confirm-label="t('common.actions.save')"
+    :cancel-label="t('common.actions.cancel')"
     show-cancel
     prevent-close
     :confirm-disabled="status !== 'valid' || loading || isChecking"
@@ -126,8 +128,7 @@ const handleSave = () => {
     @cancel="emit('cancel')"
   >
     <template #title>
-      Welcome, <span class="italic">{{ props.userName }}</span
-      >!
+      {{ t('auth.welcome', { name: props.userName }) }}
     </template>
 
     <template #confirm-icon>
@@ -156,7 +157,7 @@ const handleSave = () => {
           v-model="nickname"
           @keyup.enter="handleSave"
           type="text"
-          placeholder="e.g. alex_k"
+          :placeholder="t('auth.nicknamePlaceholder')"
           :class="[
             'h-11 pl-10 pr-10 text-sm font-medium rounded-xl border transition-colors focus-visible:ring-1 focus-visible:ring-offset-0',
             status === 'error'
@@ -170,7 +171,7 @@ const handleSave = () => {
         <button
           type="button"
           @click="generateRandomNickname"
-          title="Generate nickname"
+          :title="t('common.actions.generateNickname')"
           class="absolute right-3 p-2 rounded-md text-input hover:text-border hover:bg-muted/40 transition-colors cursor-pointer"
         >
           <Sparkles class="w-4 h-4 sm:w-5 sm:h-5" />

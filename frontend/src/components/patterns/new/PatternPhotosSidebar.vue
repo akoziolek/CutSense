@@ -39,20 +39,20 @@ const handlePhotoHeaderClick = (photoIdx: number) => {
     :class="[isCollapsed ? 'lg:w-16 lg:items-center lg:p-2' : 'lg:w-60']"
   >
     <div
-      class="w-full flex items-center pb-2.5 mb-2 border-b border-border/60 shrink-0 justify-between"
+      class="w-full flex items-center pb-2.5 mb-2 border-b border-border/60 dark:border-muted shrink-0 justify-between"
       :class="[isCollapsed ? 'lg:justify-center lg:border-b-0 lg:pb-0 lg:mb-2' : 'px-0.5']"
     >
       <div class="flex items-center gap-2 min-w-0" :class="isCollapsed ? 'flex lg:hidden' : 'flex'">
         <Images class="h-4 w-4 shrink-0" />
         <h3 class="text-xs font-bold font-inter text-foreground uppercase tracking-wider truncate">
-          Photos & Pieces
+          {{ $t('patterns.photosAndPieces') }}
         </h3>
       </div>
 
       <button
         type="button"
         class="hidden lg:flex p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors cursor-pointer"
-        :title="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        :title="$t(isCollapsed ? 'patterns.expandSidebar' : 'patterns.collapseSidebar')"
         @click="isCollapsed = !isCollapsed"
       >
         <PanelLeftOpen v-if="isCollapsed" class="h-4 w-4" />
@@ -69,7 +69,7 @@ const handlePhotoHeaderClick = (photoIdx: number) => {
           isCollapsed
             ? 'lg:bg-transparent lg:p-0 lg:flex lg:justify-center'
             : props.activePhotoIndex === photoIdx
-              ? 'rounded-lg border border-brand-violet bg-brand-violet/40 shadow-md shadow-violet-500/20 overflow-hidden'
+              ? 'rounded-lg border border-brand-violet bg-brand-violet/40 dark:bg-brand-violet shadow-md  overflow-hidden'
               : 'rounded-lg border border-border/30 bg-muted/20 hover:bg-muted/40 hover:border-violet-400/40 hover:shadow-violet-500/15 overflow-hidden',
         ]"
       >
@@ -82,7 +82,7 @@ const handlePhotoHeaderClick = (photoIdx: number) => {
                 ? 'p-[2px] bg-violet-600 shadow-md shadow-violet-500/30 scale-105'
                 : 'p-[1px] bg-border/60 opacity-75 hover:opacity-100 hover:bg-violet-400 hover:scale-105',
             ]"
-            :title="`Photo #${photoIdx + 1}`"
+            :title="$t('patterns.photoNumber', { number: photoIdx + 1 })"
             @click="handlePhotoHeaderClick(photoIdx)"
           >
             <img
@@ -118,10 +118,14 @@ const handlePhotoHeaderClick = (photoIdx: number) => {
 
               <div class="min-w-0 flex-1">
                 <p class="text-xs font-inter font-semibold text-foreground truncate">
-                  Photo #{{ photoIdx + 1 }}
+                  {{ $t('patterns.photoNumber', { number: photoIdx + 1 }) }}
                 </p>
                 <p class="text-[10px] font-mono text-muted-foreground">
-                  {{ props.photoConfigs[photoIdx]?.shapes?.length || 0 }} pcs
+                  {{
+                    $t('patterns.piecesShort', {
+                      count: props.photoConfigs[photoIdx]?.shapes?.length || 0,
+                    })
+                  }}
                 </p>
               </div>
             </div>
@@ -133,7 +137,7 @@ const handlePhotoHeaderClick = (photoIdx: number) => {
 
           <div
             v-if="expandedPhotoIndex === photoIdx && props.photoConfigs[photoIdx]?.shapes?.length"
-            class="mt-1.5 pt-1.5 border-t border-border/30 space-y-0.5"
+            class="mt-1.5 pt-1.5 border-t border-border/30 dark:border-border space-y-0.5"
           >
             <div
               v-for="(_, shapeIdx) in props.photoConfigs[photoIdx]?.shapes || []"
@@ -141,27 +145,27 @@ const handlePhotoHeaderClick = (photoIdx: number) => {
               class="group flex items-center justify-between px-2 py-1 rounded-md text-xs font-inter transition-all cursor-pointer"
               :class="
                 props.activePhotoIndex === photoIdx && props.activeShapeIndex === shapeIdx
-                  ? 'bg-violet-600 text-white font-semibold shadow-2xs'
+                  ? 'bg-violet-300 text-black font-semibold shadow-2xs'
                   : 'hover:bg-violet-500/10 text-muted-foreground hover:text-violet-700'
               "
               @click="emit('selectPhotoAndShape', photoIdx, shapeIdx)"
               @mouseenter="emit('hoverShape', shapeIdx)"
               @mouseleave="emit('hoverShape', null)"
             >
-              <span class="truncate">Piece {{ shapeIdx + 1 }}</span>
+              <span class="truncate">{{ $t('patterns.piece', { number: shapeIdx + 1 }) }}</span>
 
               <button
                 type="button"
                 class="p-1 rounded-md transition-colors cursor-pointer"
                 :class="
                   props.activePhotoIndex === photoIdx && props.activeShapeIndex === shapeIdx
-                    ? 'hover:bg-white/20 text-white'
+                    ? 'hover:bg-white/20 text-black'
                     : 'hover:bg-black/10 text-muted-foreground hover:text-foreground'
                 "
                 :title="
                   props.photoConfigs[photoIdx]?.hiddenShapes?.[shapeIdx]
-                    ? 'Show length labels for this piece'
-                    : 'Hide length labels for this piece'
+                    ? $t('patterns.showLengthLabels')
+                    : $t('patterns.hideLengthLabels')
                 "
                 @click.stop="emit('toggleVisibility', photoIdx, shapeIdx)"
               >

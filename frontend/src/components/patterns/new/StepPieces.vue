@@ -54,23 +54,23 @@ const updateQuantity = (pieceId: string, field: 'normal' | 'mirrored', rawVal: s
         />
 
         <div class="w-full flex-1 min-w-0 flex flex-col justify-between py-0.5">
-          <div class="flex items-center justify-between gap-4 border-b border-border/60 pb-2 mb-4">
+          <div class="flex items-center justify-between gap-4 border-b border-border/60 dark:border-muted pb-2 mb-4">
             <h2
               class="font-inter text-xl font-bold tracking-tight text-foreground select-none truncate"
             >
-              {{ piece.name || `Piece #${index + 1}` }}
+              {{ piece.name || $t('patterns.piece', { number: index + 1 }) }}
             </h2>
 
             <Button
               type="button"
               size="icon"
               variant="ghost"
-              class="h-8 w-8 rounded-lg transition-colors cursor-pointer text-destructive bg-destructive/15 hover:bg-destructive/20 hover:text-destructive shrink-0"
-              title="Delete piece"
+              class="h-8 w-8 rounded-lg transition-colors cursor-pointer text-destructive! bg-destructive/15! hover:bg-destructive/20! hover:text-destructive! shrink-0"
+              :title="$t('common.actions.deletePiece')"
               @click="patternStore.removePieceById(piece.id)"
             >
               <Trash2 class="h-4 w-4" />
-              <span class="sr-only">Delete piece</span>
+              <span class="sr-only">{{ $t('common.actions.deletePiece') }}</span>
             </Button>
           </div>
 
@@ -79,13 +79,13 @@ const updateQuantity = (pieceId: string, field: 'normal' | 'mirrored', rawVal: s
               <div class="flex items-center gap-2">
                 <Copy class="h-4 w-4 text-foreground" />
                 <h3 class="text-xs font-bold font-inter text-foreground uppercase tracking-wider">
-                  Number of pieces
+                  {{ $t('patterns.numberOfPieces') }}
                 </h3>
               </div>
 
               <div class="flex items-center gap-3 sm:gap-4 text-xs pt-0.5">
                 <label class="flex items-center gap-2 font-medium">
-                  <span class="text-muted-foreground">Normal:</span>
+                  <span class="text-muted-foreground">{{ $t('patterns.normal') }}</span>
                   <Input
                     type="number"
                     min="0"
@@ -113,7 +113,7 @@ const updateQuantity = (pieceId: string, field: 'normal' | 'mirrored', rawVal: s
                 </label>
 
                 <label class="flex items-center gap-2 font-medium">
-                  <span class="text-muted-foreground">Mirrored:</span>
+                  <span class="text-muted-foreground">{{ $t('patterns.mirrored') }}</span>
                   <Input
                     type="number"
                     min="0"
@@ -163,13 +163,13 @@ const updateQuantity = (pieceId: string, field: 'normal' | 'mirrored', rawVal: s
       v-else
       class="rounded-xl border border-dashed border-border p-8 text-left text-xs text-muted-foreground bg-card/40 space-y-1"
     >
-      <p class="font-inter font-semibold text-sm text-foreground">No pattern pieces detected.</p>
-      <p>Go back to Step 2 to ensure pattern boundaries are properly configured on your photos.</p>
+      <p class="font-inter font-semibold text-sm text-foreground">{{ $t('patterns.noPiecesDetected') }}</p>
+      <p>{{ $t('patterns.piecesHelp') }}</p>
     </div>
 
     <FormFloatingActions
-      cancel-label="Cancel"
-      next-label="Next step"
+      :cancel-label="$t('common.actions.cancel')"
+      :next-label="$t('common.actions.nextStep')"
       :disabled="patternStore.pieces.length === 0"
       @cancel="emit('cancel')"
       @next="emit('next')"

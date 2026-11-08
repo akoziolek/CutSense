@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
 import { useSpatialWorkspace } from '@/composables/useSpatialWorkspace'
 import SpatialWorkspace from '@/components/spatial/SpatialWorkspace.vue'
@@ -24,6 +25,7 @@ const emit = defineEmits<{
 }>()
 
 const patternStore = usePatternAddingStore()
+const { t } = useI18n()
 const workspaceRef = ref<InstanceType<typeof SpatialWorkspace> | null>(null)
 
 const activePhotoIndex = ref(0)
@@ -202,7 +204,7 @@ const detectPatternBoundary = async (photoIndex: number) => {
       analysisError.value =
         error instanceof ApiError
           ? error.body.message
-          : 'Could not analyze photo boundary. Please adjust manually.'
+          : t('patterns.analysisFailed')
       isErrorModalOpen.value = true
     }
   }
@@ -334,7 +336,7 @@ onMounted(() => {
     <div v-if="!isCurrentPhotoReady" role="status" aria-live="polite">
       <p class="mb-3 text-sm font-inter text-muted-foreground flex items-center gap-2">
         <Loader2 class="w-4 h-4 animate-spin text-primary" />
-        Detecting pattern piece boundaries from photo #{{ activePhotoIndex + 1 }}...
+        {{ $t('patterns.detectingBoundaries', { number: activePhotoIndex + 1 }) }}
       </p>
       <div class="flex flex-col lg:flex-row items-start gap-6">
         <Skeleton class="w-full h-[520px] rounded-md" />
@@ -402,8 +404,8 @@ onMounted(() => {
       />
 
       <FormFloatingActions
-        cancel-label="Cancel"
-        next-label="Next"
+        :cancel-label="$t('common.actions.cancel')"
+        :next-label="$t('common.actions.next')"
         :disabled="pxPerMm <= 0 || points.length === 0"
         @cancel="emit('cancel')"
         @next="emit('next')"
@@ -411,10 +413,10 @@ onMounted(() => {
     </div>
 
     <BaseModal
-      title="We couldn't process this image."
-      description="Try again later or adjust the default shape manually."
+      :title="$t('patterns.imageProcessError')"
+      :description="$t('patterns.imageProcessDescription')"
       :open="isErrorModalOpen"
-      confirmLabel="I understand"
+      :confirm-label="$t('common.actions.gotIt')"
       fullWidthButton
       @confirm="isErrorModalOpen = false"
     />

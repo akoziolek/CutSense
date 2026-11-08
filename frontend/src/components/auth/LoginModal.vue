@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import BaseModal from '@/components/common/BaseModal.vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean
@@ -16,13 +19,13 @@ const emit = defineEmits<{
 <template>
   <BaseModal
     :open="open"
-    :title="props.registrationCancelled ? 'Registration cancelled' : 'Sign in to continue'"
+    :title="t(props.registrationCancelled ? 'auth.registrationCancelled' : 'auth.signIn')"
     :description="
       props.registrationCancelled
-        ? 'Your account was not created. You can continue browsing or sign in with Google to try again.'
-        : 'This page is available only for signed-in users.'
+        ? t('auth.registrationCancelledDescription')
+        : t('auth.signInDescription')
     "
-    confirm-label="Continue with Google"
+    :confirm-label="t('common.actions.continueWithGoogle')"
     full-width-button
     @update:open="(v) => emit('update:open', v)"
     @confirm="emit('login')"

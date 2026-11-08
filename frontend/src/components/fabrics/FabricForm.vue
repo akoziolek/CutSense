@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ListboxContent,
   ListboxFilter,
@@ -32,6 +33,7 @@ import type { NameTag } from '@/types/fabric'
 
 const MAX_NAME_LENGTH = 35
 const MAX_DESC_LENGTH = 400
+const { t } = useI18n()
 
 export interface FabricFormPayload {
   name: string
@@ -114,10 +116,7 @@ const loadAvailableTags = async () => {
   try {
     availableTags.value = await api<NameTag[]>('/fabrics/tags')
   } catch (error) {
-    tagLoadError.value =
-      error instanceof ApiError
-        ? error.body.message
-        : 'Could not load fabric tags. Please try again.'
+    tagLoadError.value = error instanceof ApiError ? error.body.message : t('fabrics.tagLoadError')
   }
 }
 
@@ -222,16 +221,17 @@ onMounted(() => {
     <!-- 1. Fabric Name -->
     <div class="space-y-2">
       <Label for="fabric-name" class="text-md font-semibold font-inter text-foreground">
-        Fabric name <span class="text-destructive">*</span>
+        {{ t('fabrics.name') }} <span class="text-destructive">*</span>
       </Label>
       <InputGroup>
         <InputGroupInput
           id="fabric-name"
           v-model="fabricName"
-          placeholder="e.g Linen fabric"
+          :placeholder="t('fabrics.namePlaceholder')"
           :maxlength="MAX_NAME_LENGTH"
+          class="rounded-md"
         />
-        <InputGroupAddon align="block-end">
+        <InputGroupAddon align="block-end" class="bg-primary-foreground/85 rounded-md">
           <InputGroupText class="ml-auto text-xs font-mono text-muted-foreground">
             {{ fabricName.length }}/{{ MAX_NAME_LENGTH }}
           </InputGroupText>
@@ -242,17 +242,18 @@ onMounted(() => {
     <!-- 2. Description -->
     <div class="space-y-2">
       <Label for="description" class="text-md font-semibold font-inter text-foreground">
-        Description
+        {{ t('common.details.description') }}
       </Label>
       <InputGroup>
         <InputGroupTextarea
           id="description"
           v-model="description"
-          placeholder="Enter composition, weight, or intended use..."
+          :placeholder="t('fabrics.descriptionPlaceholder')"
           :maxlength="MAX_DESC_LENGTH"
           rows="4"
+          class="bg-primary-foreground/85! rounded-md"
         />
-        <InputGroupAddon align="block-end">
+        <InputGroupAddon align="block-end" class="bg-primary-foreground/85! rounded-md">
           <InputGroupText class="ml-auto text-xs font-mono text-muted-foreground">
             {{ description.length }}/{{ MAX_DESC_LENGTH }}
           </InputGroupText>
@@ -262,7 +263,9 @@ onMounted(() => {
 
     <!-- 3. Tags -->
     <div class="space-y-2">
-      <Label class="text-md font-semibold font-inter text-foreground">Tags</Label>
+      <Label class="text-md font-semibold font-inter text-foreground">{{
+        t('common.details.tags')
+      }}</Label>
 
       <Popover v-model:open="open">
         <ListboxRoot v-model="selectedTagNames" highlight-on-hover multiple>
@@ -271,7 +274,7 @@ onMounted(() => {
               <TagsInput
                 v-slot="{ modelValue: tagItems }"
                 v-model="selectedTagNames"
-                class="w-full flex-col items-start gap-2 p-3 font-inter bg-background border border-input rounded-md focus-within:ring-2 focus-within:ring-ring"
+                class="w-full flex-col items-start gap-2 p-3 font-inter bg-background! border border-input rounded-md focus-within:ring-2 focus-within:ring-ring"
               >
                 <div v-if="tagItems.length > 0" class="flex flex-wrap gap-1.5 w-full">
                   <TagsInputItem
@@ -288,8 +291,8 @@ onMounted(() => {
                 <div class="flex items-center w-full gap-2">
                   <ListboxFilter v-model="searchTerm" as-child>
                     <TagsInputInput
-                      placeholder="Search or add tags..."
-                      class="w-full text-sm bg-transparent p-0 focus:outline-hidden border-none shadow-none cursor-text"
+                      :placeholder="t('common.form.searchOrAddTags')"
+                      class="w-full text-sm bg-background p-0 focus:outline-hidden border-none shadow-none cursor-text"
                       @keydown.enter.prevent="handleEnterKey"
                     />
                   </ListboxFilter>
@@ -306,14 +309,14 @@ onMounted(() => {
             @open-auto-focus.prevent
           >
             <ListboxContent
-              class="max-h-[144px] scroll-py-1 overflow-x-hidden overflow-y-auto space-y-0.5 empty:after:content-['No_matching_tags'] empty:p-3 empty:text-xs empty:text-center empty:text-muted-foreground empty:after:block"
+              class="max-h-[144px] scroll-py-1 overflow-x-hidden overflow-y-auto space-y-0.5 empty:after:content-['No_matching_tags'] empty:p-3 empty:text-xs empty:text-center empty:text-muted-foreground empty:after:block "
               tabindex="-1"
             >
               <ListboxItem
                 v-for="item in filteredTags"
                 :key="item.id"
                 :value="item.name"
-                class="data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-inter outline-hidden select-none"
+                class="data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-inter outline-hidden select-none "
                 @select="searchTerm = ''"
               >
                 <span>{{ item.name }}</span>
@@ -330,7 +333,7 @@ onMounted(() => {
       <p v-if="tagLoadError" class="text-xs text-destructive" role="alert">
         {{ tagLoadError }}
         <button type="button" class="underline underline-offset-2" @click="loadAvailableTags">
-          Try again
+          {{ t('common.actions.tryAgain') }}
         </button>
       </p>
     </div>
@@ -339,11 +342,11 @@ onMounted(() => {
       {{ submitError }}
     </p>
 
-    <p class="text-xs text-destructive pt-2">* Required field</p>
+    <p class="text-xs text-destructive pt-2">{{ t('common.status.requiredField') }}</p>
 
     <FormFloatingActions
-      cancel-label="Cancel"
-      next-label="Save"
+      :cancel-label="t('common.actions.cancel')"
+      :next-label="t('common.actions.save')"
       :disabled="isSubmitting || !fabricName.trim()"
       @cancel="handleCancel"
       @next="handleSubmit"

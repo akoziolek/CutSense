@@ -47,11 +47,13 @@ const handleLineEnter = (e: KeyboardEvent) => {
 <template>
   <TooltipProvider>
     <div class="p-4 bg-card border border-muted rounded-md shadow-xs space-y-3">
-      <div class="flex items-center justify-between pb-2 border-b border-border/60">
+      <div
+        class="flex items-center justify-between pb-2 border-b border-border/60 dark:border-muted"
+      >
         <div class="flex items-center gap-2">
           <Ruler class="h-4 w-4 text-foreground" />
           <h3 class="text-xs font-bold font-inter text-foreground uppercase tracking-wider">
-            Line Measurement
+            {{ $t('spatial.lineMeasurement') }}
           </h3>
         </div>
 
@@ -62,7 +64,7 @@ const handleLineEnter = (e: KeyboardEvent) => {
               class="text-muted-foreground hover:text-foreground transition-colors cursor-help focus:outline-hidden"
             >
               <Info class="h-3.5 w-3.5" />
-              <span class="sr-only">Line Measurement info</span>
+              <span class="sr-only">{{ $t('spatial.lineMeasurementInfo') }}</span>
             </button>
           </TooltipTrigger>
           <TooltipContent
@@ -71,7 +73,7 @@ const handleLineEnter = (e: KeyboardEvent) => {
             :side-offset="8"
             class="max-w-xs w-fit text-xs text-popover-foreground bg-popover/95 border border-border p-3 rounded-xl"
           >
-            Calibrates the real-world length of the selected edge.
+            {{ $t('spatial.calibrationDescription') }}
           </TooltipContent>
         </Tooltip>
       </div>
@@ -81,7 +83,7 @@ const handleLineEnter = (e: KeyboardEvent) => {
         :class="props.hasSelectedLine ? 'opacity-100' : 'opacity-40 pointer-events-none'"
       >
         <span class="text-xs text-muted-foreground font-medium block">
-          Selected line real length:
+          {{ $t('spatial.selectedLineLength') }}
         </span>
         <div class="flex items-center gap-2">
           <Input
@@ -91,23 +93,23 @@ const handleLineEnter = (e: KeyboardEvent) => {
             v-model="customLineCm"
             @change="handleLineSubmit"
             @keyup.enter="handleLineEnter"
-            placeholder="e.g. 8.5"
+            :placeholder="$t('spatial.lineLengthPlaceholder')"
             class="flex-1 h-8 text-xs font-mono font-semibold text-center bg-background border border-border focus-visible:ring-2"
           />
           <span class="text-xs text-muted-foreground font-medium">cm</span>
         </div>
       </div>
 
-      <div class="pt-2 border-t border-border/40">
+      <div class="pt-2 border-t border-border/40 dark:border-muted">
         <Button
           type="button"
           variant="outline"
           size="sm"
-          class="w-full h-8 gap-1.5 text-xs cursor-pointer font-inter bg-warning/70 hover:bg-warning text-foreground border-warning/30"
+          class="w-full h-8 gap-1.5 text-xs cursor-pointer font-inter bg-warning/70! hover:bg-warning! text-foreground! border-warning/30!"
           @click="emit('resetLines')"
         >
-          <RotateCcw class="h-3.5 w-3.5 text-warning-foreground" />
-          <span>Reset shape</span>
+          <RotateCcw class="h-3.5 w-3.5 text-warning-foreground!" />
+          <span>{{ $t('spatial.resetShape') }}</span>
         </Button>
       </div>
     </div>

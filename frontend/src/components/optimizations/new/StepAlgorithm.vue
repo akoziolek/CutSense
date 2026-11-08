@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { Puzzle, RotateCcw } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -18,6 +19,7 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const store = useOptimizationAddingStore()
+const { t } = useI18n()
 
 const algorithms = ref<OptimizationAlgorithm[]>([])
 const isLoading = ref(true)
@@ -31,7 +33,7 @@ const load = async () => {
   try {
     algorithms.value = await api<OptimizationAlgorithm[]>('/optimizations/algorithms')
     if (algorithms.value.length === 0) {
-      error.value = 'No nesting algorithms are available right now.'
+      error.value = t('optimizations.noAlgorithms')
       return
     }
     // single algorithm for now
@@ -40,7 +42,7 @@ const load = async () => {
     }
   } catch (e) {
     error.value =
-      e instanceof ApiError ? e.body.message : 'Could not load algorithms. Please try again.'
+      e instanceof ApiError ? e.body.message : t('optimizations.algorithmsLoadFailed')
   } finally {
     isLoading.value = false
   }
@@ -52,7 +54,7 @@ const handleSubmit = async () => {
   if (isSubmitting.value) return
   const payload = store.toPayload()
   if (!payload || !store.canSubmit) {
-    submitError.value = 'The configuration is incomplete. Check the highlighted fields.'
+    submitError.value = t('optimizations.incompleteConfiguration')
     return
   }
 
@@ -66,7 +68,9 @@ const handleSubmit = async () => {
     await router.push({ name: 'OptimizationRun', params: { runId: view.runId! } })
   } catch (e) {
     submitError.value =
-      e instanceof ApiError ? e.body.message : 'Could not run the optimization. Please try again.'
+      e instanceof ApiError
+        ? e.body.message
+        : t('optimizations.prepareFailed')
   } finally {
     isSubmitting.value = false
   }
@@ -83,11 +87,11 @@ const handleSubmit = async () => {
       <Skeleton v-for="n in 3" :key="n" class="h-56 w-full rounded-xl" />
     </div>
 
-    <ErrorState v-else-if="error" title="Unable to load algorithms" :message="error" code="Error">
+    <ErrorState v-else-if="error" :title="$t('optimizations.unableToLoadAlgorithms')" :message="error" :code="$t('common.errors.errorCode')">
       <template #actions>
         <Button variant="outline" class="rounded-lg gap-2" @click="load">
           <RotateCcw class="w-4 h-4" />
-          <span>Try again</span>
+          <span>{{ $t('common.actions.tryAgain') }}</span>
         </Button>
       </template>
     </ErrorState>
@@ -114,8 +118,8 @@ const handleSubmit = async () => {
     </p>
 
     <FormFloatingActions
-      cancel-label="Cancel"
-      :next-label="isSubmitting ? 'Optimizing...' : 'Run optimization'"
+      :cancel-label="$t('common.actions.cancel')"
+      :next-label="$t('optimizations.prepareConfiguration')"
       :disabled="isLoading || !!error || isSubmitting || store.algorithmId === null || !store.canSubmit"
       @cancel="emit('cancel')"
       @next="handleSubmit"

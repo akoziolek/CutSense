@@ -2,7 +2,7 @@
 import { computed, useSlots } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
-import { ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import TextHighlight from './TextHighlight.vue'
 
@@ -13,6 +13,8 @@ interface Props {
   fullWidth?: boolean
   backTo?: RouteLocationRaw
   showBack?: boolean
+  showCancel?: boolean
+  cancelLabel?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -20,10 +22,13 @@ const props = withDefaults(defineProps<Props>(), {
   color: 'var(--brand-violet)',
   fullWidth: true,
   showBack: false,
+  showCancel: false,
+  cancelLabel: 'Cancel'
 })
 
 const emit = defineEmits<{
   (e: 'back', event: MouseEvent): void
+  (e: 'cancel', event: MouseEvent): void
 }>()
 
 const router = useRouter()
@@ -48,7 +53,7 @@ const handleBack = (event: MouseEvent) => {
       variant="ghost"
       size="icon"
       class="shrink-0 rounded-md bg-white border-2 cursor-pointer hover:bg-card mt-1"
-      aria-label="Go back"
+      :aria-label="$t('common.actions.goBack')"
     >
       <component
         :is="props.backTo ? RouterLink : 'button'"
@@ -57,6 +62,16 @@ const handleBack = (event: MouseEvent) => {
       >
         <ArrowLeft class="h-8 w-8"  :stroke-width="2" />
       </component>
+    </Button>
+
+    <Button
+      v-if="props.showCancel"
+      type="button"
+      variant="ghost"
+      class="shrink-0 mt-2 h-8 w-8 border-2 border-warning-foreground !text-warning-foreground hover:!bg-warning/70 shadow-sm hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+      @click="emit('cancel', $event)"
+    >
+      <X class="!size-6 stroke-[2.5]" />
     </Button>
 
     <h1 class="text-3xl font-bold tracking-tight flex-1 w-full text-left">

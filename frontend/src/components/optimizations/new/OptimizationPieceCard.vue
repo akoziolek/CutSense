@@ -10,7 +10,7 @@ import type { Point2D } from '@/types/geometry'
 import type { OptimizationPieceConfig } from '@/types/optimization'
 import { MAX_PIECE_COPIES } from '@/utils/optimizationConfig'
 
-const props = defineProps<{
+defineProps<{
   piece: OptimizationPieceConfig
   label: string
   points: Point2D[]
@@ -27,8 +27,8 @@ const emit = defineEmits<{
 }>()
 
 const quantityFields = [
-  { key: 'normalCount', label: 'Normal' },
-  { key: 'mirroredCount', label: 'Mirrored' },
+  { key: 'normalCount', label: 'normal' },
+  { key: 'mirroredCount', label: 'mirrored' },
 ] as const
 
 const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | number) => {
@@ -50,7 +50,7 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
     />
 
     <div class="flex w-full min-w-0 flex-1 flex-col py-0.5">
-      <div class="mb-4 flex items-center justify-between gap-4 border-b border-border/60 pb-2">
+      <div class="mb-4 flex items-center justify-between gap-4 border-b border-border/60 dark:border-muted pb-2">
         <h2 class="truncate text-xl font-bold font-inter tracking-tight text-foreground">
           {{ label }}
         </h2>
@@ -60,23 +60,23 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
             size="icon"
             variant="ghost"
             class="h-8 w-8 cursor-pointer rounded-lg"
-            title="Duplicate piece with its own settings"
+            :title="$t('optimizations.duplicatePieceDescription')"
             @click="emit('duplicate')"
           >
             <Copy class="h-4 w-4" />
-            <span class="sr-only">Duplicate piece</span>
+            <span class="sr-only">{{ $t('optimizations.duplicatePiece') }}</span>
           </Button>
           <Button
             type="button"
             size="icon"
             variant="ghost"
-            class="h-8 w-8 cursor-pointer rounded-lg bg-destructive/15 text-destructive transition-colors hover:bg-destructive/20 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+            class="h-8 w-8 cursor-pointer rounded-lg bg-destructive/15! text-destructive! transition-colors hover:bg-destructive/20! hover:text-destructive! disabled:cursor-not-allowed disabled:opacity-40"
             :disabled="!canDelete"
-            title="Remove piece"
+            :title="$t('optimizations.removePiece')"
             @click="emit('remove')"
           >
             <Trash2 class="h-4 w-4" />
-            <span class="sr-only">Remove piece</span>
+            <span class="sr-only">{{ $t('optimizations.removePiece') }}</span>
           </Button>
         </div>
       </div>
@@ -84,11 +84,11 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
       <div class="flex flex-col gap-4 md:flex-row xl:items-center xl:gap-8">
         <div class="shrink-0 space-y-2">
           <h3 class="text-xs font-bold font-inter uppercase tracking-wider text-foreground">
-            Number of pieces
+            {{ $t('optimizations.numberOfPieces') }}
           </h3>
           <div class="flex items-center gap-3 pt-0.5 text-xs sm:gap-4">
             <label v-for="field in quantityFields" :key="field.key" class="flex items-center gap-2 font-medium">
-              <span class="text-muted-foreground">{{ field.label }}:</span>
+              <span class="text-muted-foreground">{{ $t(`patterns.${field.label}`) }}:</span>
               <Input
                 type="number"
                 min="0"
@@ -104,7 +104,7 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
             class="max-w-[16rem] text-xs text-destructive"
             role="alert"
           >
-            Add at least one copy or remove this piece.
+            {{ $t('optimizations.pieceNeedsCopy') }}
           </p>
         </div>
 
@@ -126,9 +126,9 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
             <Label
               :for="`two-way-${piece.key}`"
               class="cursor-pointer text-xs font-medium"
-              title="Allow the piece to also be turned by 180°"
+              :title="$t('optimizations.allow180Rotation')"
             >
-              Two-way
+              {{ $t('optimizations.twoWay') }}
             </Label>
           </div>
         </div>

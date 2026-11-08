@@ -10,7 +10,9 @@ defineProps<{
 
 <template>
   <div class="flex flex-col gap-2">
-    <h3 class="font-semibold font-inter text-inter text-foreground tracking-tight">Tags</h3>
+    <h3 class="font-semibold font-inter text-inter text-foreground tracking-tight">
+      {{ $t('common.details.tags') }}
+    </h3>
     <div v-if="tags && tags.length > 0" class="flex flex-wrap gap-2">
       <Badge
         v-for="tag in tags"
@@ -21,10 +23,11 @@ defineProps<{
         {{ tag.name }}
       </Badge>
     </div>
-    <div v-else class="bg-white text-xs sm:text-sm border border-muted rounded-md p-3 text-center">
+    <div v-else class="bg-popover text-xs sm:text-sm border border-muted rounded-md p-3 text-center">
       <p class="text-muted-foreground">
         <Tag class="inline-block h-4 w-4 align-text-center mr-1.5 text-foreground" />
-        <strong class="text-foreground">No tags yet.</strong> Add them to make filtering easier.
+        <strong class="text-foreground">{{ $t('common.details.noTags') }}</strong>
+        {{ $t('common.details.addTags') }}
       </p>
     </div>
   </div>

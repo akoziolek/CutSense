@@ -126,8 +126,8 @@ const getMeta = (pattern: PatternListItem) => `${formatCardDate(pattern.createdA
                   v-for="size in PATTERN_SIZES"
                   :key="size"
                   type="button"
-                  class="cursor-pointer rounded-md border px-2.5 py-1 text-xs hover:bg-brand-green"
-                  :class="draft.sizes.includes(size) ? 'border-foreground bg-brand-green' : 'border-border'"
+                  class="cursor-pointer rounded-md border px-2.5 py-1 text-xs hover:bg-brand-green hover:text-brand-green-foreground"
+                  :class="draft.sizes.includes(size) ? 'border-foreground bg-brand-green text-brand-green-foreground' : 'border-border'"
                   :aria-pressed="draft.sizes.includes(size)"
                   @click="toggleSize(draft, size)"
                 >

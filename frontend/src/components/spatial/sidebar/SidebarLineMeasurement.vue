@@ -47,7 +47,9 @@ const handleLineEnter = (e: KeyboardEvent) => {
 <template>
   <TooltipProvider>
     <div class="p-4 bg-card border border-muted rounded-md shadow-xs space-y-3">
-      <div class="flex items-center justify-between pb-2 border-b border-border/60">
+      <div
+        class="flex items-center justify-between pb-2 border-b border-border/60 dark:border-muted"
+      >
         <div class="flex items-center gap-2">
           <Ruler class="h-4 w-4 text-foreground" />
           <h3 class="text-xs font-bold font-inter text-foreground uppercase tracking-wider">
@@ -98,15 +100,15 @@ const handleLineEnter = (e: KeyboardEvent) => {
         </div>
       </div>
 
-      <div class="pt-2 border-t border-border/40">
+      <div class="pt-2 border-t border-border/40 dark:border-muted">
         <Button
           type="button"
           variant="outline"
           size="sm"
-          class="w-full h-8 gap-1.5 text-xs cursor-pointer font-inter bg-warning/70 hover:bg-warning text-foreground border-warning/30"
+          class="w-full h-8 gap-1.5 text-xs cursor-pointer font-inter bg-warning/70! hover:bg-warning! text-foreground! border-warning/30!"
           @click="emit('resetLines')"
         >
-          <RotateCcw class="h-3.5 w-3.5 text-warning-foreground" />
+          <RotateCcw class="h-3.5 w-3.5 text-warning-foreground!" />
           <span>{{ $t('spatial.resetShape') }}</span>
         </Button>
       </div>

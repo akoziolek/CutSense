@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { Moon, Globe, User, Menu, X } from 'lucide-vue-next'
+import { User, Menu, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -14,28 +14,30 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAuth, login } from '@/composables/useAuth'
 import { useI18n } from 'vue-i18n'
+import LangToggle from '../accessibility/LangToggle.vue'
+import ThemeToggle from '../accessibility/ThemeToggle.vue'
 
 const route = useRoute()
 const router = useRouter()
 const { state, logout } = useAuth()
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const isLoggedIn = computed(() => !!state.user)
 const userName = computed(() => state.user?.nickname ?? '')
-const isLoginMenuOpen = ref(false)
-const isLangMenuOpen = ref(false)
+const isDesktopMenuOpen = ref(false)
+const isMobileMenuOpen = ref(false)
 
 function isActive(path: string) {
   return route.path === path
 }
 
-function setLanguage(newLocale: string) {
-  locale.value = newLocale
-  localStorage.setItem('user-locale', newLocale)
+function closeMobileMenu() {
+  isMobileMenuOpen.value = false
 }
 
 async function onLogout() {
-  isLoginMenuOpen.value = false
+  isDesktopMenuOpen.value = false
+  isMobileMenuOpen.value = false
   await logout()
   if (!route.meta.isPublic) router.replace({ name: 'Landing' })
 }
@@ -53,6 +55,13 @@ const authLinks = [
 ]
 
 const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
+
+watch(
+  () => route.path,
+  () => {
+    closeMobileMenu()
+  },
+)
 </script>
 
 <template>
@@ -75,7 +84,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               v-for="link in navLinks"
               :key="link.path"
               :to="link.path"
-              class="relative py-1 px-3 text-foreground transition-colors hover:bg-muted/40 hover:[text-shadow:_0.2px_0_0_currentColor] rounded-md"
+              class="relative py-1 px-3 text-foreground transition-colors hover:bg-muted/50 hover:[text-shadow:_0.2px_0_0_currentColor] rounded-md"
               :class="{ 'font-semibold': isActive(link.path) }"
             >
               {{ t(link.key) }}
@@ -87,50 +96,8 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
           </div>
 
           <div class="flex items-center gap-1.5 text-foreground">
-            <Button
-              variant="ghost"
-              size="icon"
-              class="h-9 w-9"
-              :aria-label="t('common.navigation.toggleTheme')"
-            >
-              <Moon class="w-5 h-5" />
-            </Button>
-
-            <DropdownMenu :modal="false" v-model:open="isLangMenuOpen">
-              <DropdownMenuTrigger as-child>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  class="h-9 w-9"
-                  :aria-label="t('common.navigation.selectLanguage')"
-                >
-                  <Globe class="w-5 h-5" />
-                </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent
-                :align="'end'"
-                :align-offset="-24"
-                :side-offset="12"
-                class="hidden lg:block w-48 border-2 p-0 overflow-hidden"
-              >
-                <DropdownMenuItem
-                  class="cursor-pointer rounded-none px-4 py-2.5 focus:bg-brand-green"
-                  :class="{ 'font-bold bg-muted/70': locale == 'pl' }"
-                  @select="setLanguage('pl')"
-                >
-                  {{ t('common.language.pl') }}
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  class="cursor-pointer rounded-none px-4 py-2.5 focus:bg-brand-green"
-                  :class="{ 'font-bold bg-muted/70': locale == 'en' }"
-                  @select="setLanguage('en')"
-                >
-                  {{ t('common.language.en') }}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ThemeToggle />
+            <LangToggle />
 
             <div class="hidden lg:flex items-center">
               <template v-if="!isLoggedIn">
@@ -144,7 +111,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               </template>
 
               <template v-else>
-                <DropdownMenu :modal="false" v-model:open="isLoginMenuOpen">
+                <DropdownMenu :modal="false" v-model:open="isDesktopMenuOpen">
                   <DropdownMenuTrigger as-child>
                     <Button
                       variant="ghost"
@@ -164,7 +131,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
                   >
                     <DropdownMenuItem
                       as-child
-                      class="cursor-pointer rounded-none px-4 py-2.5 focus:bg-brand-green"
+                      class="cursor-pointer rounded-none px-4 py-2.5 focus:bg-brand-green focus:text-brand-green-foreground"
                     >
                       <RouterLink to="/account">{{ t('common.navigation.account') }}</RouterLink>
                     </DropdownMenuItem>
@@ -193,9 +160,9 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               size="icon"
               class="lg:hidden h-9 w-9 ml-1"
               :aria-label="t('common.navigation.toggleNavigation')"
-              @click="isLoginMenuOpen = !isLoginMenuOpen"
+              @click="isMobileMenuOpen = !isMobileMenuOpen"
             >
-              <Menu v-if="!isLoginMenuOpen" class="w-6 h-6" />
+              <Menu v-if="!isMobileMenuOpen" class="w-6 h-6" />
               <X v-else class="w-6 h-6" />
             </Button>
           </div>
@@ -212,7 +179,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
         leave-to-class="opacity-0 -translate-y-2"
       >
         <div
-          v-if="isLoginMenuOpen"
+          v-if="isMobileMenuOpen"
           class="lg:hidden absolute left-4 right-4 sm:left-6 sm:right-6 top-[calc(100%+8px)] z-50 p-5 pb-4 bg-popover text-foreground border-2 border-border rounded-lg shadow-xl flex flex-col gap-2 font-medium"
         >
           <div v-if="isLoggedIn" class="text-xs text-muted-foreground">
@@ -227,7 +194,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
             :to="link.path"
             class="relative py-2 px-3 rounded-md transition-colors text-foreground hover:bg-muted/40"
             :class="{ 'font-semibold': isActive(link.path) }"
-            @click="isLoginMenuOpen = false"
+            @click="closeMobileMenu"
           >
             {{ t(link.key) }}
             <span
@@ -237,24 +204,6 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
           </RouterLink>
 
           <Separator class="my-1" />
-          <div class="flex gap-2 py-1">
-            <Button
-              size="sm"
-              :variant="locale === 'pl' ? 'default' : 'outline'"
-              class="flex-1"
-              @click="setLanguage('pl')"
-            >
-              {{ t('common.language.pl') }}
-            </Button>
-            <Button
-              size="sm"
-              :variant="locale === 'en' ? 'default' : 'outline'"
-              class="flex-1"
-              @click="setLanguage('en')"
-            >
-              {{ t('common.language.en') }}
-            </Button>
-          </div>
 
           <template v-if="!isLoggedIn">
             <Button
@@ -262,7 +211,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               class="border-2 border-border mt-2 w-full justify-center transition-shadow hover:shadow-lg"
               @click="
                 () => {
-                  isLoginMenuOpen = false
+                  closeMobileMenu()
                   login('/home')
                 }
               "
@@ -276,7 +225,7 @@ const navLinks = computed(() => (isLoggedIn.value ? authLinks : guestLinks))
               to="/account"
               class="relative py-2 px-3 rounded-md transition-colors text-foreground hover:bg-muted/40"
               :class="{ 'font-semibold': isActive('/account') }"
-              @click="isLoginMenuOpen = false"
+              @click="closeMobileMenu"
             >
               {{ t('common.navigation.account') }}
               <span

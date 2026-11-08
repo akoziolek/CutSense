@@ -58,7 +58,7 @@ const autoplayPlugin = Autoplay({
   <section class="w-full max-w-6xl mx-auto px-6 sm:px-10 py-18 text-center">
     <div class="max-w-3xl mx-auto mb-12 space-y-4">
       <h2 class="text-3xl sm:text-4xl lg:text-5xl">
-        <TextHighlight color="var(--accent)">{{ $t('landing.creators') }}</TextHighlight>
+       <TextHighlight color="color-mix(in srgb, var(--accent) 50%, transparent)">{{ $t('landing.creators') }}</TextHighlight>
       </h2>
     </div>
 

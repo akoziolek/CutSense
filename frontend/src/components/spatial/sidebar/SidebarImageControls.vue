@@ -26,7 +26,7 @@ const zoomOut = () => {
 
 <template>
   <div class="p-4 bg-card border border-muted rounded-md shadow-xs space-y-3">
-    <div class="flex items-center gap-2 pb-2 border-b border-border/60">
+    <div class="flex items-center gap-2 pb-2 border-b border-border/60 dark:border-muted ">
       <Sliders class="h-4 w-4 text-foreground" />
       <h3 class="text-xs font-bold font-inter text-foreground uppercase tracking-wider">
         {{ $t('spatial.imageControls') }}
@@ -35,7 +35,9 @@ const zoomOut = () => {
 
     <div class="flex items-center justify-between gap-2">
       <span class="text-xs text-muted-foreground font-medium">{{ $t('spatial.photoZoom') }}</span>
-      <div class="flex items-center gap-1 bg-muted/30 py-1 px-2 rounded-lg border border-border/50">
+      <div
+        class="flex items-center gap-1 bg-input/10! dark:bg-primary-foreground/85! py-1 px-2 rounded-lg border border-border/50"
+      >
         <Button
           type="button"
           size="icon"
@@ -73,11 +75,11 @@ const zoomOut = () => {
           type="button"
           variant="outline"
           size="sm"
-          class="h-8 px-2.5 gap-1.5 text-xs cursor-pointer bg-brand-green/70 hover:bg-brand-green text-foreground border-brand-green/30"
+          class="h-8 px-2.5 gap-1.5 text-xs cursor-pointer bg-brand-green/70 hover:bg-brand-green text-brand-green-foreground border-brand-green/30"
           :title="$t('spatial.rotateCounterClockwise')"
           @click="emit('rotate', 'ccw')"
         >
-          <RotateCcw class="h-3.5 w-3.5 text-brand-green-foreground" />
+          <RotateCcw class="h-3.5 w-3.5 text-brand-green-foreground!" />
           <span>90°</span>
         </Button>
 
@@ -85,11 +87,11 @@ const zoomOut = () => {
           type="button"
           variant="outline"
           size="sm"
-          class="h-8 px-2.5 gap-1.5 text-xs cursor-pointer bg-brand-green/70 hover:bg-brand-green text-foreground border-brand-green/30"
+          class="h-8 px-2.5 gap-1.5 text-xs cursor-pointer bg-brand-green/70 hover:bg-brand-green text-brand-green-foreground border-brand-green/30"
           :title="$t('spatial.rotateClockwise')"
           @click="emit('rotate', 'cw')"
         >
-          <RotateCw class="h-3.5 w-3.5 text-brand-green-foreground" />
+          <RotateCw class="h-3.5 w-3.5 text-brand-green-foreground!" />
           <span>90°</span>
         </Button>
       </div>

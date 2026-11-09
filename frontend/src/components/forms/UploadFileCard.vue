@@ -319,8 +319,8 @@ onUnmounted(() => {
           ]"
         >
           <AppImage
-            v-if="previewUrls[activeIndex]"
-            :src="previewUrls[activeIndex]"
+            v-if="url"
+            :src="url"
             :alt="currentFile?.name"
             img-class="object-cover p-3"
           />

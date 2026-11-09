@@ -256,7 +256,8 @@ onUnmounted(() => {
           v-if="previewUrls[activeIndex]"
           :src="previewUrls[activeIndex]"
           :alt="currentFile?.name"
-          class="w-full h-full object-contain p-3 block"
+          class="w-full h-full p-3 block"
+          :picture-fit="'object-contain'"
         />
         <div v-else class="flex flex-col items-center text-muted-foreground p-6">
           <FileImage class="h-12 w-12 mb-2 stroke-1" />
@@ -318,12 +319,7 @@ onUnmounted(() => {
               : 'border-transparent opacity-60 hover:opacity-100',
           ]"
         >
-          <AppImage
-            v-if="url"
-            :src="url"
-            :alt="currentFile?.name"
-            img-class="object-cover p-3"
-          />
+          <AppImage v-if="url" :src="url" :alt="currentFile?.name" img-class="object-cover p-3" />
         </button>
       </div>
     </div>

@@ -2,14 +2,23 @@
 import { ref, watch } from 'vue'
 import { ImageOff } from 'lucide-vue-next'
 
+type ObjectFitClass =
+  | 'object-cover'
+  | 'object-contain'
+  | 'object-fill'
+  | 'object-none'
+  | 'object-scale-down'
+
 const props = withDefaults(
   defineProps<{
     src?: string | null
     alt?: string
     showMessage?: boolean
+    pictureFit?: ObjectFitClass
   }>(),
   {
     showMessage: true,
+    pictureFit: 'object-cover',
   },
 )
 
@@ -37,6 +46,7 @@ const handleError = () => {
     :alt="alt || ''"
     draggable="false"
     class="w-full h-full block"
+    :class="pictureFit"
     @error="handleError"
   />
 

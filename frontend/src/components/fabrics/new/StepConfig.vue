@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch, nextTick } from 'vue'
 import { toast } from 'vue-sonner'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
 import { useSpatialWorkspace } from '@/composables/useSpatialWorkspace'
@@ -88,9 +88,9 @@ const loadSavedConfig = () => {
     imageRotation.value = fabricStore.config.rotation
   }
 
-  setTimeout(() => {
+  void nextTick(() => {
     isSyncing = false
-  }, 50)
+  })
 }
 
 const detectFabricBoundary = async () => {
@@ -136,9 +136,9 @@ const detectFabricBoundary = async () => {
         : t('fabrics.analysisFailed')
     isErrorModalOpen.value = true
   } finally {
-    setTimeout(() => {
+    void nextTick(() => {
       isSyncing = false
-    }, 50)
+    })
     isAnalyzing.value = false
   }
 }

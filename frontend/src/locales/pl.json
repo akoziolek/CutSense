@@ -104,7 +104,8 @@
       "notFoundCode": "Błąd 404",
       "errorCode": "Błąd",
       "tagsLoadFailed": "Nie udało się wczytać tagów. Otwórz ponownie, aby spróbować jeszcze raz.",
-      "somethingWentWrongRetry": "Coś poszło nie tak. Spróbuj ponownie."
+      "somethingWentWrongRetry": "Coś poszło nie tak. Spróbuj ponownie.",
+      "imageError": "Zdjęcie tymczasowo niedostępne"
     },
     "details": {
       "description": "Opis",

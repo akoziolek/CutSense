@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { ImageOff } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+
 
 type ObjectFitClass =
   | 'object-cover'
@@ -22,6 +24,7 @@ const props = withDefaults(
   },
 )
 
+const { t } = useI18n()
 const emit = defineEmits<{ (e: 'error'): void }>()
 const hasError = ref(false)
 
@@ -56,7 +59,7 @@ const handleError = () => {
   >
     <ImageOff class="size-12 text-muted-foreground shrink-0 mb-2" />
     <span v-if="showMessage" class="max-w-xs text-xs">
-      Image temporarily unavailable
+      {{ t('common.errors.imageError') }}
     </span>
   </div>
 </template>

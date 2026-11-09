@@ -278,12 +278,6 @@ defineExpose({
           <g
             v-for="(shape, shapeIdx) in props.shapes"
             :key="'shape-' + shapeIdx"
-            v-memo="[
-              shape,
-              shapeIdx === activeShapeIndex,
-              shapeIdx === hoveredShapeIndex,
-              selectedEdgeIndex,
-            ]"
           >
             <polygon
               v-if="shape.length >= 3"

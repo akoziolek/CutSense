@@ -30,7 +30,7 @@ const zoomLevel = ref(1)
 const canvasOffset = ref({ x: 0, y: 0 })
 const showOverlay = ref(true)
 
-const hasError = ref()
+const hasError = ref(!props.src)
 
 const zoomIn = () => {
   zoomLevel.value = Math.min(zoomLevel.value + 0.25, 3.5)
@@ -50,14 +50,17 @@ const resetZoom = () => {
   <Dialog @update:open="resetZoom">
     <div
       v-if="hasError"
-      class="relative flex min-h-[300px] w-full h-full items-center justify-center rounded-md border border-muted/50 bg-card overflow-hidden"
+      class="relative flex w-full h-full items-center justify-center rounded-md border border-muted/50 bg-card overflow-hidden"
     >
-      <AppImage :src="props.src" :alt="props.alt" />
+      <AppImage :src="props.src" :alt="props.alt" :show-message="false" />
     </div>
 
     <DialogTrigger v-else as-child>
+      <slot v-if="$slots.trigger" name="trigger" />
+
       <div
-        class="relative group cursor-zoom-in overflow-hidden rounded-md bg-card border border-muted/50 shadow-sm w-full h-full min-h-[300px] flex items-center justify-center"
+        v-else
+        class="relative group cursor-zoom-in overflow-hidden rounded-md bg-card border border-muted/50 shadow-sm w-full h-full flex items-center justify-center"
       >
         <AppImage :src="props.src" :alt="props.alt" @error="hasError = true" />
 

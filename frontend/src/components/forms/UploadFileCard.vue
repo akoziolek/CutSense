@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Plus,
 } from 'lucide-vue-next'
+import AppImage from '../common/AppImage.vue'
 
 interface Props {
   multiple?: boolean
@@ -194,7 +195,11 @@ onUnmounted(() => {
           <span class="font-normal text-muted-foreground">{{ t('common.upload.orDragDrop') }}</span>
         </p>
         <p class="text-xs text-muted-foreground">
-          {{ props.multiple ? t('common.upload.highResolutionPhotos') : t('common.upload.highResolutionPhoto') }}
+          {{
+            props.multiple
+              ? t('common.upload.highResolutionPhotos')
+              : t('common.upload.highResolutionPhoto')
+          }}
           {{ t('common.upload.supportedFormats', { maxSizeMb: props.maxSizeMb }) }}
         </p>
       </div>
@@ -247,7 +252,7 @@ onUnmounted(() => {
           </Button>
         </template>
 
-        <img
+        <AppImage
           v-if="previewUrls[activeIndex]"
           :src="previewUrls[activeIndex]"
           :alt="currentFile?.name"
@@ -313,7 +318,12 @@ onUnmounted(() => {
               : 'border-transparent opacity-60 hover:opacity-100',
           ]"
         >
-          <img :src="url" :alt="files[idx]?.name" class="w-full h-full object-cover" />
+          <AppImage
+            v-if="previewUrls[activeIndex]"
+            :src="previewUrls[activeIndex]"
+            :alt="currentFile?.name"
+            img-class="object-cover p-3"
+          />
         </button>
       </div>
     </div>

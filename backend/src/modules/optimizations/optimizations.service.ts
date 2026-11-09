@@ -56,7 +56,7 @@ interface ViewSource {
   fabric: OptimizerFabricInputDto;
   seamAllowanceMm: number;
   cuttingAllowanceMm: number;
-  geometry: Map<number, OptimizerPointDto[]>;
+  geometry: Map<number, { boundary: OptimizerPointDto[]; grainline: number }>;
   result: EngineResult;
 }
 
@@ -97,7 +97,10 @@ export class OptimizationsService {
   async run(dto: CreateOptimizationDto, currentUserId?: number): Promise<OptimizationViewDto> {
     const input = await this.prepareOptimization(dto, currentUserId);
     const engineInput = toEngineInput(input, ENGINE_ALGORITHM_IDS[input.algorithmName]!);
-    const result = fromEngineResult(await this.engine.run(engineInput));
+    console.log('--- ENGINE INPUT ---', JSON.stringify(engineInput, null, 2));
+    const rawEngineResult = await this.engine.run(engineInput);
+    console.log('--- RAW ENGINE RESULT ---', JSON.stringify(rawEngineResult, null, 2));
+    const result = fromEngineResult(rawEngineResult);
 
     const runId = this.runs.put({ userId: currentUserId ?? null, input, result });
     
@@ -302,12 +305,19 @@ export class OptimizationsService {
       fabric: input.fabric,
       seamAllowanceMm: input.seamAllowanceMm,
       cuttingAllowanceMm: input.cuttingAllowanceMm,
-      geometry: new Map(input.pieces.map((p) => [p.patternPieceId, p.boundary])),
+      geometry: new Map(
+        input.pieces.map((p) => [
+          p.patternPieceId,
+          { boundary: p.boundary, grainline: p.grainline },
+        ]),
+      ),
       result,
     };
   }
 
   private toView(src: ViewSource, extra: ViewExtra): OptimizationViewDto {
+    const allowanceMm = src.seamAllowanceMm + src.cuttingAllowanceMm;
+
     return {
       ...extra,
       algorithmName: src.algorithmName,
@@ -318,12 +328,19 @@ export class OptimizationsService {
       minLengthMm: src.result.minLength,
       stats: src.result.stats,
       placements: src.result.positions.flatMap((pos) => {
-        const boundary = src.geometry.get(pos.id);
-        if (!boundary) return [];
+        const piece = src.geometry.get(pos.id);
+        if (!piece) return [];
 
+        const x = pos.x - allowanceMm;
+        const y = pos.y + allowanceMm;
         const polygon = placePiece(
-          boundary.map(([x, y]) => ({ x, y })),
-          pos,
+          piece.boundary.map(([x, y]) => ({ x, y })),
+          {
+            ...pos,
+            grainline: piece.grainline,
+            x,
+            y,
+          },
         ).map(({ x, y }): [number, number] => [x, y]);
 
         return [
@@ -332,8 +349,8 @@ export class OptimizationsService {
             isMirrored: pos.isMirrored,
             rotationAngle: pos.rotationAngle,
             isFlipped180: pos.isFlipped180,
-            x: pos.x,
-            y: pos.y,
+            x,
+            y,
             polygon,
           },
         ];

@@ -10,8 +10,6 @@ import type {
   OptimizerEngine,
 } from './optimizer-engine.types.js';
 
-
-// the package is compiled by `npm install` (see the Dockerfile)
 const nesting = createRequire(import.meta.url)('@cut-sense/nesting-engine') as {
   execute(fabric: EngineFabric, pieces: EnginePiece[], algorithmId: number): Promise<EngineResult>;
 };

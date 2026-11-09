@@ -4,6 +4,7 @@ import { useRoute, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { api, ApiError } from '@/api/client'
 import type { OptimizationView } from '@/types/optimization'
+import type { FabricResponse } from '@/types/fabric'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DetailsCard, { type MetaItem } from '@/components/common/DetailsCard.vue'
@@ -11,15 +12,7 @@ import ErrorState from '@/components/common/ErrorState.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import {
-  Cpu,
-  Ruler,
-  Scissors,
-  CheckCircle2,
-  XCircle,
-  RotateCcw,
-  ArrowLeft,
-} from 'lucide-vue-next'
+import { Cpu, Ruler, Scissors, CheckCircle2, XCircle, RotateCcw, ArrowLeft } from 'lucide-vue-next'
 import { onMounted } from 'vue'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import OptimizationVisualizer from '@/components/optimizations/OptimizationVisualizer.vue'
@@ -29,6 +22,7 @@ const { t } = useI18n()
 const runId = route.params.runId as string
 
 const optimization = ref<OptimizationView | null>(null)
+const fabricImageUrl = ref<string>()
 const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
@@ -72,6 +66,7 @@ const metaItems = computed<MetaItem[]>(() =>
 const fetchOptimization = async (id: string, activeSignal = { active: true }) => {
   clearSkeletonTimer()
   optimization.value = null
+  fabricImageUrl.value = undefined
   error.value = ''
   isNotFound.value = false
   isFetching.value = true
@@ -85,11 +80,28 @@ const fetchOptimization = async (id: string, activeSignal = { active: true }) =>
 
   try {
     const result = await api<OptimizationView>(`/optimizations/runs/${encodeURIComponent(id)}`)
-    if (activeSignal.active) optimization.value = result
+    if (activeSignal.active) {
+      optimization.value = result
+
+      if (result.fabric.fabricId !== undefined) {
+        void api<FabricResponse>(`/fabrics/${encodeURIComponent(result.fabric.fabricId)}`)
+          .then((fabric) => {
+            if (activeSignal.active) fabricImageUrl.value = fabric.pictureUrl
+          })
+          .catch((e: unknown) => {
+            if (activeSignal.active) {
+              console.warn('Unable to load the fabric image for this optimization.', e)
+            }
+          })
+      }
+    }
   } catch (e) {
     if (activeSignal.active) {
       isNotFound.value = e instanceof ApiError && e.status === 404
-      error.value = e instanceof ApiError ? e.body.message : t('optimizations.loadFailed', 'Failed to load optimization results.')
+      error.value =
+        e instanceof ApiError
+          ? e.body.message
+          : t('optimizations.loadFailed', 'Failed to load optimization results.')
     }
   } finally {
     if (activeSignal.active) {
@@ -102,9 +114,12 @@ const fetchOptimization = async (id: string, activeSignal = { active: true }) =>
 
 watch(
   () => route.params.runId,
-  (id) => {
+  (id, _previousId, onCleanup) => {
     if (!id) return
     const activeSignal = { active: true }
+    onCleanup(() => {
+      activeSignal.active = false
+    })
     fetchOptimization(id as string, activeSignal)
   },
   { immediate: true },
@@ -114,15 +129,34 @@ watch(
 <template>
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
-      <PageHeader :title="optimization ? t('optimizations.detailsTitle', 'Optimization Results') : (isFetching ? '' : t('optimizations.details'))">
+      <PageHeader
+        :title="
+          optimization
+            ? t('optimizations.detailsTitle', 'Optimization Results')
+            : isFetching
+              ? ''
+              : t('optimizations.details')
+        "
+      >
         <template #actions>
           <div v-if="optimization" class="flex items-center gap-2">
             <span
               class="inline-flex items-center gap-1.5 px-3 py-1 text-sm font-medium rounded-full"
-              :class="optimization.wasSuccessful ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'"
+              :class="
+                optimization.wasSuccessful
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                  : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+              "
             >
-              <component :is="optimization.wasSuccessful ? CheckCircle2 : XCircle" class="w-4 h-4" />
-              {{ optimization.wasSuccessful ? t('optimizations.successful', 'Successful') : t('optimizations.failed', 'Failed') }}
+              <component
+                :is="optimization.wasSuccessful ? CheckCircle2 : XCircle"
+                class="w-4 h-4"
+              />
+              {{
+                optimization.wasSuccessful
+                  ? t('optimizations.successful', 'Successful')
+                  : t('optimizations.failed', 'Failed')
+              }}
             </span>
           </div>
         </template>
@@ -157,8 +191,20 @@ watch(
 
         <main v-else-if="error" key="error">
           <ErrorState
-            :title="t(isNotFound ? 'optimizations.notFound' : 'optimizations.unableToLoad', 'Unable to load optimization')"
-            :message="isNotFound ? t('optimizations.notFoundMessage', 'The requested run does not exist or has expired.') : error"
+            :title="
+              t(
+                isNotFound ? 'optimizations.notFound' : 'optimizations.unableToLoad',
+                'Unable to load optimization',
+              )
+            "
+            :message="
+              isNotFound
+                ? t(
+                    'optimizations.notFoundMessage',
+                    'The requested run does not exist or has expired.',
+                  )
+                : error
+            "
             :code="t(isNotFound ? 'common.errors.notFoundCode' : 'common.errors.errorCode')"
           >
             <template #actions>
@@ -188,17 +234,24 @@ watch(
         >
           <!-- Left side: Visualizer preview container matching carousel width -->
           <div class="w-full md:col-span-2">
-                <OptimizationVisualizer
-                  :placements="optimization.placements"
-                  :fabric-width-mm="optimization.minLengthMm" 
-                  :fabric-length-mm="optimization.minLengthMm"
-                />
-              </div>
+            <OptimizationVisualizer
+              :placements="optimization.placements"
+              :image-url="fabricImageUrl"
+              :fabric-width-mm="optimization.fabric.widthMm"
+              :fabric-length-mm="optimization.fabric.lengthMm"
+              :fabric-boundary="optimization.fabric.boundary"
+            />
+          </div>
 
           <!-- Right side: Details card matching pattern meta / description style -->
           <div class="md:col-span-3 space-y-6">
             <DetailsCard
-              :description="t('optimizations.detailsDescription', 'Review the nesting engine layout metrics, minimum required fabric length, and spatial coordinates below.')"
+              :description="
+                t(
+                  'optimizations.detailsDescription',
+                  'Review the nesting engine layout metrics, minimum required fabric length, and spatial coordinates below.',
+                )
+              "
               :meta-items="metaItems"
             />
 
@@ -207,7 +260,9 @@ watch(
               <h3 class="text-sm font-semibold tracking-wide uppercase text-muted-foreground">
                 Placed Pieces Data ({{ optimization.placements.length }})
               </h3>
-              <div class="max-h-72 overflow-y-auto border rounded-md p-4 bg-muted/50 font-mono text-xs">
+              <div
+                class="max-h-72 overflow-y-auto border rounded-md p-4 bg-muted/50 font-mono text-xs"
+              >
                 <pre>{{ JSON.stringify(optimization.placements, null, 2) }}</pre>
               </div>
             </Card>

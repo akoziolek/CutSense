@@ -1,4 +1,7 @@
-import type { OptimizerInputDto, OptimizerPointDto } from '../optimizations/dto/optimizer-input.dto.js';
+import type {
+  OptimizerInputDto,
+  OptimizerPointDto,
+} from '../optimizations/dto/optimizer-input.dto.js';
 import type {
   EngineFabric,
   EngineInput,
@@ -19,22 +22,29 @@ const pt = ([x, y]: OptimizerPointDto): EnginePoint => ({
   y: Math.round(y * UNITS.inputPerMm),
 });
 
-export function toEngineInput(input: OptimizerInputDto, algorithmId: number): EngineInput {
+export function toEngineInput(
+  input: OptimizerInputDto,
+  algorithmId: number,
+): EngineInput {
   const fabric: EngineFabric =
     input.fabric.fabricId === undefined
       ? {
           width: Math.round(input.fabric.widthMm * UNITS.inputPerMm),
           length: Math.round(input.fabric.lengthMm * UNITS.inputPerMm),
         }
-      : { boundary: input.fabric.boundary.map(pt) };
+      : {
+          boundary: input.fabric.boundary.map(([x, y]) =>
+            pt([input.fabric.lengthMm - y, x]),
+          ),
+        };
 
-
-  let instanceCounter = 1;
   const enginePieces: EnginePiece[] = [];
 
   for (const p of input.pieces) {
     const seamAllowance = Math.round(input.seamAllowanceMm * UNITS.inputPerMm);
-    const cuttingAllowance = Math.round(input.cuttingAllowanceMm * UNITS.inputPerMm);
+    const cuttingAllowance = Math.round(
+      input.cuttingAllowanceMm * UNITS.inputPerMm,
+    );
     const points = p.boundary.map(pt);
 
     for (let i = 0; i < p.normalCount; i++) {

@@ -38,24 +38,26 @@ export function rotateAndAnchor(points: Point[], degrees: number): Point[] {
 
 export interface Placement {
   rotationAngle: number;
+  grainline: number;
   isMirrored: boolean;
   isFlipped180: boolean;
   x: number;
   y: number;
 }
 
-// Set this after checking the engine output (native/verify-layout.mjs).
-const ENGINE_ROTATES_CLOCKWISE = true;
-
-//adjust after confirming with the engine:
-// mirror about the Y axis, rotate by rotationAngle (+180 when flipped), anchor the
-// bounding box at (0, 0), then translate by (x, y).
 export function placePiece(points: Point[], p: Placement): Point[] {
-  const mirrored = p.isMirrored ? points.map(({ x, y }) => ({ x: -x, y })) : points;
-  const turn = p.rotationAngle + (p.isFlipped180 ? 180 : 0);
-  const angle = (((ENGINE_ROTATES_CLOCKWISE ? turn : -turn) % 360) + 360) % 360;
-  return rotateAndAnchor(mirrored, angle).map(({ x, y }) => ({
-    x: round3(x + p.x),
-    y: round3(y + p.y),
-  }));
+  const turn =
+    (((p.grainline + p.rotationAngle + (p.isFlipped180 ? 180 : 0)) % 360) + 360) %
+    360;
+  const rad = (turn * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  return points.map(({ x, y }) => {
+    const mirroredY = p.isMirrored ? -y : y;
+    return {
+      x: round3(x * cos + mirroredY * sin + p.x),
+      y: round3(-x * sin + mirroredY * cos + p.y),
+    };
+  });
 }

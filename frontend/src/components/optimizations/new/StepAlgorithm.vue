@@ -65,6 +65,9 @@ const handleSubmit = async () => {
       method: 'POST',
       body: JSON.stringify(payload),
     })
+
+    store.markSubmitted()
+
     await router.push({ name: 'OptimizationRun', params: { runId: view.runId! } })
   } catch (e) {
     submitError.value =
@@ -81,7 +84,7 @@ const handleSubmit = async () => {
   <div class="space-y-6 pb-14">
     <div
       v-if="isLoading"
-      class="mx-auto grid w-full max-w-4xl grid-cols-1 gap-6 sm:grid-cols-3"
+      class="mx-auto grid w-full max-w-4xl grid-cols-1 gap-6 sm:grid-cols-3 justify-items-center"
       role="status"
     >
       <Skeleton v-for="n in 3" :key="n" class="h-56 w-full rounded-xl" />
@@ -98,8 +101,12 @@ const handleSubmit = async () => {
 
     <div
       v-else
-      class="mx-auto grid w-full grid-cols-1 gap-6"
-      :class="algorithms.length === 1 ? 'max-w-4xl' : 'max-w-4xl sm:grid-cols-3'"
+      class="mx-auto grid w-full grid-cols-1 gap-6 pb-14 sm:mt-14 justify-items-center"
+      :class="{
+        'max-w-xl': algorithms.length === 1,
+        'max-w-3xl sm:grid-cols-2': algorithms.length === 2,
+        'max-w-5xl sm:grid-cols-3': algorithms.length >= 3,
+      }"
     >
       <SelectableOptionCard
         v-for="algorithm in algorithms"
@@ -113,7 +120,7 @@ const handleSubmit = async () => {
       </SelectableOptionCard>
     </div>
 
-    <p v-if="submitError" class="text-sm font-semibold text-destructive" role="alert">
+    <p v-if="submitError" class="text-sm font-semibold text-destructive text-center" role="alert">
       {{ submitError }}
     </p>
 

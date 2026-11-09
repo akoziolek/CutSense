@@ -184,12 +184,35 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     }
   }
 
+  function removeShape(photoIndex: number, shapeIndex: number) {
+    const config = photoConfigs.value[photoIndex]
+    if (!config) return
+
+    config.shapes.splice(shapeIndex, 1)
+    config.hiddenShapes.splice(shapeIndex, 1)
+
+    const targetPieceIdx = pieces.value.findIndex(
+      (p) => p.photoIndex === photoIndex && p.shapeIndex === shapeIndex,
+    )
+    if (targetPieceIdx !== -1) {
+      pieces.value.splice(targetPieceIdx, 1)
+    }
+
+    pieces.value.forEach((p) => {
+      if (p.photoIndex === photoIndex && p.shapeIndex > shapeIndex) {
+        p.shapeIndex -= 1
+        p.id = `piece-${p.photoIndex}-${p.shapeIndex}`
+      }
+    })
+
+    void savePhotoConfigsToIDB()
+    void savePiecesToIDB()
+  }
+
   function removePieceById(id: string) {
     const piece = pieces.value.find((p) => p.id === id)
     if (piece) {
       removeShape(piece.photoIndex, piece.shapeIndex)
-      pieces.value = pieces.value.filter((p) => p.id !== id)
-      void savePiecesToIDB()
     }
   }
 
@@ -236,16 +259,6 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     return config.shapes.length - 1
   }
 
-  function removeShape(photoIndex: number, shapeIndex: number) {
-    const config = photoConfigs.value[photoIndex]
-    if (!config) return
-
-    config.shapes.splice(shapeIndex, 1)
-    config.hiddenShapes.splice(shapeIndex, 1)
-
-    syncPiecesFromConfigs()
-    return savePhotoConfigsToIDB()
-  }
 
   function updateShapePoints(photoIndex: number, shapeIndex: number, points: Point2D[]) {
     const config = photoConfigs.value[photoIndex]

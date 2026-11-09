@@ -1,4 +1,3 @@
-import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
 import type { OptimizerInputDto, OptimizerPointDto } from '../optimizations/dto/optimizer-input.dto.js';
 import type {
   EngineFabric,
@@ -8,88 +7,89 @@ import type {
   EngineResult,
 } from './optimizer-engine.types.js';
 
-export const SCALE = 1000;
+export const UNITS = {
+  inputPerMm: 1,
+  positionPerMm: 1,
+  lengthMm: 1,
+  areaMm2: 1,
+};
 
 const pt = ([x, y]: OptimizerPointDto): EnginePoint => ({
-  x: Math.round(x * SCALE),
-  y: Math.round(y * SCALE),
+  x: Math.round(x * UNITS.inputPerMm),
+  y: Math.round(y * UNITS.inputPerMm),
 });
 
-export function toEngineInput(input: OptimizerInputDto): EngineInput {
+export function toEngineInput(input: OptimizerInputDto, algorithmId: number): EngineInput {
   const fabric: EngineFabric =
     input.fabric.fabricId === undefined
       ? {
-          width: Math.round(input.fabric.widthMm * SCALE),
-          length: Math.round(input.fabric.lengthMm * SCALE),
+          width: Math.round(input.fabric.widthMm * UNITS.inputPerMm),
+          length: Math.round(input.fabric.lengthMm * UNITS.inputPerMm),
         }
       : { boundary: input.fabric.boundary.map(pt) };
 
-  // The same pattern piece may appear several times in the DTO (duplicated cards).
-  // The engine identifies pieces by id, so merge them into one piece with many constraints.
-  const byId = new Map<number, EnginePiece>();
+
+  let instanceCounter = 1;
+  const enginePieces: EnginePiece[] = [];
+
   for (const p of input.pieces) {
-    let piece = byId.get(p.patternPieceId);
-    if (!piece) {
-      piece = {
+    const seamAllowance = Math.round(input.seamAllowanceMm * UNITS.inputPerMm);
+    const cuttingAllowance = Math.round(input.cuttingAllowanceMm * UNITS.inputPerMm);
+    const points = p.boundary.map(pt);
+
+    for (let i = 0; i < p.normalCount; i++) {
+      enginePieces.push({
         id: p.patternPieceId,
-        points: p.boundary.map(pt),
-        constraints: [],
-        seamAllowance: Math.round(input.seamAllowanceMm * SCALE),
-        cuttingAllowance: Math.round(input.cuttingAllowanceMm * SCALE),
-      };
-      byId.set(p.patternPieceId, piece);
-    }
-    if (p.normalCount > 0) {
-      piece.constraints.push({
-        rotationAngle: p.direction,
-        isMirrored: false,
-        requiredQuantity: p.normalCount,
-        twoWay: p.twoWay,
+        points,
+        grainline: p.grainline,
+        seamAllowance,
+        cuttingAllowance,
+        constraints: [
+          {
+            rotationAngle: p.direction,
+            isMirrored: false,
+            requiredQuantity: 1,
+            twoWay: p.twoWay,
+          },
+        ],
       });
     }
-    if (p.mirroredCount > 0) {
-      piece.constraints.push({
-        rotationAngle: p.direction,
-        isMirrored: true,
-        requiredQuantity: p.mirroredCount,
-        twoWay: p.twoWay,
+
+    for (let i = 0; i < p.mirroredCount; i++) {
+      enginePieces.push({
+        id: p.patternPieceId,
+        points,
+        grainline: p.grainline,
+        seamAllowance,
+        cuttingAllowance,
+        constraints: [
+          {
+            rotationAngle: p.direction,
+            isMirrored: true,
+            requiredQuantity: 1,
+            twoWay: p.twoWay,
+          },
+        ],
       });
     }
   }
 
-  const result: EngineInput = { fabric, pieces: [...byId.values()] };
-  assertValidEngineInput(result);
-  return result;
-}
-
-// The engine would silently turn missing/NaN numbers into 0, so check here.
-function assertValidEngineInput({ fabric, pieces }: EngineInput): void {
-  const badNumber = (n: number) => !Number.isSafeInteger(n);
-  const badPoint = (p: EnginePoint) => badNumber(p.x) || badNumber(p.y);
-
-  if ('width' in fabric && (badNumber(fabric.width) || badNumber(fabric.length) || fabric.width <= 0 || fabric.length <= 0)) {
-    throw new RequestValidationException('Optimizer input contains invalid fabric dimensions.');
-  }
-
-  const polygons: EnginePoint[][] = pieces.map((p) => p.points);
-  if ('boundary' in fabric) polygons.push(fabric.boundary);
-  if (polygons.some((poly) => poly.length < 3 || poly.some(badPoint))) {
-    throw new RequestValidationException('Optimizer input contains an invalid polygon.');
-  }
-  if (pieces.length === 0 || pieces.some((p) => p.constraints.length === 0)) {
-    throw new RequestValidationException('Optimizer input contains a piece without copies.');
-  }
+  return { fabric, pieces: enginePieces, algorithmId };
 }
 
 export const fromEngineResult = (r: EngineResult): EngineResult => ({
   ...r,
-  minLength: r.minLength / SCALE,
+  minLength: r.minLength * UNITS.lengthMm,
   stats: {
     ...r.stats,
-    usableScrapsArea: r.stats.usableScrapsArea / (SCALE * SCALE),
-    remainingFabricArea: r.stats.remainingFabricArea / (SCALE * SCALE),
-    wasteArea: r.stats.wasteArea / (SCALE * SCALE),
-    remainingFabricLength: r.stats.remainingFabricLength / SCALE,
+    usableScrapsArea: r.stats.usableScrapsArea * UNITS.areaMm2,
+    remainingFabricArea: r.stats.remainingFabricArea * UNITS.areaMm2,
+    wasteArea: r.stats.wasteArea * UNITS.areaMm2,
+    remainingFabricLength: r.stats.remainingFabricLength * UNITS.lengthMm,
   },
-  positions: r.positions.map((p) => ({ ...p, x: p.x / SCALE, y: p.y / SCALE })),
+  positions: r.positions.map((p) => ({
+    ...p,
+    x: p.x / UNITS.positionPerMm,
+    y: p.y / UNITS.positionPerMm,
+  })),
 });

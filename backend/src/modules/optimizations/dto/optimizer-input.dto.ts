@@ -43,6 +43,12 @@ export class OptimizerPieceInputDto {
   @ApiProperty({ description: 'Number of mirrored copies.' })
   mirroredCount!: number;
 
+  @ApiProperty({
+    description:
+      'Grainline of the pattern piece in degrees, clockwise from vertical, in the piece boundary coordinates.',
+  })
+  grainline!: number;
+
   @ApiProperty({ description: 'Allowed direction in degrees.' })
   direction!: number;
 

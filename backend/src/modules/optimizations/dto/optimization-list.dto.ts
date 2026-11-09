@@ -16,8 +16,8 @@ export class OptimizationListItemDto {
   @ApiProperty({ example: 'Flowy shirt' })
   patternName!: string;
 
-  @ApiProperty({ description: 'Used fabric length in millimeters', example: 1830 })
-  minLengthMm!: number;
+  // @ApiProperty({ description: 'Used fabric length in millimeters', example: 1830 })
+  // minLengthMm!: number;
 
   @ApiPropertyOptional({ description: 'Presigned URL of the first photo of the pattern' })
   imageUrl?: string;

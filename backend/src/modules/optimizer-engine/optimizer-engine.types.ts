@@ -1,7 +1,4 @@
-export interface EnginePoint {
-  x: number;
-  y: number;
-}
+export interface EnginePoint { x: number; y: number }
 
 export interface EngineConstraint {
   rotationAngle: number;
@@ -13,6 +10,7 @@ export interface EngineConstraint {
 export interface EnginePiece {
   id: number;
   points: EnginePoint[];
+  grainline: number;
   constraints: EngineConstraint[];
   seamAllowance: number;
   cuttingAllowance: number;
@@ -23,6 +21,7 @@ export type EngineFabric = { width: number; length: number } | { boundary: Engin
 export interface EngineInput {
   fabric: EngineFabric;
   pieces: EnginePiece[];
+  algorithmId: number;
 }
 
 export interface EnginePosition {
@@ -48,6 +47,7 @@ export interface NestingStats {
 export interface EngineResult {
   wasSuccessful: boolean;
   minLength: number;
+  executionTime: number;
   stats: NestingStats;
   positions: EnginePosition[];
 }

@@ -16,7 +16,6 @@ export interface OptimizationDefaults {
   cuttingAllowanceMm: number
 }
 
-// Piece of a pattern as returned by GET /patterns/:id
 export interface PatternPieceDefaults {
   id: number
   points: [number, number][]

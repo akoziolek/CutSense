@@ -16,7 +16,6 @@ export interface StoredRun {
 const TTL_MS = 60 * 60 * 1000;
 const MAX_RUNS = 500;
 
-// In-memory, single instance. Move to Redis if the backend is scaled out.
 @Injectable()
 export class OptimizationRunsStore {
   private readonly runs = new Map<string, StoredRun>();
@@ -24,7 +23,7 @@ export class OptimizationRunsStore {
   put(run: Pick<StoredRun, 'userId' | 'input' | 'result'>): string {
     this.evictExpired();
     while (this.runs.size >= MAX_RUNS) {
-      const oldest = this.runs.keys().next().value; // Map keeps insertion order
+      const oldest = this.runs.keys().next().value;
       if (oldest === undefined) break;
       this.runs.delete(oldest);
     }

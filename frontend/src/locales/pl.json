@@ -311,6 +311,7 @@
     "threadDirectionLocked": "Nie można zmienić kierunku nitki dla własnych wymiarów",
     "unableToLoadAlgorithms": "Nie udało się wczytać algorytmów",
     "unableToLoadPattern": "Nie udało się wczytać wykroju",
+    "unableToLoadOptimizations": "Nie udało się wczytać optymalizacji",
     "duplicatePiece": "Duplikuj element",
     "duplicatePieceDescription": "Duplikuj element z własnymi ustawieniami",
     "removePiece": "Usuń element",

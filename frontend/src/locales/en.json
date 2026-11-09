@@ -312,6 +312,7 @@
     "threadDirectionLocked": "Thread direction cannot be changed for custom dimensions",
     "unableToLoadAlgorithms": "Unable to load algorithms",
     "unableToLoadPattern": "Unable to load the pattern",
+    "unableToLoadOptimizations": "Unable to load optimizations",
     "duplicatePiece": "Duplicate piece",
     "duplicatePieceDescription": "Duplicate piece with its own settings",
     "removePiece": "Remove piece",

@@ -17,7 +17,7 @@ const { state: auth } = useAuth()
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-10">
       <PageHeader>{{ $t('optimizations.title') }}</PageHeader>
 
-      <OptimizationList v-if="auth.user" />
+      <!-- <OptimizationList v-if="auth.user" /> -->
       
       <div class="flex flex-col items-center justify-center gap-2 py-30 text-center">
         <Sparkles class="size-10 md:size-12 text-muted-foreground" />

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, useId } from 'vue'
+import { computed } from 'vue'
 
 export interface PlacementItem {
   patternPieceId?: number
@@ -16,8 +16,6 @@ const props = defineProps<{
   fabricLengthMm?: number
   fabricBoundary?: [number, number][]
 }>()
-
-const clipPathId = useId()
 
 // 1. Process shapes and extract absolute polygon coordinates
 const processedShapes = computed(() => {
@@ -58,19 +56,18 @@ const fabricClipPoints = computed(() => {
   return []
 })
 
-// Keep the viewport fixed to the fabric when available so out-of-bounds pieces
-// cannot change the apparent fabric-to-piece scale.
+// Combined bounding box including both fabric and all placed pieces + padding
 const bbox = computed(() => {
-  const points =
-    fabricClipPoints.value.length > 0
-      ? fabricClipPoints.value
-      : processedShapes.value.flatMap((shape) => shape.points)
-  if (points.length === 0) {
+  const fabricPoints = fabricClipPoints.value
+  const shapePoints = processedShapes.value.flatMap((shape) => shape.points)
+  const allPoints = [...fabricPoints, ...shapePoints]
+
+  if (allPoints.length === 0) {
     return { x: 0, y: 0, w: 1000, h: 1000, cx: 500, cy: 500 }
   }
 
-  const xs = points.map(([x]) => x)
-  const ys = points.map(([, y]) => y)
+  const xs = allPoints.map(([x]) => x)
+  const ys = allPoints.map(([, y]) => y)
   const minX = Math.min(...xs)
   const minY = Math.min(...ys)
   const maxX = Math.max(...xs)
@@ -109,14 +106,9 @@ const formatPoints = (points: [number, number][]) => points.map(([x, y]) => `${x
       preserveAspectRatio="xMidYMid meet"
       class="w-full h-full block"
     >
-      <defs v-if="fabricClipPoints.length">
-        <clipPath :id="clipPathId" clipPathUnits="userSpaceOnUse">
-          <polygon :points="formatPoints(fabricClipPoints)" />
-        </clipPath>
-      </defs>
       <!-- Scale (1, -1) flips Y vertically around the center of the bounding box -->
       <g :transform="`scale(1, -1)`" :transform-origin="`${bbox.cx} ${bbox.cy}`">
-        <g :clip-path="fabricClipPoints.length ? `url(#${clipPathId})` : undefined">
+        <g>
           <image
             v-if="props.imageUrl && props.fabricWidthMm && props.fabricLengthMm"
             :href="props.imageUrl"

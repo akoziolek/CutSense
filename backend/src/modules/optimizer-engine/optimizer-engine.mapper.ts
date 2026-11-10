@@ -22,6 +22,11 @@ const pt = ([x, y]: OptimizerPointDto): EnginePoint => ({
   y: Math.round(y * UNITS.inputPerMm),
 });
 
+export function fabricOriginYMm(fabric: OptimizerInputDto['fabric']): number {
+  if (fabric.fabricId === undefined || fabric.boundary.length === 0) return 0;
+  return Math.min(...fabric.boundary.map(([, y]) => Math.round(y * UNITS.inputPerMm)));
+}
+
 export function toEngineInput(
   input: OptimizerInputDto,
   algorithmId: number,
@@ -33,9 +38,10 @@ export function toEngineInput(
           length: Math.round(input.fabric.lengthMm * UNITS.inputPerMm),
         }
       : {
-          boundary: input.fabric.boundary.map(([x, y]) =>
-            pt([input.fabric.lengthMm - y, x]),
-          ),
+          boundary: input.fabric.boundary.map(([x, y]) => ({
+            x: Math.round(x * UNITS.inputPerMm),
+            y: Math.round(y * UNITS.inputPerMm),
+          })),
         };
 
   const enginePieces: EnginePiece[] = [];

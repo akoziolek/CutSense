@@ -37,6 +37,7 @@ import {
   type OptimizerEngine,
 } from '../optimizer-engine/optimizer-engine.types.js';
 import {
+  fabricOriginYMm,
   fromEngineResult,
   toEngineInput,
 } from '../optimizer-engine/optimizer-engine.mapper.js';
@@ -317,7 +318,8 @@ export class OptimizationsService {
 
   private toView(src: ViewSource, extra: ViewExtra): OptimizationViewDto {
     const allowanceMm = src.seamAllowanceMm + src.cuttingAllowanceMm;
-
+    const originYMm = fabricOriginYMm(src.fabric);
+    
     return {
       ...extra,
       algorithmName: src.algorithmName,
@@ -332,7 +334,8 @@ export class OptimizationsService {
         if (!piece) return [];
 
         const x = pos.x - allowanceMm;
-        const y = pos.y + allowanceMm;
+        const y = pos.y + allowanceMm + originYMm;
+        
         const polygon = placePiece(
           piece.boundary.map(([x, y]) => ({ x, y })),
           {

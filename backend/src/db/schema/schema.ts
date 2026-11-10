@@ -138,7 +138,6 @@ export const patternPieces = pgTable(
     patternImageId: bigint('pattern_image_id', { mode: 'number' })
       .notNull()
       .references(() => patternImages.id, { onDelete: 'cascade' }),
-    // polygon on Cartesian coordinate system
     boundary: postgisPolygon('boundary').notNull(),
     grainline: integer('grainline').notNull().default(0),
     normalCount: integer('normal_count').notNull().default(1),
@@ -305,6 +304,7 @@ export const optimizationResults = pgTable(
       .generatedByDefaultAsIdentity(),
     name: varchar('name', { length: 35 }).notNull(),
     userId: bigint('user_id', { mode: 'number' })
+      .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     patternId: bigint('pattern_id', { mode: 'number' })
       .notNull()
@@ -320,12 +320,21 @@ export const optimizationResults = pgTable(
     ),
     seamAllowance: integer('seam_allowance').notNull(),
     cuttingAllowance: integer('cutting_allowance').notNull(),
+    minLengthMm: integer('min_length_mm').notNull(),
+    spentTime: smallint('spent_time').notNull(),
+    usableScrapsArea: bigint('usable_scraps_area', { mode: 'number' }).notNull(),
+    usableScrapsPercentage: smallint('usable_scraps_percentage').notNull(),
+    wasteScrapsArea: bigint('waste_scraps_area', { mode: 'number' }).notNull(),
+    wasteScrapsPercentage: smallint('waste_scraps_percentage').notNull(),
+    remainingFabricArea: bigint('remaining_fabric_area', { mode: 'number' }).notNull(),
+    remainingAreaPercentage: smallint('remaining_area_percentage').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => [
+    index('optimization_results_user_id_idx').on(table.userId),
     index('optimization_results_pattern_id_idx').on(table.patternId),
     index('optimization_results_algorithm_id_idx').on(table.algorithmId),
     index('optimization_results_custom_fabric_id_idx').on(table.customFabricId),

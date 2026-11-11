@@ -49,6 +49,10 @@ import {
   OptimizationSortOption,
 } from './dto/list-optimizations-query.dto.js';
 import type { OptimizationListResponseDto } from './dto/optimization-list.dto.js';
+import type { StoredRun } from './optimization-runs.store.js';
+import type { SaveOptimizationDto } from './dto/save-optimization.dto.js';
+import type { PlacementDto } from './dto/optimization-view.dto.js';
+import type { EnginePosition } from '../optimizer-engine/optimizer-engine.types.js';
 
 const isSet = (value: unknown) => value !== undefined && value !== null;
 
@@ -72,6 +76,7 @@ export class OptimizationsService {
     @Inject(OPTIMIZER_ENGINE) private readonly engine: OptimizerEngine,
     private readonly runs: OptimizationRunsStore,
     private readonly storageService: StorageService,
+    private readonly pendingSaves = new Map<string, Promise<{ id: number }>>()
   ) {}
 
   getDefaults(): OptimizationDefaultsDto {
@@ -147,6 +152,7 @@ export class OptimizationsService {
           patternId: optimizationResults.patternId,
           patternName: patterns.name,
           pictureS3Key: firstImage.pictureS3Key,
+          minLengthMm: optimizationResults.minLengthMm,
         })
         .from(optimizationResults)
         .innerJoin(patterns, eq(patterns.id, optimizationResults.patternId))
@@ -169,6 +175,7 @@ export class OptimizationsService {
         patternId: row.patternId,
         patternName: row.patternName,
         imageUrl: row.pictureS3Key ? imageUrls.get(row.pictureS3Key) : undefined,
+        minLengthMm: row.minLengthMm,
       })),
       total,
       page,
@@ -316,6 +323,8 @@ export class OptimizationsService {
     };
   }
 
+  
+
   private toView(src: ViewSource, extra: ViewExtra): OptimizationViewDto {
     const allowanceMm = src.seamAllowanceMm + src.cuttingAllowanceMm;
     const originYMm = fabricOriginYMm(src.fabric);
@@ -329,34 +338,11 @@ export class OptimizationsService {
       wasSuccessful: src.result.wasSuccessful,
       minLengthMm: src.result.minLength,
       stats: src.result.stats,
+
       placements: src.result.positions.flatMap((pos) => {
         const piece = src.geometry.get(pos.id);
         if (!piece) return [];
-
-        const x = pos.x - allowanceMm;
-        const y = pos.y + allowanceMm + originYMm;
-        
-        const polygon = placePiece(
-          piece.boundary.map(([x, y]) => ({ x, y })),
-          {
-            ...pos,
-            grainline: piece.grainline,
-            x,
-            y,
-          },
-        ).map(({ x, y }): [number, number] => [x, y]);
-
-        return [
-          {
-            patternPieceId: pos.id,
-            isMirrored: pos.isMirrored,
-            rotationAngle: pos.rotationAngle,
-            isFlipped180: pos.isFlipped180,
-            x,
-            y,
-            polygon,
-          },
-        ];
+        return [this.placeOne(piece, pos, pos.x - allowanceMm, pos.y + allowanceMm + originYMm)];
       }),
     };
   }
@@ -436,5 +422,177 @@ export class OptimizationsService {
         `At most ${MAX_TOTAL_COPIES} piece copies can be optimized at once.`,
       );
     }
+  }
+
+  private placeOne(
+    piece: { boundary: OptimizerPointDto[]; grainline: number },
+    pos: EnginePosition,
+    x: number,
+    y: number,
+  ): PlacementDto {
+    const polygon = placePiece(
+      piece.boundary.map(([px, py]) => ({ x: px, y: py })),
+      { ...pos, grainline: piece.grainline, x, y },
+    ).map(({ x: px, y: py }): [number, number] => [px, py]);
+
+    return {
+      patternPieceId: pos.id,
+      isMirrored: pos.isMirrored,
+      rotationAngle: pos.rotationAngle,
+      isFlipped180: pos.isFlipped180,
+      x,
+      y,
+      polygon,
+    };
+  }
+
+  async save(
+    runId: string,
+    dto: SaveOptimizationDto,
+    currentUserId: number,
+  ): Promise<{ id: number }> {
+    const run = this.findRun(runId, currentUserId);
+    if (run.savedId !== undefined) return { id: run.savedId }; // idempotent
+    if (!run.result.wasSuccessful) {
+      throw new RequestValidationException('Only a successful optimization can be saved.');
+    }
+
+    const pending = this.pendingSaves.get(runId);
+    if (pending) return pending;
+
+    const saving = this.persistRun(run, dto.name, currentUserId)
+      .then((id) => {
+        this.runs.markSaved(runId, id, dto.name, currentUserId);
+        return { id };
+      })
+      .finally(() => this.pendingSaves.delete(runId));
+    this.pendingSaves.set(runId, saving);
+    return saving;
+  }
+
+  private async persistRun(run: StoredRun, name: string, userId: number): Promise<number> {
+    const { input, result } = run;
+    const { stats } = result;
+    const isLibrary = input.fabric.fabricId !== undefined;
+    // placements already include allowances and the fabric origin
+    const { placements } = this.toView(this.sourceFromInput(input, result), { isSaved: false });
+
+    try {
+      return await this.db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(optimizationResults)
+          .values({
+            name,
+            userId,
+            patternId: input.patternId,
+            algorithmId: input.algorithmId,
+            customFabricId: input.fabric.fabricId ?? null,
+            fabricWidth: isLibrary ? null : input.fabric.widthMm,
+            fabricLength: isLibrary ? null : input.fabric.lengthMm,
+            seamAllowance: input.seamAllowanceMm,
+            cuttingAllowance: input.cuttingAllowanceMm,
+            minLengthMm: Math.round(result.minLength),
+            spentTime: Math.min(Math.round(result.executionTime), 32_767), // smallint
+            usableScrapsArea: Math.round(stats.usableScrapsArea),
+            usableScrapsPercentage: Math.round(stats.usableScrapsPercentage),
+            wasteScrapsArea: Math.round(stats.wasteArea),
+            wasteScrapsPercentage: Math.round(stats.wastePercentage),
+            remainingFabricArea: Math.round(stats.remainingFabricArea),
+            remainingAreaPercentage: Math.round(stats.remainingFabricPercentage),
+          })
+          .returning({ id: optimizationResults.id });
+
+        if (!created) throw new Error('Optimization insert did not return a row.');
+
+        if (placements.length > 0) {
+          await tx.insert(placedPieces).values(
+            placements.map((p) => ({
+              patternPieceId: p.patternPieceId,
+              optimizationResultId: created.id,
+              // the 180° flip is folded into the angle (placePiece adds them anyway)
+              rotationAngle: (p.rotationAngle + (p.isFlipped180 ? 180 : 0)) % 360,
+              isMirrored: p.isMirrored,
+              placement: { x: p.x, y: p.y },
+            })),
+          );
+        }
+        return created.id;
+      });
+    } catch (e) {
+      // pattern / fabric deleted while the run was cached
+      const err = ((e as { cause?: unknown }).cause ?? e) as { code?: string };
+      if (err.code === '23503') throw new ResourceNotFoundException('Pattern', input.patternId);
+      throw e;
+    }
+  }
+
+  async getSaved(id: number, userId: number): Promise<OptimizationViewDto> {
+    const row = await this.db.query.optimizationResults.findFirst({
+      where: and(eq(optimizationResults.id, id), eq(optimizationResults.userId, userId)),
+      with: { algorithm: { columns: { name: true } } },
+    });
+    if (!row) throw new ResourceNotFoundException('Optimization', id);
+
+    const fabric: OptimizerFabricInputDto =
+      row.customFabricId !== null
+        ? await this.getLibraryFabric(row.customFabricId, userId)
+        : {
+            fabricId: undefined,
+            widthMm: row.fabricWidth ?? 0,
+            lengthMm: row.fabricLength ?? 0,
+            boundary: this.rectangularBoundary(row.fabricWidth ?? 0, row.fabricLength ?? 0),
+          };
+
+    const placed = await this.db
+      .select({
+        patternPieceId: placedPieces.patternPieceId,
+        rotationAngle: placedPieces.rotationAngle,
+        isMirrored: placedPieces.isMirrored,
+        placement: placedPieces.placement,
+        grainline: patternPieces.grainline,
+        geojson: sql<string>`ST_AsGeoJSON(${patternPieces.boundary})`,
+      })
+      .from(placedPieces)
+      .innerJoin(patternPieces, eq(patternPieces.id, placedPieces.patternPieceId))
+      .where(eq(placedPieces.optimizationResultId, id))
+      .orderBy(asc(placedPieces.id));
+
+    return {
+      id: row.id,
+      name: row.name,
+      isSaved: true,
+      algorithmName: row.algorithm.name,
+      fabric,
+      seamAllowanceMm: row.seamAllowance,
+      cuttingAllowanceMm: row.cuttingAllowance,
+      wasSuccessful: true,
+      minLengthMm: row.minLengthMm,
+      stats: {
+        usableScrapsArea: row.usableScrapsArea,
+        usableScrapsPercentage: row.usableScrapsPercentage,
+        remainingFabricArea: row.remainingFabricArea,
+        remainingFabricPercentage: row.remainingAreaPercentage,
+        wasteArea: row.wasteScrapsArea,
+        wastePercentage: row.wasteScrapsPercentage,
+      },
+      placements: placed.map((p) =>
+        this.placeOne(
+          {
+            boundary: this.toOptimizerPoints(PatternsMapper.piecePointsFromGeoJson(p.geojson)),
+            grainline: p.grainline,
+          },
+          {
+            id: p.patternPieceId,
+            rotationAngle: p.rotationAngle,
+            isMirrored: p.isMirrored,
+            isFlipped180: false,
+            x: p.placement.x,
+            y: p.placement.y,
+          },
+          p.placement.x,
+          p.placement.y,
+        ),
+      ),
+    };
   }
 }

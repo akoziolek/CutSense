@@ -52,6 +52,8 @@ export interface EngineResult {
   positions: EnginePosition[];
 }
 
+export type ViewStats = Omit<NestingStats, 'usableScrapCount' | 'remainingFabricLength'>;
+
 export interface OptimizerEngine {
   run(input: EngineInput): Promise<EngineResult>;
 }

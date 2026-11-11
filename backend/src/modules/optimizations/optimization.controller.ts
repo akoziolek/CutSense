@@ -123,27 +123,27 @@ export class OptimizationController {
     return this.optimizationsService.getRun(runId, user?.id);
   }
 
-  // @Post('runs/:runId/save')
-  // @HttpCode(HttpStatus.OK)
-  // @UseGuards(SessionGuard)
-  // @ApiCookieAuth('session')
-  // @ApiOperation({
-  //   summary: 'Save a successful run',
-  //   description: 'Stores the cached run in the current user’s optimizations. Idempotent.',
-  // })
-  // @ApiParam({ name: 'runId', type: String })
-  // @ApiBody({ type: SaveOptimizationDto })
-  // @ApiOkResponse({ schema: { type: 'object', properties: { id: { type: 'number' } } } })
-  // @ApiBadRequestResponse({ description: 'Invalid name or the run was not successful.' })
-  // @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
-  // @ApiNotFoundResponse({ description: 'The run expired, does not exist or belongs to someone else.' })
-  // save(
-  //   @Param('runId', ParseUUIDPipe) runId: string,
-  //   @Body() dto: SaveOptimizationDto,
-  //   @CurrentUser() user: AuthUser,
-  // ): Promise<{ id: number }> {
-  //   return this.optimizationsService.save(runId, dto, user.id);
-  // }
+  @Post('runs/:runId/save')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(SessionGuard)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Save a successful run',
+    description: 'Stores the cached run in the current user’s optimizations. Idempotent.',
+  })
+  @ApiParam({ name: 'runId', type: String })
+  @ApiBody({ type: SaveOptimizationDto })
+  @ApiOkResponse({ schema: { type: 'object', properties: { id: { type: 'number' } } } })
+  @ApiBadRequestResponse({ description: 'Invalid name or the run was not successful.' })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  @ApiNotFoundResponse({ description: 'The run expired, does not exist or belongs to someone else.' })
+  save(
+    @Param('runId', ParseUUIDPipe) runId: string,
+    @Body() dto: SaveOptimizationDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<{ id: number }> {
+    return this.optimizationsService.save(runId, dto, user.id);
+  }
 
 
 
@@ -165,18 +165,18 @@ export class OptimizationController {
   }
 
   // must stay after 'algorithms' and 'defaults'
-  // @Get(':id')
-  // @UseGuards(SessionGuard)
-  // @ApiCookieAuth('session')
-  // @ApiOperation({ summary: 'Get a saved optimization' })
-  // @ApiParam({ name: 'id', type: Number, example: 1 })
-  // @ApiOkResponse({ type: OptimizationViewDto })
-  // @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
-  // @ApiNotFoundResponse({ description: 'The optimization does not exist or is not owned by the current user.' })
-  // getSaved(
-  //   @Param('id', ParseIntPipe) id: number,
-  //   @CurrentUser() user: AuthUser,
-  // ): Promise<OptimizationViewDto> {
-  //   return this.optimizationsService.getSaved(id, user.id);
-  // }
+  @Get(':id')
+  @UseGuards(SessionGuard)
+  @ApiCookieAuth('session')
+  @ApiOperation({ summary: 'Get a saved optimization' })
+  @ApiParam({ name: 'id', type: Number, example: 1 })
+  @ApiOkResponse({ type: OptimizationViewDto })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  @ApiNotFoundResponse({ description: 'The optimization does not exist or is not owned by the current user.' })
+  getSaved(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthUser,
+  ): Promise<OptimizationViewDto> {
+    return this.optimizationsService.getSaved(id, user.id);
+  }
 }

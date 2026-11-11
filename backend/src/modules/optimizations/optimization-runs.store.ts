@@ -42,9 +42,9 @@ export class OptimizationRunsStore {
     return run;
   }
 
-  markSaved(id: string, savedId: number, name: string): void {
+  markSaved(id: string, savedId: number, name: string, userId: number): void {
     const run = this.runs.get(id);
-    if (run) Object.assign(run, { savedId, savedName: name });
+    if (run) Object.assign(run, { savedId, savedName: name, userId });
   }
 
   private evictExpired(): void {

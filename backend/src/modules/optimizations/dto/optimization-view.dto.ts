@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type { NestingStats } from '../../optimizer-engine/optimizer-engine.types.js';
 import { OptimizerFabricInputDto } from './optimizer-input.dto.js';
+import type { ViewStats } from '../../optimizer-engine/optimizer-engine.types.js';
 
 export class PlacementDto {
   @ApiProperty({ description: 'Source pattern piece' })
@@ -61,7 +62,7 @@ export class OptimizationViewDto {
   minLengthMm!: number;
 
   @ApiProperty({ type: 'object', additionalProperties: { type: 'number' } })
-  stats!: NestingStats;
+  stats!: ViewStats;
 
   @ApiProperty({ type: [PlacementDto] })
   placements!: PlacementDto[];

@@ -76,8 +76,10 @@ export class OptimizationsService {
     @Inject(OPTIMIZER_ENGINE) private readonly engine: OptimizerEngine,
     private readonly runs: OptimizationRunsStore,
     private readonly storageService: StorageService,
-    private readonly pendingSaves = new Map<string, Promise<{ id: number }>>()
   ) {}
+
+  private readonly pendingSaves = new Map<string, Promise<{ id: number }>>();
+
 
   getDefaults(): OptimizationDefaultsDto {
     return {

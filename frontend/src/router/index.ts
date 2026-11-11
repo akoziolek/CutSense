@@ -58,14 +58,12 @@ const routes = [
     path: '/optimizations/run/:runId',
     name: 'OptimizationRun',
     component: OptimizationRunPage,
-    props: true,
     meta: { isPublic: true },
   },
   {
     path: '/optimizations/:id(\\d+)',
     name: 'OptimizationDetails',
-    component: ComingSoonPage,
-    props: true,
+    component: OptimizationRunPage,
   },
 
   { path: '/fabrics', name: 'Fabrics', component: FabricsPage },

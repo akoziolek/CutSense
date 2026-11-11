@@ -105,3 +105,12 @@ export interface OptimizationListResponse {
 }
 
 export type OptimizationSort = 'name_asc' | 'name_desc' | 'date_desc' | 'date_asc'
+
+export interface OptimizationStats {
+  usableScrapsArea: number
+  usableScrapsPercentage: number
+  remainingFabricArea: number
+  remainingFabricPercentage: number
+  wasteArea: number
+  wastePercentage: number
+}

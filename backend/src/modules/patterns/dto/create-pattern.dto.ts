@@ -135,3 +135,15 @@ export class CreatePatternDto {
   @Type(() => PieceInputDto)
   pieces!: PieceInputDto[];
 }
+
+export class CreatePatternUploadDto extends CreatePatternDto {
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'string',
+      format: 'binary',
+    },
+    description: 'Pattern photos (PNG, JPG, or WEBP; maximum 5 MB per file).',
+  })
+  pictures!: Express.Multer.File[];
+}

@@ -85,25 +85,17 @@ const handleShapeCreated = (newShapePoints: Point2D[]) => {
   }
 }
 
-const selectTargetAndRestore = (photoIndex: number, shapeId: string, restoredPoints: Point2D[]) => {
+const onUpdateShapePoints = (newPoints: Point2D[]) => {
+  patternStore.updateShapePoints(activePhotoIndex.value, activeShapeIndex.value, newPoints)
+}
+
+const onRestoreTarget = (photoIndex: number, shapeId: string, restoredPoints: Point2D[]) => {
   const shapeIndex = patternStore.findShapeIndex(photoIndex, shapeId)
-  const photoConfig = patternStore.photoConfigs[photoIndex]
-  if (
-    !Number.isInteger(photoIndex) ||
-    !Number.isInteger(shapeIndex) ||
-    shapeIndex < 0 ||
-    !photoConfig?.shapes[shapeIndex]
-  ) {
-    return
-  }
+  if (shapeIndex < 0) return
 
   activePhotoIndex.value = photoIndex
   activeShapeIndex.value = shapeIndex
-  void patternStore
-    .updateShapePoints(photoIndex, shapeIndex, restoredPoints)
-    ?.catch((error: unknown) => {
-      console.error('Failed to persist pattern shape history:', error)
-    })
+  void patternStore.updateShapePoints(photoIndex, shapeIndex, restoredPoints)
   syncWorkspaceState()
 }
 
@@ -144,7 +136,8 @@ const {
     const shapeId = patternStore.getShapeId(activePhotoIndex.value, activeShapeIndex.value)
     return shapeId ? { photoIndex: activePhotoIndex.value, shapeId } : null
   },
-  onSelectTarget: selectTargetAndRestore,
+  onUpdateShapePoints,
+  onRestoreTarget,
   initialPxPerMm: currentPhotoConfig.value?.pxPerMm || 1,
   initialPoints: currentShapes.value[activeShapeIndex.value] || [],
   onShapeCreated: handleShapeCreated,
@@ -248,11 +241,7 @@ const detectPatternBoundary = async (photoIndex: number) => {
       throw new Error('Invalid boundary returned.')
     }
 
-    await patternStore.updatePhotoDimensions(
-      photoIndex,
-      result.imageWidth,
-      result.imageHeight,
-    )
+    await patternStore.updatePhotoDimensions(photoIndex, result.imageWidth, result.imageHeight)
     patternStore.setPhotoShapes(photoIndex, result.shapes)
 
     if (photoIndex === activePhotoIndex.value) {
@@ -263,9 +252,7 @@ const detectPatternBoundary = async (photoIndex: number) => {
     patternStore.setPhotoAnalyzing(photoIndex, false)
     if (photoIndex === activePhotoIndex.value) {
       analysisError.value =
-        error instanceof ApiError
-          ? error.body.message
-          : t('patterns.analysisFailed')
+        error instanceof ApiError ? error.body.message : t('patterns.analysisFailed')
       isErrorModalOpen.value = true
     }
   }

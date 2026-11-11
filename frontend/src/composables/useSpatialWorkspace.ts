@@ -13,7 +13,8 @@ interface useSpatialWorkspaceOptions {
   initialPxPerMm?: number
   initialPoints?: Point2D[]
   getCurrentTarget?: () => { photoIndex: number; shapeId: string } | null
-  onSelectTarget?: (photoIndex: number, shapeId: string, restoredPoints: Point2D[]) => void
+  onUpdateShapePoints?: (points: Point2D[]) => void
+  onRestoreTarget?: (photoIndex: number, shapeId: string, restoredPoints: Point2D[]) => void
   onThreadAngleChange?: (newAngle: number) => void
   currentThreadAngle?: Ref<number>
   onShapeCreated?: (newShape: Point2D[]) => SpatialHistoryAction | void
@@ -27,7 +28,8 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     initialPxPerMm,
     initialPoints,
     getCurrentTarget,
-    onSelectTarget,
+    onRestoreTarget,
+    onUpdateShapePoints,
     onThreadAngleChange,
     currentThreadAngle,
     onShapeCreated,
@@ -72,17 +74,19 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     const beforeCloned = clonePoints(before)
     const afterCloned = clonePoints(after)
 
+    onUpdateShapePoints?.(afterCloned)
+
     recordAction({
       undo: () => {
-        if (target?.shapeId && onSelectTarget) {
-          onSelectTarget(target.photoIndex, target.shapeId, beforeCloned)
+        if (target?.shapeId && onRestoreTarget) {
+          onRestoreTarget(target.photoIndex, target.shapeId, beforeCloned)
         } else {
           points.value = clonePoints(beforeCloned)
         }
       },
       redo: () => {
-        if (target?.shapeId && onSelectTarget) {
-          onSelectTarget(target.photoIndex, target.shapeId, afterCloned)
+        if (target?.shapeId && onRestoreTarget) {
+          onRestoreTarget(target.photoIndex, target.shapeId, afterCloned)
         } else {
           points.value = clonePoints(afterCloned)
         }
@@ -132,7 +136,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     return checkIsNearStart(previewPoint.value)
   })
 
-  
   const cancelDrawing = () => {
     drawingPoints.value = []
     previewPoint.value = null
@@ -387,7 +390,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
       if (point) previewPoint.value = point
       return
     }
-
 
     // moving existing point
     if (draggingPointIndex.value !== null && workspaceRef.value) {

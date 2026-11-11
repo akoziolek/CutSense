@@ -229,7 +229,7 @@ onMounted(() => {
           v-model="fabricName"
           :placeholder="t('fabrics.namePlaceholder')"
           :maxlength="MAX_NAME_LENGTH"
-          class="rounded-md"
+          class="bg-primary-foreground/85! rounded-md"
         />
         <InputGroupAddon align="block-end" class="bg-primary-foreground/85 rounded-md">
           <InputGroupText class="ml-auto text-xs font-mono text-muted-foreground">

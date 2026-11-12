@@ -1,56 +1,70 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { and, eq, gt, lt } from 'drizzle-orm';
+import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
+import { optimizationRuns } from '../../db/schema/schema.js';
 import type { EngineResult } from '../optimizer-engine/optimizer-engine.types.js';
 import type { OptimizerInputDto } from './dto/optimizer-input.dto.js';
 
 export interface StoredRun {
   id: string;
-  userId: number | null; // null = started by a guest
+  userId: number | null;
   input: OptimizerInputDto;
-  result: EngineResult; // already converted to millimetres
+  result: EngineResult;
   expiresAt: number;
   savedId?: number;
   savedName?: string;
 }
 
 const TTL_MS = 60 * 60 * 1000;
-const MAX_RUNS = 500;
 
 @Injectable()
 export class OptimizationRunsStore {
-  private readonly runs = new Map<string, StoredRun>();
+  private readonly logger = new Logger(OptimizationRunsStore.name);
 
-  put(run: Pick<StoredRun, 'userId' | 'input' | 'result'>): string {
-    this.evictExpired();
-    while (this.runs.size >= MAX_RUNS) {
-      const oldest = this.runs.keys().next().value;
-      if (oldest === undefined) break;
-      this.runs.delete(oldest);
-    }
+  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+
+  async put(run: Pick<StoredRun, 'userId' | 'input' | 'result'>): Promise<string> {
     const id = randomUUID();
-    this.runs.set(id, { ...run, id, expiresAt: Date.now() + TTL_MS });
+    await this.db.insert(optimizationRuns).values({
+      id,
+      userId: run.userId,
+      input: run.input,
+      result: run.result,
+      expiresAt: new Date(Date.now() + TTL_MS),
+    });
     return id;
   }
 
-  get(id: string): StoredRun | undefined {
-    const run = this.runs.get(id);
-    if (!run) return undefined;
-    if (run.expiresAt < Date.now()) {
-      this.runs.delete(id);
-      return undefined;
-    }
-    return run;
+  async get(id: string): Promise<StoredRun | undefined> {
+    const [row] = await this.db
+      .select()
+      .from(optimizationRuns)
+      .where(and(eq(optimizationRuns.id, id), gt(optimizationRuns.expiresAt, new Date())))
+      .limit(1);
+    if (!row) return undefined;
+    return {
+      id: row.id,
+      userId: row.userId,
+      input: row.input,
+      result: row.result,
+      expiresAt: row.expiresAt.getTime(),
+      savedId: row.savedId ?? undefined,
+      savedName: row.savedName ?? undefined,
+    };
   }
 
-  markSaved(id: string, savedId: number, name: string, userId: number): void {
-    const run = this.runs.get(id);
-    if (run) Object.assign(run, { savedId, savedName: name, userId });
-  }
-
-  private evictExpired(): void {
-    const now = Date.now();
-    for (const [id, run] of this.runs) {
-      if (run.expiresAt < now) this.runs.delete(id);
+  async evictExpired(): Promise<number> {
+      try {
+        const result = await this.db
+          .delete(optimizationRuns)
+          .where(lt(optimizationRuns.expiresAt, new Date()))
+          .returning({ id: optimizationRuns.id });
+        
+        return result.length;
+      } catch (e) {
+        this.logger.warn(`Could not evict expired runs: ${String(e)}`);
+        return 0;
+      }
     }
-  }
 }

@@ -119,7 +119,7 @@ export class OptimizationController {
   getRun(
     @Param('runId', ParseUUIDPipe) runId: string,
     @OptionalUser() user?: AuthUser,
-  ): OptimizationViewDto {
+  ): Promise<OptimizationViewDto> {
     return this.optimizationsService.getRun(runId, user?.id);
   }
 

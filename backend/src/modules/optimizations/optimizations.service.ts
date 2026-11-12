@@ -5,6 +5,7 @@ import {
   algorithmTypes,
   fabrics,
   optimizationResults,
+  optimizationRuns,
   patternPieces,
   patterns,
   placedPieces,
@@ -78,8 +79,6 @@ export class OptimizationsService {
     private readonly storageService: StorageService,
   ) {}
 
-  private readonly pendingSaves = new Map<string, Promise<{ id: number }>>();
-
 
   getDefaults(): OptimizationDefaultsDto {
     return {
@@ -102,28 +101,32 @@ export class OptimizationsService {
     }));
   }
 
-  async run(dto: CreateOptimizationDto, currentUserId?: number): Promise<OptimizationViewDto> {
-    const input = await this.prepareOptimization(dto, currentUserId);
-    const engineInput = toEngineInput(input, ENGINE_ALGORITHM_IDS[input.algorithmName]!);
-    console.log('--- ENGINE INPUT ---', JSON.stringify(engineInput, null, 2));
-    const rawEngineResult = await this.engine.run(engineInput);
-    console.log('--- RAW ENGINE RESULT ---', JSON.stringify(rawEngineResult, null, 2));
-    const result = fromEngineResult(rawEngineResult);
+async run(dto: CreateOptimizationDto, currentUserId?: number): Promise<OptimizationViewDto> {
+  const input = await this.prepareOptimization(dto, currentUserId);
+  const engineInput = toEngineInput(input, ENGINE_ALGORITHM_IDS[input.algorithmName]!);
+  const result = fromEngineResult(await this.engine.run(engineInput));
 
-    const runId = this.runs.put({ userId: currentUserId ?? null, input, result });
-    
-    return this.toView(this.sourceFromInput(input, result), { runId, isSaved: false });
-  }
+  const runId = await this.runs.put({ userId: currentUserId ?? null, input, result });
+  return this.toView(this.sourceFromInput(input, result), { runId, isSaved: false });
+}
 
-  getRun(runId: string, currentUserId?: number): OptimizationViewDto {
-    const run = this.findRun(runId, currentUserId);
-    return this.toView(this.sourceFromInput(run.input, run.result), {
-      runId,
-      id: run.savedId,
-      name: run.savedName,
-      isSaved: run.savedId !== undefined,
-    });
+async getRun(runId: string, currentUserId?: number): Promise<OptimizationViewDto> {
+  const run = await this.findRun(runId, currentUserId);
+  return this.toView(this.sourceFromInput(run.input, run.result), {
+    runId,
+    id: run.savedId,
+    name: run.savedName,
+    isSaved: run.savedId !== undefined,
+  });
+}
+
+private async findRun(runId: string, currentUserId?: number) {
+  const run = await this.runs.get(runId);
+  if (!run || (run.userId !== null && run.userId !== currentUserId)) {
+    throw new ResourceNotFoundException('Optimization run', runId);
   }
+  return run;
+}
 
   async getOptimizations(
     query: ListOptimizationsQueryDto,
@@ -301,14 +304,6 @@ export class OptimizationsService {
     };
   }
 
-  private findRun(runId: string, currentUserId?: number) {
-    const run = this.runs.get(runId);
-    if (!run || (run.userId !== null && run.userId !== currentUserId)) {
-      throw new ResourceNotFoundException('Optimization run', runId);
-    }
-    return run;
-  }
-
   private sourceFromInput(input: OptimizerInputDto, result: EngineResult): ViewSource {
     return {
       algorithmName: input.algorithmName,
@@ -324,8 +319,6 @@ export class OptimizationsService {
       result,
     };
   }
-
-  
 
   private toView(src: ViewSource, extra: ViewExtra): OptimizationViewDto {
     const allowanceMm = src.seamAllowanceMm + src.cuttingAllowanceMm;
@@ -448,28 +441,13 @@ export class OptimizationsService {
     };
   }
 
-  async save(
-    runId: string,
-    dto: SaveOptimizationDto,
-    currentUserId: number,
-  ): Promise<{ id: number }> {
-    const run = this.findRun(runId, currentUserId);
-    if (run.savedId !== undefined) return { id: run.savedId }; // idempotent
+  async save(runId: string, dto: SaveOptimizationDto, currentUserId: number): Promise<{ id: number }> {
+    const run = await this.findRun(runId, currentUserId);
+    if (run.savedId !== undefined) return { id: run.savedId };
     if (!run.result.wasSuccessful) {
       throw new RequestValidationException('Only a successful optimization can be saved.');
     }
-
-    const pending = this.pendingSaves.get(runId);
-    if (pending) return pending;
-
-    const saving = this.persistRun(run, dto.name, currentUserId)
-      .then((id) => {
-        this.runs.markSaved(runId, id, dto.name, currentUserId);
-        return { id };
-      })
-      .finally(() => this.pendingSaves.delete(runId));
-    this.pendingSaves.set(runId, saving);
-    return saving;
+    return { id: await this.persistRun(run, dto.name, currentUserId) };
   }
 
   private async persistRun(run: StoredRun, name: string, userId: number): Promise<number> {
@@ -481,6 +459,15 @@ export class OptimizationsService {
 
     try {
       return await this.db.transaction(async (tx) => {
+        const [locked] = await tx
+          .select({ userId: optimizationRuns.userId, savedId: optimizationRuns.savedId })
+          .from(optimizationRuns)
+          .where(eq(optimizationRuns.id, run.id))
+          .for('update');
+        if (!locked || (locked.userId !== null && locked.userId !== userId)) {
+          throw new ResourceNotFoundException('Optimization run', run.id);
+        }
+        if (locked.savedId !== null) return locked.savedId;
         const [created] = await tx
           .insert(optimizationResults)
           .values({
@@ -511,17 +498,21 @@ export class OptimizationsService {
             placements.map((p) => ({
               patternPieceId: p.patternPieceId,
               optimizationResultId: created.id,
-              // the 180° flip is folded into the angle (placePiece adds them anyway)
               rotationAngle: (p.rotationAngle + (p.isFlipped180 ? 180 : 0)) % 360,
               isMirrored: p.isMirrored,
               placement: { x: p.x, y: p.y },
             })),
           );
         }
+
+        await tx
+          .update(optimizationRuns)
+          .set({ savedId: created.id, savedName: name, userId })
+          .where(eq(optimizationRuns.id, run.id));
+
         return created.id;
       });
     } catch (e) {
-      // pattern / fabric deleted while the run was cached
       const err = ((e as { cause?: unknown }).cause ?? e) as { code?: string };
       if (err.code === '23503') throw new ResourceNotFoundException('Pattern', input.patternId);
       throw e;

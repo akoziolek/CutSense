@@ -113,6 +113,13 @@
       "when": 1794327216284,
       "tag": "0015_add_optimization_results_missing_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794524021082,
+      "tag": "0016_add_optimization_runs_table",
+      "breakpoints": true
     }
   ]
 }

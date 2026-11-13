@@ -46,17 +46,6 @@ export class AuthService {
     }
   }
 
-  async getCurrentUser(id: number) {
-    const user = await this.users.findById(id);
-    if (!user) throw new AuthenticationRequiredException('User not found');
-    return {
-      id: user.id,
-      nickname: user.nickname,
-      email: user.email,
-      avatar: user.pictureUrl,
-    };
-  }
-
   signSession(userId: number): string {
     return this.jwt.sign(
       { sub: String(userId), purpose: 'session' },

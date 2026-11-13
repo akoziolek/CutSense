@@ -33,9 +33,6 @@ import type { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { EditPatternDto } from './dto/edit-pattern.dto.js';
 import { PatternsMapper } from './patterns.mapper.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
-import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
-import { rotateAndAnchor } from '../../common/geometry/shapes-geometry.js';
-import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';
 import { AnalysisShapesDto } from '../shapes-engine/dto/analysis-shapes.dto.js';
 import { ShapeEngineMapper } from '../shapes-engine/shapes-engine.mapper.js';
 import { ShapesEngineClient } from '../shapes-engine/shapes-engine.client.js';
@@ -46,7 +43,7 @@ import {
   ListPatternsQueryDto,
   PatternSortOption,
 } from './dto/list-patterns-query.dto.js';
-import { assertDateRange, likePattern } from '../../common/utils/list-query.js';
+import { assertDateRange, likeTerm } from '../../common/utils/list-query.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { patternFavourites } from '../../db/schema/schema.js';
 import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
@@ -173,7 +170,12 @@ export class PatternsService {
           orderBy: (img, { asc }) => [asc(img.orderIndex), asc(img.id)],
           with: {
             pieces: {
-              columns: { id: true, grainline: true, normalCount: true, mirroredCount: true },
+              columns: {
+                id: true,
+                grainline: true,
+                normalCount: true,
+                mirroredCount: true,
+              },
               extras: (piece, { sql }) => ({
                 geojson: sql<string>`ST_AsGeoJSON(${piece.boundary})`.as(
                   'geojson',
@@ -208,7 +210,7 @@ export class PatternsService {
     dto: CreatePatternDto,
     photos: Express.Multer.File[],
     userId: number,
-  ): Promise<{ id: number }> {
+  ): Promise<PatternResponseDto> {
     if (
       photos.length !== dto.images.length ||
       dto.pieces.some((piece) => piece.imageIndex >= photos.length)
@@ -220,6 +222,7 @@ export class PatternsService {
 
     const tagNames = [...new Set(dto.tags.map((t) => t.trim().toLowerCase()))];
     const uploadedKeys: string[] = [];
+    let createdPatternId: number;
 
     try {
       for (const photo of photos) {
@@ -231,7 +234,7 @@ export class PatternsService {
         );
       }
 
-      return await this.db.transaction(async (tx) => {
+      createdPatternId = await this.db.transaction(async (tx) => {
         const tagRows = tagNames.length
           ? await tx
               .select({ id: tagsForPatterns.id, name: tagsForPatterns.name })
@@ -257,7 +260,7 @@ export class PatternsService {
             visibility: dto.visibility,
             userId,
           })
-          .returning({ id: patterns.id });
+          .returning();
 
         if (!created) {
           throw new Error(
@@ -320,7 +323,7 @@ export class PatternsService {
           }),
         );
 
-        return { id: created.id };
+        return created.id;
       });
     } catch (error) {
       await Promise.allSettled(
@@ -329,6 +332,8 @@ export class PatternsService {
 
       throw error;
     }
+
+    return this.getPatternById(createdPatternId, userId);
   }
 
   async getPatternTags(): Promise<PatternTagDto[]> {
@@ -502,7 +507,7 @@ export class PatternsService {
           .where(inArray(patternTags.tagId, tagIds))
       : undefined;
 
-    const pattern = likePattern(query.q);
+    const pattern = likeTerm(query.q);
 
     return and(
       visible,

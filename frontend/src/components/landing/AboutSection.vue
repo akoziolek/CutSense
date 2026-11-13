@@ -1,4 +1,7 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import patternPreview from '@/assets/images/pattern-preview.png'
+import AppImage from '../common/AppImage.vue';
+</script>
 
 <template>
   <section class="w-full max-w-6xl mx-auto px-6 sm:px-10 py-16 sm:py-24">
@@ -20,10 +23,10 @@
         <div class="relative w-full max-w-md lg:max-w-none rounded-sm p-4 bg-brand-violet shadow-lg">
           <div class="rounded-sm overflow-hidden">
             <!-- TODO - find a better image -->
-            <img
-              src="@/assets/images/pattern-preview.png"
+             <AppImage
+              :src='patternPreview'
               :alt="$t('landing.patternPreview')"
-              class="w-full h-auto object-cover select-none"
+              class="w-full h-auto object-cover select-none aspect-square"
             />
           </div>
         </div>

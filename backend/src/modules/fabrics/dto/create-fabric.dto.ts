@@ -14,7 +14,10 @@ import {
   IsPositive,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { TransformJson, TransformJsonToInstance } from '../../../common/decorators/transform-json.decorator.js';
+import {
+  TransformJson,
+  TransformJsonToInstance,
+} from '../../../common/decorators/transform-json.decorator.js';
 
 const COORD_LIMIT = 1_000_000;
 
@@ -120,4 +123,13 @@ export class CreateFabricDto {
   @IsInt({ each: true })
   @IsPositive({ each: true })
   tagIds?: number[];
+}
+
+export class CreateFabricUploadDto extends CreateFabricDto {
+  @ApiProperty({
+    type: 'string',
+    format: 'binary',
+    description: 'Fabric photo (PNG, JPG, or WEBP; maximum 5 MB).',
+  })
+  picture!: Express.Multer.File;
 }

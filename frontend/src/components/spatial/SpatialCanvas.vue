@@ -136,16 +136,21 @@ const isLabelVisible = (shapeIdx: number, edgeIdx: number): boolean => {
 const handleWheel = (e: WheelEvent) => {
   e.preventDefault()
 
-  // pinch zoom
   if (e.ctrlKey) {
     const zoomDelta = e.deltaY < 0 ? 0.085 : -0.085
-    const newZoom = Math.min(Math.max(0.5, props.zoomLevel + zoomDelta), 3.5)
+    const newZoom = Math.min(Math.max(0.5, props.zoomLevel + zoomDelta), 5.5)
     emit('update:zoomLevel', Number(newZoom.toFixed(2)))
     return
   }
-  const maxOffset = 200 * (props.zoomLevel - 0.5)
+
   const rawOffsetX = props.canvasOffset.x - e.deltaX
   const rawOffsetY = props.canvasOffset.y - e.deltaY
+
+  const maxImgDimension = Math.max(
+    imageDimensions.value.width,
+    imageDimensions.value.height,
+  ) || 500
+ const maxOffset = (maxImgDimension / 2) * props.zoomLevel + 100
 
   const clampedX = Math.min(Math.max(rawOffsetX, -maxOffset), maxOffset)
   const clampedY = Math.min(Math.max(rawOffsetY, -maxOffset), maxOffset)
@@ -155,7 +160,6 @@ const handleWheel = (e: WheelEvent) => {
     y: Number(clampedY.toFixed(1)),
   })
 }
-
 const handleMouseDown = (e: MouseEvent) => {
   if (e.button === 1 || props.isMoveMode) {
     emit('canvasDragStart', e)
@@ -275,16 +279,7 @@ defineExpose({
           preserveAspectRatio="none"
           class="absolute inset-0 w-full h-full z-30 pointer-events-none"
         >
-          <g
-            v-for="(shape, shapeIdx) in props.shapes"
-            :key="'shape-' + shapeIdx"
-            v-memo="[
-              shape,
-              shapeIdx === activeShapeIndex,
-              shapeIdx === hoveredShapeIndex,
-              selectedEdgeIndex,
-            ]"
-          >
+          <g v-for="(shape, shapeIdx) in props.shapes" :key="'shape-' + shapeIdx">
             <polygon
               v-if="shape.length >= 3"
               :points="shape.map((p) => `${p.pctX},${p.pctY}`).join(' ')"
@@ -391,10 +386,7 @@ defineExpose({
         <!-- LAYER 3 OVERLAY - POINTS, LENGTHS -->
         <div class="absolute inset-0 w-full h-full z-40 pointer-events-none">
           <!-- visible point, reverse transform -->
-          <template
-            v-for="(shape, shapeIdx) in props.shapes"
-            :key="'points-group-' + shapeIdx"
-          >
+          <template v-for="(shape, shapeIdx) in props.shapes" :key="'points-group-' + shapeIdx">
             <div
               v-for="(pt, ptIdx) in shape"
               :key="'pt-' + shapeIdx + '-' + ptIdx"
@@ -409,6 +401,19 @@ defineExpose({
                     ? 'w-2 h-2 border-violet-600 bg-background hover:scale-125 z-40'
                     : 'w-1.5 h-1.5 border-violet-400/60 bg-muted hover:bg-violet-500 hover:scale-125 z-30',
               ]"
+              :style="{
+                left: `${pt.pctX}%`,
+                top: `${pt.pctY}%`,
+                transform:
+                  'translate(-50%, -50%) scale(var(--inverse-zoom)) rotate(var(--inverse-rotation))',
+              }"
+              @mousedown.stop.prevent="handlePointMouseDown(shapeIdx, ptIdx, $event)"
+              @click.stop.prevent
+            />
+            <div
+              v-for="(pt, ptIdx) in shape"
+              :key="'pt-hitbox-' + shapeIdx + '-' + ptIdx"
+              class="absolute rounded-full pointer-events-auto opacity-0 w-6 h-6 cursor-grab active:cursor-grabbing z-50"
               :style="{
                 left: `${pt.pctX}%`,
                 top: `${pt.pctY}%`,

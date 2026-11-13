@@ -33,6 +33,7 @@ import { ShapeEngineResponseDto } from '../shapes-engine/dto/shapes-engine-respo
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 import { gte, lte, ilike } from 'drizzle-orm';
+import { assertDateRange, likeTerm } from '../../common/utils/list-query.js';
 
 @Injectable()
 export class FabricService {
@@ -75,20 +76,19 @@ export class FabricService {
     currentUserId: number,
   ): Promise<FabricResponseDto> {
     const selectedTagIds = [...new Set(createFabricDto.tagIds ?? [])];
-    const selectedTags = selectedTagIds.length
-      ? await this.db.query.tagsForFabrics.findMany({
-          where: inArray(tagsForFabrics.id, selectedTagIds),
-          columns: { id: true, name: true },
-        })
-      : [];
+    if (selectedTagIds.length > 0) {
+      const existingTags = await this.db.query.tagsForFabrics.findMany({
+        where: inArray(tagsForFabrics.id, selectedTagIds),
+        columns: { id: true },
+      });
 
-    if (selectedTags.length !== selectedTagIds.length) {
-      throw new RequestValidationException(
-        'One or more selected fabric tags do not exist.',
-      );
+      if (existingTags.length !== selectedTagIds.length) {
+        throw new RequestValidationException(
+          'One or more selected fabric tags do not exist.',
+        );
+      }
     }
 
-    const points = [...createFabricDto.boundary];
     const polygonWkt = pointsToWktPolygon(createFabricDto.boundary);
     const geometry = sql`ST_MakeValid(ST_SimplifyPreserveTopology(ST_ForcePolygonCCW(ST_GeomFromText(${polygonWkt}, 0)), 0))`;
     const pictureS3Key = await this.storageService.uploadFile(
@@ -96,9 +96,10 @@ export class FabricService {
       StoragePaths.fabrics(currentUserId),
     );
 
-    let fabric: typeof fabrics.$inferSelect;
+    let createdFabricId: number;
+
     try {
-      fabric = await this.db.transaction(async (transaction) => {
+      createdFabricId = await this.db.transaction(async (transaction) => {
         const [createdFabric] = await transaction
           .insert(fabrics)
           .values({
@@ -112,7 +113,7 @@ export class FabricService {
             areaMm2: sql<number>`ROUND(ST_Area(${geometry}))::bigint`,
             userId: currentUserId,
           })
-          .returning();
+          .returning({ id: fabrics.id });
 
         if (!createdFabric) {
           throw new Error('Fabric creation did not return the created fabric.');
@@ -127,25 +128,14 @@ export class FabricService {
           );
         }
 
-        return createdFabric;
+        return createdFabric.id;
       });
     } catch (error) {
       await this.storageService.deleteFile(pictureS3Key);
       throw error;
     }
 
-    const pictureUrl = await this.storageService.generatePresignedUrl(
-      fabric.pictureS3Key,
-    );
-
-    return FabricMapper.toResponseDto(
-      {
-        ...fabric,
-        boundary: points,
-        tags: selectedTags.map((tag) => ({ tag })),
-      },
-      pictureUrl,
-    );
+    return this.getFabricById(createdFabricId, currentUserId);
   }
 
   async updateFabric(
@@ -209,14 +199,15 @@ export class FabricService {
 
       if (selectedTagIds !== undefined) {
         await tx.delete(fabricTags).where(eq(fabricTags.fabricId, fabricId));
-      }
-      if (selectedTagIds && selectedTagIds.length > 0) {
-        await tx.insert(fabricTags).values(
-          selectedTagIds.map((tagId) => ({
-            fabricId: fabricId,
-            tagId,
-          })),
-        );
+
+        if (selectedTagIds.length > 0) {
+          await tx.insert(fabricTags).values(
+            selectedTagIds.map((tagId) => ({
+              fabricId,
+              tagId,
+            })),
+          );
+        }
       }
     });
 
@@ -397,16 +388,8 @@ export class FabricService {
   private buildWhere(query: ListFabricsQueryDto, currentUserId: number): SQL {
     const { createdFrom, createdTo, favourite, tagIds, areaMin, areaMax } =
       query;
+    assertDateRange(createdFrom, createdTo);
 
-    if (
-      createdFrom &&
-      createdTo &&
-      new Date(createdFrom) > new Date(createdTo)
-    ) {
-      throw new RequestValidationException(
-        'createdFrom must not be later than createdTo.',
-      );
-    }
     if (areaMin !== undefined && areaMax !== undefined && areaMin > areaMax) {
       throw new RequestValidationException(
         'areaMin must not be greater than areaMax.',
@@ -420,10 +403,7 @@ export class FabricService {
           .where(inArray(fabricTags.tagId, tagIds))
       : undefined;
 
-    const escapeLike = (text: string) => text.replace(/[\\%_]/g, '\\$&');
-
-    const term = query.q?.trim();
-    const pattern = term ? `%${escapeLike(term)}%` : undefined;
+    const pattern = likeTerm(query.q);
 
     return and(
       eq(fabrics.userId, currentUserId),

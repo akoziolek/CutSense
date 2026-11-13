@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Plus,
 } from 'lucide-vue-next'
+import AppImage from '../common/AppImage.vue'
 
 interface Props {
   multiple?: boolean
@@ -194,7 +195,11 @@ onUnmounted(() => {
           <span class="font-normal text-muted-foreground">{{ t('common.upload.orDragDrop') }}</span>
         </p>
         <p class="text-xs text-muted-foreground">
-          {{ props.multiple ? t('common.upload.highResolutionPhotos') : t('common.upload.highResolutionPhoto') }}
+          {{
+            props.multiple
+              ? t('common.upload.highResolutionPhotos')
+              : t('common.upload.highResolutionPhoto')
+          }}
           {{ t('common.upload.supportedFormats', { maxSizeMb: props.maxSizeMb }) }}
         </p>
       </div>
@@ -247,11 +252,12 @@ onUnmounted(() => {
           </Button>
         </template>
 
-        <img
+        <AppImage
           v-if="previewUrls[activeIndex]"
           :src="previewUrls[activeIndex]"
           :alt="currentFile?.name"
-          class="w-full h-full object-contain p-3 block"
+          class="w-full h-full p-3 block"
+          :picture-fit="'object-contain'"
         />
         <div v-else class="flex flex-col items-center text-muted-foreground p-6">
           <FileImage class="h-12 w-12 mb-2 stroke-1" />
@@ -313,7 +319,7 @@ onUnmounted(() => {
               : 'border-transparent opacity-60 hover:opacity-100',
           ]"
         >
-          <img :src="url" :alt="files[idx]?.name" class="w-full h-full object-cover" />
+          <AppImage v-if="url" :src="url" :alt="currentFile?.name" img-class="object-cover p-3" />
         </button>
       </div>
     </div>

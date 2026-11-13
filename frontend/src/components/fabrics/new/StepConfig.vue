@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch, nextTick } from 'vue'
 import { toast } from 'vue-sonner'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
 import { useSpatialWorkspace } from '@/composables/useSpatialWorkspace'
@@ -88,9 +88,9 @@ const loadSavedConfig = () => {
     imageRotation.value = fabricStore.config.rotation
   }
 
-  setTimeout(() => {
+  void nextTick(() => {
     isSyncing = false
-  }, 50)
+  })
 }
 
 const detectFabricBoundary = async () => {
@@ -131,14 +131,12 @@ const detectFabricBoundary = async () => {
   } catch (error) {
     console.error('Failed to analyze fabric photo:', error)
     analysisError.value =
-      error instanceof ApiError
-        ? error.body.message
-        : t('fabrics.analysisFailed')
+      error instanceof ApiError ? error.body.message : t('fabrics.analysisFailed')
     isErrorModalOpen.value = true
   } finally {
-    setTimeout(() => {
+    void nextTick(() => {
       isSyncing = false
-    }, 50)
+    })
     isAnalyzing.value = false
   }
 }
@@ -160,7 +158,7 @@ const handleImageLoaded = (image?: HTMLImageElement) => {
 
 const handleSubmit = async () => {
   if (!fabricStore.file) {
-    toast.error(t("fabrics.photoNotReady"))
+    toast.error(t('fabrics.photoNotReady'))
     return
   }
 
@@ -262,9 +260,7 @@ onMounted(() => {
         :is-move-mode="isMoveMode"
         :is-dragging-canvas="isDraggingCanvas"
         :is-interactive-dragging="isInteractiveDragging"
-        @activate-and-select-edge="
-          ({ edgeIndex, event }) => handleEdgeMouseDown(edgeIndex, event)
-        "
+        @activate-and-select-edge="({ edgeIndex, event }) => handleEdgeMouseDown(edgeIndex, event)"
         @select-point="
           (idx) => {
             selectedPointIndex = idx
@@ -301,7 +297,7 @@ onMounted(() => {
       :title="$t('fabrics.imageProcessError')"
       :description="$t('fabrics.imageProcessDescription')"
       :open="isErrorModalOpen"
-      confirmLabel="I understand"
+      :confirmLabel="$t('common.actions.gotIt')"
       fullWidthButton
       @confirm="handleConfirm"
     />

@@ -44,12 +44,59 @@ let currentSyncedPhotoIndex = 0
 let currentSyncedShapeIndex = 0
 
 const handleShapeCreated = (newShapePoints: Point2D[]) => {
-  const newShapeIdx = patternStore.addShape(activePhotoIndex.value, newShapePoints)
+  const photoIdx = activePhotoIndex.value
+  const shapeId = crypto.randomUUID()
+  const addedShapeIndex = patternStore.addShape(photoIdx, newShapePoints, shapeId)
 
-  if (typeof newShapeIdx === 'number') {
-    activeShapeIndex.value = newShapeIdx
+  if (typeof addedShapeIndex === 'number') {
+    let shapeIdx = addedShapeIndex
+    const shapePoints = JSON.parse(JSON.stringify(newShapePoints))
+
+    const doAdd = () => {
+      if (patternStore.findShapeIndex(photoIdx, shapeId) === -1) {
+        patternStore.insertShapeAtIndex(photoIdx, shapeIdx, shapePoints, shapeId)
+      }
+      shapeIdx = patternStore.findShapeIndex(photoIdx, shapeId)
+      activePhotoIndex.value = photoIdx
+      activeShapeIndex.value = shapeIdx
+      syncWorkspaceState()
+    }
+
+    const doRemove = () => {
+      const removedIndex = patternStore.removeShapeById(photoIdx, shapeId)
+      if (photoIdx === activePhotoIndex.value) {
+        const remainingShapes = patternStore.photoConfigs[photoIdx]?.shapes.length || 0
+        activeShapeIndex.value = Math.max(
+          0,
+          Math.min((removedIndex ?? shapeIdx) - 1, remainingShapes - 1),
+        )
+        syncWorkspaceState()
+      }
+    }
+
+    activePhotoIndex.value = photoIdx
+    activeShapeIndex.value = shapeIdx
     syncWorkspaceState()
+
+    return {
+      undo: doRemove,
+      redo: doAdd,
+    }
   }
+}
+
+const onUpdateShapePoints = (newPoints: Point2D[]) => {
+  patternStore.updateShapePoints(activePhotoIndex.value, activeShapeIndex.value, newPoints)
+}
+
+const onRestoreTarget = (photoIndex: number, shapeId: string, restoredPoints: Point2D[]) => {
+  const shapeIndex = patternStore.findShapeIndex(photoIndex, shapeId)
+  if (shapeIndex < 0) return
+
+  activePhotoIndex.value = photoIndex
+  activeShapeIndex.value = shapeIndex
+  void patternStore.updateShapePoints(photoIndex, shapeIndex, restoredPoints)
+  syncWorkspaceState()
 }
 
 const {
@@ -82,8 +129,15 @@ const {
   updateOriginalPoints,
   setImageDimensions,
   cancelDrawing,
+  recordAction,
 } = useSpatialWorkspace({
   workspaceRef,
+  getCurrentTarget: () => {
+    const shapeId = patternStore.getShapeId(activePhotoIndex.value, activeShapeIndex.value)
+    return shapeId ? { photoIndex: activePhotoIndex.value, shapeId } : null
+  },
+  onUpdateShapePoints,
+  onRestoreTarget,
   initialPxPerMm: currentPhotoConfig.value?.pxPerMm || 1,
   initialPoints: currentShapes.value[activeShapeIndex.value] || [],
   onShapeCreated: handleShapeCreated,
@@ -187,11 +241,7 @@ const detectPatternBoundary = async (photoIndex: number) => {
       throw new Error('Invalid boundary returned.')
     }
 
-    await patternStore.updatePhotoDimensions(
-      photoIndex,
-      result.imageWidth,
-      result.imageHeight,
-    )
+    await patternStore.updatePhotoDimensions(photoIndex, result.imageWidth, result.imageHeight)
     patternStore.setPhotoShapes(photoIndex, result.shapes)
 
     if (photoIndex === activePhotoIndex.value) {
@@ -202,9 +252,7 @@ const detectPatternBoundary = async (photoIndex: number) => {
     patternStore.setPhotoAnalyzing(photoIndex, false)
     if (photoIndex === activePhotoIndex.value) {
       analysisError.value =
-        error instanceof ApiError
-          ? error.body.message
-          : t('patterns.analysisFailed')
+        error instanceof ApiError ? error.body.message : t('patterns.analysisFailed')
       isErrorModalOpen.value = true
     }
   }
@@ -228,25 +276,45 @@ const handleToggleVisibility = (photoIndex: number, shapeIndex: number) => {
 }
 
 const handleDeleteShape = (photoIdx: number, shapeIdx: number) => {
-  patternStore.removeShape(photoIdx, shapeIdx)
+  const photoConfig = patternStore.photoConfigs[photoIdx]
+  const shapePoints = photoConfig?.shapes[shapeIdx]
+  const shapeId = patternStore.getShapeId(photoIdx, shapeIdx)
+  if (!shapePoints || shapePoints.length < 3 || !shapeId) return
 
-  if (photoIdx === activePhotoIndex.value) {
-    const remainingShapes = patternStore.photoConfigs[photoIdx]?.shapes.length || 0
-    if (remainingShapes === 0) {
-      activeShapeIndex.value = 0
-    } else if (activeShapeIndex.value >= remainingShapes) {
-      activeShapeIndex.value = remainingShapes - 1
+  const deletedPoints = JSON.parse(JSON.stringify(shapePoints))
+
+  const doDelete = () => {
+    const removedIndex = patternStore.removeShapeById(photoIdx, shapeId)
+    if (photoIdx === activePhotoIndex.value) {
+      const remainingShapes = patternStore.photoConfigs[photoIdx]?.shapes.length || 0
+      if (remainingShapes === 0) {
+        activeShapeIndex.value = 0
+      } else if (activeShapeIndex.value >= (removedIndex ?? shapeIdx)) {
+        activeShapeIndex.value = Math.max(
+          0,
+          Math.min((removedIndex ?? shapeIdx) - 1, remainingShapes - 1),
+        )
+      }
+      syncWorkspaceState()
     }
+  }
+
+  const doRestore = () => {
+    patternStore.insertShapeAtIndex(photoIdx, shapeIdx, deletedPoints, shapeId)
+    activePhotoIndex.value = photoIdx
+    activeShapeIndex.value = patternStore.findShapeIndex(photoIdx, shapeId)
     syncWorkspaceState()
   }
+
+  doDelete()
+  recordAction({
+    undo: doRestore,
+    redo: doDelete,
+  })
 }
 
 const handleDeleteSelected = () => {
-  if (selectedPointIndex.value !== null || selectedEdgeIndex.value !== null) {
-    deleteSelected()
-  } else {
-    handleDeleteShape(activePhotoIndex.value, activeShapeIndex.value)
-  }
+  deleteSelected(() => handleDeleteShape(activePhotoIndex.value, activeShapeIndex.value))
 }
 
 const handleActivateAndDragPoint = ({

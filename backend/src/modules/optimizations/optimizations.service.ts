@@ -12,7 +12,6 @@ import {
 } from '../../db/schema/schema.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
-import { placePiece } from '../../common/geometry/shapes-geometry.js';
 import { FabricMapper } from '../fabrics/fabric.mapper.js';
 import { PatternsMapper } from '../patterns/patterns.mapper.js';
 import type { CreateOptimizationDto } from './dto/create-optimization.dto.js';
@@ -34,11 +33,9 @@ import {
 import { OptimizationRunsStore } from './optimization-runs.store.js';
 import {
   OPTIMIZER_ENGINE,
-  type EngineResult,
   type OptimizerEngine,
 } from '../optimizer-engine/optimizer-engine.types.js';
 import {
-  fabricOriginYMm,
   fromEngineResult,
   toEngineInput,
 } from '../optimizer-engine/optimizer-engine.mapper.js';
@@ -52,23 +49,9 @@ import {
 import type { OptimizationListResponseDto } from './dto/optimization-list.dto.js';
 import type { StoredRun } from './optimization-runs.store.js';
 import type { SaveOptimizationDto } from './dto/save-optimization.dto.js';
-import type { PlacementDto } from './dto/optimization-view.dto.js';
-import type { EnginePosition } from '../optimizer-engine/optimizer-engine.types.js';
+import { OptimizationViewMapper } from './optimization-view.mapper.js';
 
 const isSet = (value: unknown) => value !== undefined && value !== null;
-
-interface ViewSource {
-  algorithmName: string;
-  fabric: OptimizerFabricInputDto;
-  seamAllowanceMm: number;
-  cuttingAllowanceMm: number;
-  geometry: Map<number, { boundary: OptimizerPointDto[]; grainline: number }>;
-  result: EngineResult;
-}
-
-type ViewExtra = Partial<Pick<OptimizationViewDto, 'runId' | 'id' | 'name'>> & {
-  isSaved: boolean;
-};
 
 @Injectable()
 export class OptimizationsService {
@@ -77,8 +60,8 @@ export class OptimizationsService {
     @Inject(OPTIMIZER_ENGINE) private readonly engine: OptimizerEngine,
     private readonly runs: OptimizationRunsStore,
     private readonly storageService: StorageService,
+    private readonly viewMapper: OptimizationViewMapper,
   ) {}
-
 
   getDefaults(): OptimizationDefaultsDto {
     return {
@@ -101,32 +84,32 @@ export class OptimizationsService {
     }));
   }
 
-async run(dto: CreateOptimizationDto, currentUserId?: number): Promise<OptimizationViewDto> {
-  const input = await this.prepareOptimization(dto, currentUserId);
-  const engineInput = toEngineInput(input, ENGINE_ALGORITHM_IDS[input.algorithmName]!);
-  const result = fromEngineResult(await this.engine.run(engineInput));
+  async run(dto: CreateOptimizationDto, currentUserId?: number): Promise<OptimizationViewDto> {
+    const input = await this.prepareOptimization(dto, currentUserId);
+    const engineInput = toEngineInput(input, ENGINE_ALGORITHM_IDS[input.algorithmName]!);
+    const result = fromEngineResult(await this.engine.run(engineInput));
 
-  const runId = await this.runs.put({ userId: currentUserId ?? null, input, result });
-  return this.toView(this.sourceFromInput(input, result), { runId, isSaved: false });
-}
-
-async getRun(runId: string, currentUserId?: number): Promise<OptimizationViewDto> {
-  const run = await this.findRun(runId, currentUserId);
-  return this.toView(this.sourceFromInput(run.input, run.result), {
-    runId,
-    id: run.savedId,
-    name: run.savedName,
-    isSaved: run.savedId !== undefined,
-  });
-}
-
-private async findRun(runId: string, currentUserId?: number) {
-  const run = await this.runs.get(runId);
-  if (!run || (run.userId !== null && run.userId !== currentUserId)) {
-    throw new ResourceNotFoundException('Optimization run', runId);
+    const runId = await this.runs.put({ userId: currentUserId ?? null, input, result });
+    return this.viewMapper.toView(this.viewMapper.sourceFromInput(input, result), { runId, isSaved: false });
   }
-  return run;
-}
+
+  async getRun(runId: string, currentUserId?: number): Promise<OptimizationViewDto> {
+    const run = await this.findRun(runId, currentUserId);
+    return this.viewMapper.toView(this.viewMapper.sourceFromInput(run.input, run.result), {
+      runId,
+      id: run.savedId,
+      name: run.savedName,
+      isSaved: run.savedId !== undefined,
+    });
+  }
+
+  private async findRun(runId: string, currentUserId?: number) {
+    const run = await this.runs.get(runId);
+    if (!run || (run.userId !== null && run.userId !== currentUserId)) {
+      throw new ResourceNotFoundException('Optimization run', runId);
+    }
+    return run;
+  }
 
   async getOptimizations(
     query: ListOptimizationsQueryDto,
@@ -304,44 +287,6 @@ private async findRun(runId: string, currentUserId?: number) {
     };
   }
 
-  private sourceFromInput(input: OptimizerInputDto, result: EngineResult): ViewSource {
-    return {
-      algorithmName: input.algorithmName,
-      fabric: input.fabric,
-      seamAllowanceMm: input.seamAllowanceMm,
-      cuttingAllowanceMm: input.cuttingAllowanceMm,
-      geometry: new Map(
-        input.pieces.map((p) => [
-          p.patternPieceId,
-          { boundary: p.boundary, grainline: p.grainline },
-        ]),
-      ),
-      result,
-    };
-  }
-
-  private toView(src: ViewSource, extra: ViewExtra): OptimizationViewDto {
-    const allowanceMm = src.seamAllowanceMm + src.cuttingAllowanceMm;
-    const originYMm = fabricOriginYMm(src.fabric);
-    
-    return {
-      ...extra,
-      algorithmName: src.algorithmName,
-      fabric: src.fabric,
-      seamAllowanceMm: src.seamAllowanceMm,
-      cuttingAllowanceMm: src.cuttingAllowanceMm,
-      wasSuccessful: src.result.wasSuccessful,
-      minLengthMm: src.result.minLength,
-      stats: src.result.stats,
-
-      placements: src.result.positions.flatMap((pos) => {
-        const piece = src.geometry.get(pos.id);
-        if (!piece) return [];
-        return [this.placeOne(piece, pos, pos.x - allowanceMm, pos.y + allowanceMm + originYMm)];
-      }),
-    };
-  }
-
   private async getLibraryFabric(
     fabricId: number,
     currentUserId: number,
@@ -419,28 +364,6 @@ private async findRun(runId: string, currentUserId?: number) {
     }
   }
 
-  private placeOne(
-    piece: { boundary: OptimizerPointDto[]; grainline: number },
-    pos: EnginePosition,
-    x: number,
-    y: number,
-  ): PlacementDto {
-    const polygon = placePiece(
-      piece.boundary.map(([px, py]) => ({ x: px, y: py })),
-      { ...pos, grainline: piece.grainline, x, y },
-    ).map(({ x: px, y: py }): [number, number] => [px, py]);
-
-    return {
-      patternPieceId: pos.id,
-      isMirrored: pos.isMirrored,
-      rotationAngle: pos.rotationAngle,
-      isFlipped180: pos.isFlipped180,
-      x,
-      y,
-      polygon,
-    };
-  }
-
   async save(runId: string, dto: SaveOptimizationDto, currentUserId: number): Promise<{ id: number }> {
     const run = await this.findRun(runId, currentUserId);
     if (run.savedId !== undefined) return { id: run.savedId };
@@ -454,8 +377,7 @@ private async findRun(runId: string, currentUserId?: number) {
     const { input, result } = run;
     const { stats } = result;
     const isLibrary = input.fabric.fabricId !== undefined;
-    // placements already include allowances and the fabric origin
-    const { placements } = this.toView(this.sourceFromInput(input, result), { isSaved: false });
+    const { placements } = this.viewMapper.toView(this.viewMapper.sourceFromInput(input, result), { isSaved: false });
 
     try {
       return await this.db.transaction(async (tx) => {
@@ -569,7 +491,7 @@ private async findRun(runId: string, currentUserId?: number) {
         wastePercentage: row.wasteScrapsPercentage,
       },
       placements: placed.map((p) =>
-        this.placeOne(
+        this.viewMapper.placeOne(
           {
             boundary: this.toOptimizerPoints(PatternsMapper.piecePointsFromGeoJson(p.geojson)),
             grainline: p.grainline,

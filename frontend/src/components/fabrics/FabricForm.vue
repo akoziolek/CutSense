@@ -220,7 +220,7 @@ onMounted(() => {
   <div v-else class="w-full space-y-6">
     <!-- 1. Fabric Name -->
     <div class="space-y-2">
-      <Label for="fabric-name" class="text-md font-semibold font-inter text-foreground">
+      <Label for="fabric-name" class="text-base font-semibold font-inter text-foreground">
         {{ t('fabrics.name') }} <span class="text-destructive">*</span>
       </Label>
       <InputGroup>
@@ -241,7 +241,7 @@ onMounted(() => {
 
     <!-- 2. Description -->
     <div class="space-y-2">
-      <Label for="description" class="text-md font-semibold font-inter text-foreground">
+      <Label for="description" class="text-base font-semibold font-inter text-foreground">
         {{ t('common.details.description') }}
       </Label>
       <InputGroup>
@@ -263,7 +263,7 @@ onMounted(() => {
 
     <!-- 3. Tags -->
     <div class="space-y-2">
-      <Label class="text-md font-semibold font-inter text-foreground">{{
+      <Label class="text-base font-semibold font-inter text-foreground">{{
         t('common.details.tags')
       }}</Label>
 
@@ -309,14 +309,14 @@ onMounted(() => {
             @open-auto-focus.prevent
           >
             <ListboxContent
-              class="max-h-[144px] scroll-py-1 overflow-x-hidden overflow-y-auto space-y-0.5 empty:after:content-['No_matching_tags'] empty:p-3 empty:text-xs empty:text-center empty:text-muted-foreground empty:after:block "
+              class="max-h-[144px] scroll-py-1 overflow-x-hidden overflow-y-auto space-y-0.5 empty:after:content-['No_matching_tags'] empty:p-3 empty:text-xs empty:text-center empty:text-muted-foreground empty:after:block"
               tabindex="-1"
             >
               <ListboxItem
                 v-for="item in filteredTags"
                 :key="item.id"
                 :value="item.name"
-                class="data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-inter outline-hidden select-none "
+                class="data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-inter outline-hidden select-none"
                 @select="searchTerm = ''"
               >
                 <span>{{ item.name }}</span>

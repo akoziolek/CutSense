@@ -1,15 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/common/PageHeader.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
+import { useAuth } from '@/composables/useAuth'
 
 const { t } = useI18n()
-
-const user = computed(() => ({
-  email: 'jan.kowalski@example.com',
-  nickname: 'Jan Kowalski',
-}))
+const { state: auth } = useAuth()
 </script>
 
 <template>
@@ -21,23 +17,29 @@ const user = computed(() => ({
           {{ t('account.detailsDescription') }}
         </p>
       </div>
+      <div v-if="!auth.loaded" class="max-w-2xl space-y-5 ml-4">
+        <div v-for="i in 2" :key="i" class="space-y-1.5">
+          <div class="h-5 w-24 rounded bg-muted animate-pulse" />
+          <div class="h-4 w-52 rounded bg-muted animate-pulse" />
+        </div>
+      </div>
 
-      <dl class="max-w-2xl space-y-5 ml-4">
+      <dl v-else class="max-w-2xl space-y-5 ml-4">
         <div class="space-y-1">
-          <dt class="font-semibold font-inter text-md text-foreground tracking-tight">
+          <dt class="font-semibold font-inter text-base text-foreground tracking-tight">
             {{ t('account.email') }}
           </dt>
           <dd class="text-sm text-muted-foreground break-all">
-            {{ user.email || '—' }}
+            {{ auth.user?.email || '—' }}
           </dd>
         </div>
 
         <div class="space-y-1">
-          <dt class="font-semibold font-inter text-md text-foreground tracking-tight">
+          <dt class="font-semibold font-inter text-base text-foreground tracking-tight">
             {{ t('account.nickname') }}
           </dt>
           <dd class="text-sm text-muted-foreground break-words">
-            {{ user.nickname || '—' }}
+            {{ auth.user?.nickname || '—' }}
           </dd>
         </div>
       </dl>

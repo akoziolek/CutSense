@@ -96,6 +96,7 @@ export class AuthController {
   me(@CurrentUser() user: AuthUser) {
     return this.auth.getCurrentUser(user.id);
   }
+  
   //POST endpoint
   @Post('register')
   async register(

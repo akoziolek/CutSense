@@ -63,7 +63,7 @@ export async function seedPatterns(
 
   const patternImageRows: {
     patternId: number;
-    pictureS3Key: string;
+    pictureS3Key: string | null;
     imageWidthMm: number;
     imageHeightMm: number;
     orderIndex: number;
@@ -103,9 +103,7 @@ export async function seedPatterns(
 
     patternImageRows.push({
       patternId: pattern.id,
-      pictureS3Key:
-        pictureS3Key ??
-        `users/${pattern.userId}/patterns/seed_pattern_${pattern.id}_1.jpg`,
+      pictureS3Key,
       imageWidthMm: template.imageWidthMm,
       imageHeightMm: template.imageHeightMm,
       orderIndex: 0,
@@ -131,7 +129,7 @@ export async function seedPatterns(
 
   for (let i = 0; i < insertedPatternImages.length; i++) {
     const img = insertedPatternImages[i];
-    const fileNumber = String(i  + 1).padStart(2, '0');
+    const fileNumber = String(i + 1).padStart(2, '0');
     const fileName = `sheet_${fileNumber}.jpg`;
 
     const boundaries =

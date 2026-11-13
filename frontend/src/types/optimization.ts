@@ -16,26 +16,11 @@ export interface OptimizationDefaults {
   cuttingAllowanceMm: number
 }
 
-// Piece of a pattern as returned by GET /patterns/:id
 export interface PatternPieceDefaults {
   id: number
-  patternImageId: number
   points: [number, number][]
   normalCount: number
   mirroredCount: number
-}
-
-export interface PatternImageDetails {
-  id: number
-  url: string
-  imageWidthMm: number
-  imageHeightMm: number
-}
-
-export interface PatternDetails {
-  id: number
-  images: PatternImageDetails[]
-  pieces: PatternPieceDefaults[]
 }
 
 export interface OptimizationPieceConfig {
@@ -60,9 +45,32 @@ export interface CreateOptimizationPayload {
 
 export type OptimizerPoint = [number, number]
 
-export interface PreparedOptimizerInput {
-  patternId: number
-  algorithmId: number
+export interface OptimizationStats {
+  usableScrapCount: number
+  usableScrapsArea: number // m²
+  usableScrapsPercentage: number
+  remainingFabricLength: number // mm
+  remainingFabricArea: number // m²
+  remainingFabricPercentage: number
+  wasteArea: number // m²
+  wastePercentage: number
+}
+
+export interface OptimizationPlacement {
+  patternPieceId: number
+  isMirrored: boolean
+  rotationAngle: number
+  isFlipped180: boolean
+  x: number
+  y: number
+  polygon: [number, number][]
+}
+
+export interface OptimizationView {
+  runId?: string
+  id?: number
+  name?: string
+  isSaved: boolean
   algorithmName: string
   fabric: {
     fabricId?: number
@@ -72,12 +80,37 @@ export interface PreparedOptimizerInput {
   }
   seamAllowanceMm: number
   cuttingAllowanceMm: number
-  pieces: {
-    patternPieceId: number
-    boundary: OptimizerPoint[]
-    normalCount: number
-    mirroredCount: number
-    direction: number
-    twoWay: boolean
-  }[]
+  wasSuccessful: boolean
+  minLengthMm: number
+  stats: OptimizationStats
+  placements: OptimizationPlacement[]
+}
+
+export interface OptimizationListItem {
+  id: number
+  name: string
+  createdAt: string
+  patternId: number
+  patternName: string
+  minLengthMm: number
+  imageUrl?: string
+}
+
+export interface OptimizationListResponse {
+  items: OptimizationListItem[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
+export type OptimizationSort = 'name_asc' | 'name_desc' | 'date_desc' | 'date_asc'
+
+export interface OptimizationStats {
+  usableScrapsArea: number
+  usableScrapsPercentage: number
+  remainingFabricArea: number
+  remainingFabricPercentage: number
+  wasteArea: number
+  wastePercentage: number
 }

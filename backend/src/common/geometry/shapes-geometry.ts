@@ -20,7 +20,6 @@ export function pointsToWktPolygon(points: Point[]): string {
 
 // Rotates the polygon clockwise by `degrees` (Cartesian system, Y up) and moves it
 // so that its bounding box starts at (0, 0). Rotation keeps the vertex order.
-
 export function rotateAndAnchor(points: Point[], degrees: number): Point[] {
   const rad = (degrees * Math.PI) / 180;
   const cos = Math.cos(rad);
@@ -35,4 +34,30 @@ export function rotateAndAnchor(points: Point[], degrees: number): Point[] {
   const minY = Math.min(...rotated.map((p) => p.y));
 
   return rotated.map((p) => ({ x: round3(p.x - minX), y: round3(p.y - minY) }));
+}
+
+export interface Placement {
+  rotationAngle: number;
+  grainline: number;
+  isMirrored: boolean;
+  isFlipped180: boolean;
+  x: number;
+  y: number;
+}
+
+export function placePiece(points: Point[], p: Placement): Point[] {
+  const turn =
+    (((p.grainline + p.rotationAngle + (p.isFlipped180 ? 180 : 0)) % 360) + 360) %
+    360;
+  const rad = (turn * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  return points.map(({ x, y }) => {
+    const mirroredY = p.isMirrored ? -y : y;
+    return {
+      x: round3(x * cos + mirroredY * sin + p.x),
+      y: round3(-x * sin + mirroredY * cos + p.y),
+    };
+  });
 }

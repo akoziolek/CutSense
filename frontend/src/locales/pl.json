@@ -181,6 +181,12 @@
     "logoutFailed": "Nie udało się wylogować. Spróbuj ponownie.",
     "cancelRegistrationFailed": "Nie udało się anulować rejestracji. Spróbuj ponownie."
   },
+  "account": {
+    "details": "Twoje konto",
+    "detailsDescription": "W tym miejscu wygodnie sprawdzisz i zmienisz swoje dane.",
+    "email": "Adres mailowy",
+    "nickname": "Pseudonim"
+  },
   "fabrics": {
     "name": "Nazwa tkaniny",
     "edit": "Edytuj tkaninę",

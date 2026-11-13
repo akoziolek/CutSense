@@ -3,6 +3,7 @@ import { useAuth } from '../composables/useAuth'
 import { consumeReturnTo } from '../utils/returnTo'
 
 const LandingPage = () => import('../views/LandingPage.vue')
+const AccountPage = () => import('../views/account/AccountView.vue')
 const ComingSoonPage = () => import('../views/ComingSoonPage.vue')
 const FabricPage = () => import('../views/fabrics/FabricView.vue')
 const FabricsPage = () => import('../views/fabrics/FabricsView.vue')
@@ -41,6 +42,7 @@ const routes = [
 
   // pages that are private unless explicitly marked public above
   { path: '/home', name: 'Home', component: ComingSoonPage },
+  { path: '/account', name: 'UserAccount', component: AccountPage },
   {
     path: '/optimizations',
     name: 'Optimizations',

@@ -72,9 +72,6 @@ export class AuthService {
     const user = await this.users.create({
       googleId: profile.googleId,
       email: profile.email,
-      name: profile.name,
-      surname: profile.surname,
-      pictureUrl: profile.avatar,
       nickname,
     });
 

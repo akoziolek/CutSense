@@ -1,5 +1,5 @@
 {
-  "id": "257c819b-05b1-472a-909f-15d07ff3ee4c",
+  "id": "152b65c4-606d-4d2d-91a1-dc8c12df6e13",
   "prevId": "430694c8-7752-415b-be19-5aa10d2c8b70",
   "version": "7",
   "dialect": "postgresql",
@@ -322,6 +322,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "user_id": {
+          "name": "user_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
         "pattern_id": {
           "name": "pattern_id",
           "type": "bigint",
@@ -364,6 +370,54 @@
           "primaryKey": false,
           "notNull": true
         },
+        "min_length_mm": {
+          "name": "min_length_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spent_time": {
+          "name": "spent_time",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usable_scraps_area": {
+          "name": "usable_scraps_area",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usable_scraps_percentage": {
+          "name": "usable_scraps_percentage",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "waste_scraps_area": {
+          "name": "waste_scraps_area",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "waste_scraps_percentage": {
+          "name": "waste_scraps_percentage",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "remaining_fabric_area": {
+          "name": "remaining_fabric_area",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "remaining_area_percentage": {
+          "name": "remaining_area_percentage",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -380,6 +434,21 @@
         }
       },
       "indexes": {
+        "optimization_results_user_id_idx": {
+          "name": "optimization_results_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "optimization_results_pattern_id_idx": {
           "name": "optimization_results_pattern_id_idx",
           "columns": [
@@ -427,6 +496,19 @@
         }
       },
       "foreignKeys": {
+        "optimization_results_user_id_users_id_fk": {
+          "name": "optimization_results_user_id_users_id_fk",
+          "tableFrom": "optimization_results",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "optimization_results_pattern_id_patterns_id_fk": {
           "name": "optimization_results_pattern_id_patterns_id_fk",
           "tableFrom": "optimization_results",
@@ -1417,7 +1499,7 @@
           "name": "nickname",
           "type": "varchar(64)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "picture_url": {
           "name": "picture_url",

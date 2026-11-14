@@ -110,15 +110,22 @@
     {
       "idx": 15,
       "version": "7",
-      "when": 1794578292720,
-      "tag": "0015_add_not_null_nickname",
+      "when": 1794327216284,
+      "tag": "0015_add_optimization_results_missing_columns",
       "breakpoints": true
     },
     {
       "idx": 16,
       "version": "7",
-      "when": 1794581277471,
-      "tag": "0016_remove_unused_users_columns",
+      "when": 1794524021082,
+      "tag": "0016_add_optimization_runs_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794676970141,
+      "tag": "0017_remove_columns_from_users_table",
       "breakpoints": true
     }
   ]

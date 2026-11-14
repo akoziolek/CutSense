@@ -1,6 +1,6 @@
 {
-  "id": "a078ceb7-0808-4229-8d96-2ed12337e800",
-  "prevId": "257c819b-05b1-472a-909f-15d07ff3ee4c",
+  "id": "89ca39fd-ec3c-4420-923d-02f75e35090c",
+  "prevId": "152b65c4-606d-4d2d-91a1-dc8c12df6e13",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -322,6 +322,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "user_id": {
+          "name": "user_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
         "pattern_id": {
           "name": "pattern_id",
           "type": "bigint",
@@ -364,6 +370,54 @@
           "primaryKey": false,
           "notNull": true
         },
+        "min_length_mm": {
+          "name": "min_length_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spent_time": {
+          "name": "spent_time",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usable_scraps_area": {
+          "name": "usable_scraps_area",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usable_scraps_percentage": {
+          "name": "usable_scraps_percentage",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "waste_scraps_area": {
+          "name": "waste_scraps_area",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "waste_scraps_percentage": {
+          "name": "waste_scraps_percentage",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "remaining_fabric_area": {
+          "name": "remaining_fabric_area",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "remaining_area_percentage": {
+          "name": "remaining_area_percentage",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -380,6 +434,21 @@
         }
       },
       "indexes": {
+        "optimization_results_user_id_idx": {
+          "name": "optimization_results_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "optimization_results_pattern_id_idx": {
           "name": "optimization_results_pattern_id_idx",
           "columns": [
@@ -427,6 +496,19 @@
         }
       },
       "foreignKeys": {
+        "optimization_results_user_id_users_id_fk": {
+          "name": "optimization_results_user_id_users_id_fk",
+          "tableFrom": "optimization_results",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "optimization_results_pattern_id_patterns_id_fk": {
           "name": "optimization_results_pattern_id_patterns_id_fk",
           "tableFrom": "optimization_results",
@@ -464,6 +546,104 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.optimization_runs": {
+      "name": "optimization_runs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "input": {
+          "name": "input",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "result": {
+          "name": "result",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "saved_id": {
+          "name": "saved_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "saved_name": {
+          "name": "saved_name",
+          "type": "varchar(35)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "optimization_runs_expires_at_idx": {
+          "name": "optimization_runs_expires_at_idx",
+          "columns": [
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "optimization_runs_user_id_users_id_fk": {
+          "name": "optimization_runs_user_id_users_id_fk",
+          "tableFrom": "optimization_runs",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "optimization_runs_saved_id_optimization_results_id_fk": {
+          "name": "optimization_runs_saved_id_optimization_results_id_fk",
+          "tableFrom": "optimization_runs",
+          "tableTo": "optimization_results",
+          "columnsFrom": [
+            "saved_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1401,11 +1581,29 @@
           "primaryKey": false,
           "notNull": true
         },
+        "name": {
+          "name": "name",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "surname": {
+          "name": "surname",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "nickname": {
           "name": "nickname",
           "type": "varchar(64)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "picture_url": {
+          "name": "picture_url",
+          "type": "varchar(2048)",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",

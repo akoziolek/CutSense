@@ -40,7 +40,7 @@ import {
   toEngineInput,
 } from '../optimizer-engine/optimizer-engine.mapper.js';
 import { patternImages } from '../../db/schema/schema.js';
-import { likePattern } from '../../common/utils/list-query.js';
+import { likeTerm } from '../../common/utils/list-query.js';
 import { StorageService } from '../storage/storage.service.js';
 import {
   ListOptimizationsQueryDto,
@@ -121,7 +121,7 @@ export class OptimizationsService {
     userId: number,
   ): Promise<OptimizationListResponseDto> {
     const { page, limit, sort } = query;
-    const term = likePattern(query.q);
+    const term = likeTerm(query.q);
     const where = and(
       eq(optimizationResults.userId, userId),
       term ? ilike(optimizationResults.name, term) : undefined,

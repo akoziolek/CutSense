@@ -223,9 +223,40 @@ describe('PatternsService', () => {
         });
       });
       txSelectWhere.mockResolvedValue([{ id: 7, name: 'summer' }]);
+      findFirst.mockResolvedValue(
+        patternRow({
+          id: 84,
+          name: 'Shirt',
+          size: 'M',
+          visibility: 'PUBLIC',
+          images: [
+            {
+              id: 84,
+              pictureS3Key: 'users/3/patterns/image.png',
+              imageWidthMm: 200,
+              imageHeightMm: 300,
+              orderIndex: 0,
+              pieces: [],
+            },
+          ],
+        }),
+      );
 
       const photo = { originalname: 'shirt.png' } as Express.Multer.File;
-      await expect(service.createPattern(dto, [photo], 3)).resolves.toEqual({ id: 84 });
+      await expect(service.createPattern(dto, [photo], 3)).resolves.toMatchObject({
+        id: 84,
+        name: 'Shirt',
+        size: 'M',
+        visibility: 'PUBLIC',
+        images: [
+          {
+            id: 84,
+            url: 'users/3/patterns/image.png',
+            imageWidthMm: 200,
+            imageHeightMm: 300,
+          },
+        ],
+      });
       expect(inserted).toHaveLength(4);
       expect(inserted[0]).toMatchObject({
         name: 'Shirt',

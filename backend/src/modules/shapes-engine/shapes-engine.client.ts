@@ -8,11 +8,13 @@ import { RequestValidationException } from '../../common/exceptions/request-vali
 @Injectable()
 export class ShapesEngineClient {
   private readonly baseUrl: string;
+  private readonly apiKey: string;
 
   constructor(private readonly configService: ConfigService) {
     this.baseUrl = this.configService
-      .get<string>('SHAPES_ENGINE_URL', 'http://localhost:8000')
+      .getOrThrow<string>('SHAPES_ENGINE_URL')
       .replace(/\/$/, '');
+    this.apiKey = this.configService.getOrThrow<string>('INTERNAL_API_KEY');
   }
 
   async analyzeBoundary<T extends object>(
@@ -22,7 +24,7 @@ export class ShapesEngineClient {
   ): Promise<T> {
     const response = await fetch(`${this.baseUrl}/${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': picture.mimetype },
+      headers: { 'Content-Type': picture.mimetype, 'X-API-KEY': this.apiKey },
       body: new Uint8Array(picture.buffer),
       signal: AbortSignal.timeout(30_000),
     }).catch((error) => {
@@ -44,10 +46,20 @@ export class ShapesEngineClient {
         typeof payload?.detail === 'string'
           ? payload.detail
           : 'Shape analysis failed.';
-      if (response.status >= 400 && response.status < 500) {
+
+      if (
+        response.status === 400 ||
+        response.status === 413 ||
+        response.status === 422
+      ) {
         throw new RequestValidationException(detail);
       }
-      throw new ExternalServiceException(detail);
+
+      throw new ExternalServiceException(
+        response.status === 401 || response.status === 403
+          ? 'Shape analysis service authentication failed.'
+          : detail,
+      );
     }
 
     const instance = plainToInstance(dtoClass, payload);

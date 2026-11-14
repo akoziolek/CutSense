@@ -30,7 +30,7 @@ const bbox = computed(() => {
   const shapeHeight = Math.max(boxPointBottom - boxPointTop, 0.1)
 
   const largestDimension = Math.max(shapeWidth, shapeHeight)
-  let cropSize = Math.min(100, largestDimension * 1.05)
+  let cropSize = Math.min(100, largestDimension * 1.15)
   if (cropSize < largestDimension) {
     cropSize = largestDimension
   }

@@ -4,6 +4,7 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ErrorCode } from '../constants/error-codes.enum.js';
@@ -19,6 +20,8 @@ export interface ErrorResponse {
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AllExceptionsFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -41,14 +44,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
           errorCode = body.errorCode as string;
           message = (body.message as string) || message;
           details = body.details;
-        }
-        // built validation NestJS error
+        } // built validation NestJS error
         else if (Array.isArray(body.message)) {
           errorCode = ErrorCode.VALIDATION_ERROR;
           message = 'Validation failed';
-          details = body.message; 
-        }
-        else {
+          details = body.message;
+        } else {
           message = (body.message as string) || exception.message;
           errorCode = this.mapHttpStatusToCode(statusCode);
         }
@@ -58,11 +59,29 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
     }
 
+    if (statusCode >= 500) {
+      const internalReason =
+        exception instanceof Error ? exception.message : message;
+
+      this.logger.error(
+        `[${request.method}] ${request.url} -> ${statusCode} (${errorCode}): ${internalReason}`,
+        exception instanceof Error ? exception.stack : undefined,
+      );
+
+      // mask from end client
+      message =
+        statusCode === HttpStatus.SERVICE_UNAVAILABLE ||
+        statusCode === HttpStatus.BAD_GATEWAY
+          ? 'External service is temporarily unavailable.'
+          : 'Internal server error';
+      details = undefined;
+    }
+
     const payload: ErrorResponse = {
       statusCode,
       errorCode,
       message,
-      ...(details ? { details } : {}),
+      ...(details !== undefined ? { details } : {}),
       timestamp: new Date().toISOString(),
       path: request.url,
     };
@@ -72,6 +91,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   private mapHttpStatusToCode(status: number): ErrorCode {
     switch (status) {
+      case HttpStatus.BAD_REQUEST:
+      case HttpStatus.PAYLOAD_TOO_LARGE:
+      case HttpStatus.UNPROCESSABLE_ENTITY:
+        return ErrorCode.VALIDATION_ERROR;
       case HttpStatus.UNAUTHORIZED:
         return ErrorCode.UNAUTHORIZED;
       case HttpStatus.FORBIDDEN:

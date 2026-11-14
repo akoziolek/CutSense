@@ -45,7 +45,8 @@ const handleSubmit = async (payload: PatternFormPayload) => {
 
   const pieces = patternStore.pieces.map((piece) => {
     const config = patternStore.photoConfigs[piece.photoIndex]
-    const shape = config?.shapes[piece.shapeIndex]
+    const shapeIndex = config?.shapeIds.indexOf(piece.shapeId) ?? -1
+    const shape = shapeIndex >= 0 ? config?.shapes[shapeIndex] : undefined
 
     if (
       !config ||

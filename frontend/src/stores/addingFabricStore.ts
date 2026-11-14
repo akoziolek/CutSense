@@ -51,8 +51,9 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
   })
   const isHydrated = ref(false) // will be false after each F5 => file will be read from IndexDB
   const isConfigPersisted = ref(false)
-  let detailsWriteQueue = Promise.resolve()
-  let configWriteQueue = Promise.resolve()
+
+  const persistConfig = () => set(STORAGE_CONFIG_KEY, JSON.parse(JSON.stringify(config.value)))
+  const persistDetails = () => set(STORAGE_DETAILS_KEY, JSON.parse(JSON.stringify(details.value)))
 
   async function setFile(newFile: File) {
     if (previewUrl.value) {
@@ -70,7 +71,6 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
       tags: [...DEFAULT_DETAILS.tags],
     }
 
-    await Promise.all([detailsWriteQueue, configWriteQueue])
     await Promise.all([
       set(STORAGE_FILE_KEY, newFile),
       del(STORAGE_CONFIG_KEY),
@@ -78,23 +78,21 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     ])
   }
 
-  function updateDetails(partialDetails: Partial<FabricDetails>) {
+  async function updateDetails(partialDetails: Partial<FabricDetails>) {
     details.value = {
       ...details.value,
       ...partialDetails,
       tags: partialDetails.tags ? [...partialDetails.tags] : [...details.value.tags],
     }
 
-    const snapshot = JSON.parse(JSON.stringify(details.value)) as FabricDetails
-
-    const write = detailsWriteQueue.then(() => set(STORAGE_DETAILS_KEY, snapshot))
-    detailsWriteQueue = write.catch((error: unknown) => {
+    try {
+      await persistDetails()
+    } catch (error) {
       console.error('Error saving fabric details to IndexedDB:', error)
-    })
-    return write
+    }
   }
 
-  function updateConfig(partialConfig: Partial<FabricConfig>, confirmConfiguration = false) {
+  async function updateConfig(partialConfig: Partial<FabricConfig>, confirmConfiguration = false) {
     config.value = {
       ...config.value,
       ...partialConfig,
@@ -102,23 +100,16 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     }
     isConfigPersisted.value = false
 
-    const snapshot = JSON.parse(JSON.stringify(config.value)) as FabricConfig
-    const write = configWriteQueue.then(() => set(STORAGE_CONFIG_KEY, snapshot))
-    configWriteQueue = write.catch((error: unknown) => {
+    try {
+      await persistConfig()
+      isConfigPersisted.value = true
+    } catch (error) {
+      isConfigPersisted.value = false
       console.error('Error saving config to IndexedDB:', error)
-    })
-    return write.then(
-      () => {
-        isConfigPersisted.value = true
-      },
-      (error: unknown) => {
-        isConfigPersisted.value = false
-        throw error
-      },
-    )
+      throw error
+    }
   }
 
-  // init after e.g. F5
   async function initFromIndexedDB() {
     if (isHydrated.value) return
 
@@ -174,7 +165,6 @@ export const useFabricAddingStore = defineStore('addingFabric', () => {
     }
 
     try {
-      await Promise.all([detailsWriteQueue, configWriteQueue])
       await Promise.all([del(STORAGE_FILE_KEY), del(STORAGE_CONFIG_KEY), del(STORAGE_DETAILS_KEY)])
     } catch (error) {
       console.error('Error clearing IndexedDB:', error)

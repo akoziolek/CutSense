@@ -19,8 +19,13 @@ onMounted(() => {
   patternStore.syncPiecesFromConfigs()
 })
 
-const getPiecePoints = (photoIndex: number, shapeIndex: number) => {
-  return patternStore.photoConfigs[photoIndex]?.shapes[shapeIndex] || []
+const getPieceShapeIndex = (photoIndex: number, shapeId: string) => {
+  return patternStore.findShapeIndex(photoIndex, shapeId)
+}
+
+const getPiecePoints = (photoIndex: number, shapeId: string) => {
+  const shapeIndex = getPieceShapeIndex(photoIndex, shapeId)
+  return shapeIndex >= 0 ? patternStore.photoConfigs[photoIndex]?.shapes[shapeIndex] || [] : []
 }
 
 const getPhotoRotation = (photoIndex: number) => {
@@ -47,8 +52,8 @@ const updateQuantity = (pieceId: string, field: 'normal' | 'mirrored', rawVal: s
       >
         <PatternPiecePreview
           :image-url="patternStore.previewUrls[piece.photoIndex]"
-          :points="getPiecePoints(piece.photoIndex, piece.shapeIndex)"
-          :shape-index="piece.shapeIndex"
+          :points="getPiecePoints(piece.photoIndex, piece.shapeId)"
+          :shape-index="getPieceShapeIndex(piece.photoIndex, piece.shapeId)"
           :rotation="getPhotoRotation(piece.photoIndex)"
           :all-shapes="patternStore.photoConfigs[piece.photoIndex]?.shapes"
         />

@@ -111,7 +111,8 @@
       "notFoundCode": "Error 404",
       "errorCode": "Error",
       "tagsLoadFailed": "Could not load tags. Reopen to retry.",
-      "somethingWentWrongRetry": "Something went wrong. Please try again."
+      "somethingWentWrongRetry": "Something went wrong. Please try again.",
+      "imageError": "Image temporarily unavailable"
     },
     "details": {
       "description": "Description",

@@ -18,9 +18,8 @@ export type ViewExtra = Partial<Pick<OptimizationViewDto, 'runId' | 'id' | 'name
   isSaved: boolean;
 };
 
-@Injectable()
 export class OptimizationViewMapper {
-  sourceFromInput(input: OptimizerInputDto, result: EngineResult): ViewSource {
+  static sourceFromInput(input: OptimizerInputDto, result: EngineResult): ViewSource {
     return {
       algorithmName: input.algorithmName,
       fabric: input.fabric,
@@ -36,7 +35,7 @@ export class OptimizationViewMapper {
     };
   }
 
-  toView(src: ViewSource, extra: ViewExtra): OptimizationViewDto {
+  static toView(src: ViewSource, extra: ViewExtra): OptimizationViewDto {
     const allowanceMm = src.seamAllowanceMm + src.cuttingAllowanceMm;
     const originYMm = fabricOriginYMm(src.fabric);
 
@@ -58,7 +57,7 @@ export class OptimizationViewMapper {
     };
   }
 
-  public placeOne(
+  static placeOne(
     piece: { boundary: OptimizerPointDto[]; grainline: number },
     pos: EnginePosition,
     x: number,

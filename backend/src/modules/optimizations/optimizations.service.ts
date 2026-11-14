@@ -60,7 +60,6 @@ export class OptimizationsService {
     @Inject(OPTIMIZER_ENGINE) private readonly engine: OptimizerEngine,
     private readonly runs: OptimizationRunsStore,
     private readonly storageService: StorageService,
-    private readonly viewMapper: OptimizationViewMapper,
   ) {}
 
   getDefaults(): OptimizationDefaultsDto {
@@ -90,17 +89,23 @@ export class OptimizationsService {
     const result = fromEngineResult(await this.engine.run(engineInput));
 
     const runId = await this.runs.put({ userId: currentUserId ?? null, input, result });
-    return this.viewMapper.toView(this.viewMapper.sourceFromInput(input, result), { runId, isSaved: false });
+    return OptimizationViewMapper.toView(
+      OptimizationViewMapper.sourceFromInput(input, result),
+      { runId, isSaved: false },
+    );
   }
 
   async getRun(runId: string, currentUserId?: number): Promise<OptimizationViewDto> {
     const run = await this.findRun(runId, currentUserId);
-    return this.viewMapper.toView(this.viewMapper.sourceFromInput(run.input, run.result), {
-      runId,
-      id: run.savedId,
-      name: run.savedName,
-      isSaved: run.savedId !== undefined,
-    });
+    return OptimizationViewMapper.toView(
+      OptimizationViewMapper.sourceFromInput(run.input, run.result),
+      {
+        runId,
+        id: run.savedId,
+        name: run.savedName,
+        isSaved: run.savedId !== undefined,
+      },
+    );
   }
 
   private async findRun(runId: string, currentUserId?: number) {
@@ -377,7 +382,7 @@ export class OptimizationsService {
     const { input, result } = run;
     const { stats } = result;
     const isLibrary = input.fabric.fabricId !== undefined;
-    const { placements } = this.viewMapper.toView(this.viewMapper.sourceFromInput(input, result), { isSaved: false });
+    const { placements } = OptimizationViewMapper.toView(OptimizationViewMapper.sourceFromInput(input, result), { isSaved: false });
 
     try {
       return await this.db.transaction(async (tx) => {
@@ -491,7 +496,7 @@ export class OptimizationsService {
         wastePercentage: row.wasteScrapsPercentage,
       },
       placements: placed.map((p) =>
-        this.viewMapper.placeOne(
+        OptimizationViewMapper.placeOne(
           {
             boundary: this.toOptimizerPoints(PatternsMapper.piecePointsFromGeoJson(p.geojson)),
             grainline: p.grainline,

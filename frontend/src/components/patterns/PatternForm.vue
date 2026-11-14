@@ -260,7 +260,7 @@ onMounted(() => {
 
   <div v-else class="w-full space-y-6">
     <div class="space-y-2">
-      <Label for="pattern-name" class="text-md font-semibold font-inter text-foreground">
+      <Label for="pattern-name" class="text-base font-semibold font-inter text-foreground">
         {{ t('patterns.name') }} <span class="text-destructive">*</span>
       </Label>
       <InputGroup>
@@ -280,7 +280,7 @@ onMounted(() => {
     </div>
 
     <div class="space-y-2 max-w-sm">
-      <Label class="text-md font-semibold font-inter text-foreground">
+      <Label class="text-base font-semibold font-inter text-foreground">
         {{ t('patterns.size') }} <span class="text-destructive">*</span>
       </Label>
       <Select v-model="size">
@@ -306,7 +306,7 @@ onMounted(() => {
     </div>
 
     <div class="space-y-2">
-      <Label class="text-md font-semibold font-inter text-foreground">
+      <Label class="text-base font-semibold font-inter text-foreground">
         {{ t('patterns.visibility') }} <span class="text-destructive">*</span>
       </Label>
       <RadioGroup v-model="visibility" class="flex gap-6">
@@ -326,7 +326,7 @@ onMounted(() => {
     </div>
 
     <div class="space-y-2">
-      <Label for="description" class="text-md font-semibold font-inter text-foreground">
+      <Label for="description" class="text-base font-semibold font-inter text-foreground">
         {{ t('common.details.description') }}
       </Label>
       <InputGroup>
@@ -347,7 +347,7 @@ onMounted(() => {
     </div>
 
     <div class="space-y-2">
-      <Label class="text-md font-semibold font-inter text-foreground">{{
+      <Label class="text-base font-semibold font-inter text-foreground">{{
         t('common.details.tags')
       }}</Label>
 

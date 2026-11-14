@@ -28,7 +28,7 @@ export interface PatternWithRelations {
   userId: number;
   createdAt: Date;
   tags: { tag: { id: number; name: string } }[];
-  user: { id: number; nickname: string | null; name: string };
+  user: { id: number; nickname: string | null; };
   images: {
     id: number;
     pictureS3Key: string;
@@ -104,7 +104,7 @@ export class PatternsMapper {
       ),
       author: {
         id: pattern.user.id,
-        nickname: pattern.user.nickname ?? pattern.user.name,
+        nickname: pattern.user.nickname,
       },
       images,
       pieces: allPieces,

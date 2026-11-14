@@ -120,6 +120,13 @@
       "when": 1794524021082,
       "tag": "0016_add_optimization_runs_table",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794676970141,
+      "tag": "0017_remove_columns_from_users_table",
+      "breakpoints": true
     }
   ]
 }

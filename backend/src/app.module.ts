@@ -9,7 +9,7 @@ import { FabricModule } from './modules/fabrics/fabrics.module.js';
 import { StorageModule } from './modules/storage/storage.module.js';
 import { PatternsModule } from './modules/patterns/pattern.module.js';
 import { OptimizationsModule } from './modules/optimizations/optimizations.module.js';
-import { ScheduleModule } from '@nestjs/schedule';
+import { StatisticsModule } from './modules/statistics/statistics.module.js';
 
 @Module({
   imports: [
@@ -21,7 +21,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     PatternsModule,
     StorageModule,
     OptimizationsModule,
-    ScheduleModule.forRoot()
+    StatisticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

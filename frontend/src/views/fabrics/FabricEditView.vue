@@ -5,6 +5,7 @@ import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
 import { useRoute } from 'vue-router'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { ref, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { api, ApiError } from '@/api/client'
 import FabricForm, { type FabricFormPayload } from '@/components/fabrics/FabricForm.vue'
 import type { FabricResponse } from '@/types/fabric'
@@ -14,6 +15,7 @@ import Button from '@/components/ui/button/Button.vue'
 import { useFormDraft } from '@/composables/useFormDraft'
 
 const route = useRoute()
+const { t } = useI18n()
 const fabricId = computed(() => Number(route.params.id))
 const DRAFT_KEY = computed(() => `fabric_edit_draft_${fabricId.value}`)
 
@@ -72,7 +74,7 @@ const fetchFabric = async (id: number, activeSignal = { active: true }) => {
   } catch (e) {
     if (activeSignal.active) {
       error.value =
-        e instanceof ApiError ? e.body.message : 'Could not load fabric. Please try again.'
+        e instanceof ApiError ? e.body.message : t('fabrics.loadFailed')
     }
   } finally {
     if (activeSignal.active) {
@@ -113,7 +115,7 @@ const handleSubmit = async (payload: FabricFormPayload) => {
   } catch (e) {
     console.error('Failed to update fabric:', e)
     submitError.value =
-      e instanceof ApiError ? e.body.message : 'Could not update fabric. Please try again.'
+      e instanceof ApiError ? e.body.message : t('fabrics.updateFailed')
   } finally {
     isSubmitting.value = false
   }
@@ -138,7 +140,7 @@ watch(
 <template>
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
-      <PageHeader title="Edit Fabric" />
+      <PageHeader :title="t('fabrics.edit')" />
       <Transition
         mode="out-in"
         enter-active-class="transition-opacity duration-150 ease-out"
@@ -149,16 +151,16 @@ watch(
         leave-to-class="opacity-0"
       >
         <main v-if="error" key="error">
-          <ErrorState title="Unable to load fabric" :message="error" code="Error">
+          <ErrorState :title="t('fabrics.unableToLoad')" :message="error" :code="t('common.errors.errorCode')">
             <template #actions>
               <Button variant="outline" class="rounded-lg gap-2" @click="fetchFabric(fabricId)">
                 <RotateCcw class="w-4 h-4" />
-                <span>Try again</span>
+                <span>{{ t('common.actions.tryAgain') }}</span>
               </Button>
               <Button as-child variant="default" class="rounded-lg gap-2">
                 <RouterLink to="/fabrics">
                   <ArrowLeft class="w-4 h-4" />
-                  <span>Back to fabrics</span>
+                  <span>{{ t('common.actions.backToFabrics') }}</span>
                 </RouterLink>
               </Button>
             </template>

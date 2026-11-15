@@ -43,9 +43,9 @@ const cancel = () => {
     <Button
       type="button"
       data-testid="bulk-delete"
-      :aria-label="`Delete ${count} selected`"
+      :aria-label="$t('common.actions.deleteSelected', { count })"
       :aria-disabled="count === 0"
-      :title="count === 0 ? 'Long press or right-click a card to select it' : undefined"
+      :title="count === 0 ? $t('common.actions.longPressToSelect') : undefined"
       :class="[
         'h-12 w-12 sm:h-14 sm:w-14 rounded-xl p-0 shadow-lg transition-all duration-200',
         count > 0
@@ -69,10 +69,10 @@ const cancel = () => {
     :success-open="successOpen"
     :is-deleting="isDeleting"
     :error="error"
-    :title="`Delete ${confirmCount} ${plural}?`"
-    description="This action cannot be undone and will permanently remove all associated optimizations."
-    :success-title="`${noun[0]!.toUpperCase()}${noun.slice(1)}s deleted`"
-    :success-description="`${deletedCount} ${deletedCount === 1 ? `${noun} was` : `${noun}s were`} deleted together with ${deletedCount === 1 ? 'its' : 'their'} optimizations.`"
+    :title="$t('common.actions.deleteItemsTitle', { count: confirmCount, noun: plural })"
+    :description="$t('common.confirmations.deleteDescription')"
+    :success-title="$t('common.actions.deleteSuccessTitle', { noun: plural })"
+    :success-description="$t('common.actions.deleteSuccessDescription', { count: deletedCount, noun: plural })"
     @confirm="confirm"
     @cancel="cancel"
     @close-success="closeSuccess"

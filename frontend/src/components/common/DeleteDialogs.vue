@@ -38,7 +38,7 @@ const emit = defineEmits<{
           :disabled="isDeleting"
           @click="emit('cancel')"
         >
-          Cancel
+          {{ $t('common.actions.cancel') }}
         </Button>
         <Button
           type="button"
@@ -46,7 +46,7 @@ const emit = defineEmits<{
           :disabled="isDeleting"
           @click="emit('confirm')"
         >
-          Delete
+          {{ $t('common.actions.delete') }}
         </Button>
       </div>
     </template>
@@ -56,7 +56,7 @@ const emit = defineEmits<{
     :open="successOpen"
     :title="successTitle"
     :description="successDescription"
-    confirm-label="Got it"
+    :confirm-label="$t('common.actions.gotIt')"
     prevent-close
     @confirm="emit('closeSuccess')"
   />

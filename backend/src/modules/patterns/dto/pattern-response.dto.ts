@@ -34,6 +34,12 @@ class PatternPieceDto {
   @ApiProperty({ description: 'Identifier of the pattern piece', example: 1 })
   id!: number;
 
+  @ApiProperty({ description: 'Default number of normal copies', example: 1 })
+  normalCount!: number;
+
+  @ApiProperty({ description: 'Default number of mirrored copies', example: 0 })
+  mirroredCount!: number;
+
   @ApiProperty({
     description: 'ID of the image this piece belongs to',
     example: 5,

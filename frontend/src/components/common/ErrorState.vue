@@ -23,7 +23,7 @@ defineProps<{
       {{ code }}
     </span>
     <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-inter mb-3">
-      {{ title ?? 'Something went wrong' }}
+      {{ title ?? $t('common.errors.somethingWentWrong') }}
     </h2>
     <p class="max-w-md text-sm sm:text-base text-muted-foreground mb-8">
       {{ message }}

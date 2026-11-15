@@ -10,9 +10,9 @@ import { Button } from '@/components/ui/button'
   <GridLayout>
     <div class="w-full flex-1 flex items-center justify-center">
       <ErrorState
-        code="Error 404"
-        title="Page not found"
-        message="We're sorry, we couldn't find the page you requested. The page might have been removed, had its name changed, or is temporarily unavailable."
+        :code="$t('common.errors.notFoundCode')"
+        :title="$t('common.errors.notFound')"
+        :message="$t('common.errors.notFoundMessage')"
       >
         <template #actions>
           <Button
@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button'
           >
             <RouterLink to="/" class="inline-flex items-center gap-2">
               <ArrowLeft class="w-4 h-4" />
-              <span>Back to Home</span>
+              <span>{{ $t('common.actions.backToHome') }}</span>
             </RouterLink>
           </Button>
         </template>

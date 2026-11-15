@@ -37,9 +37,10 @@ describe('PatternController', () => {
   it('creates a pattern for the current user', async () => {
     const dto = { name: 'Shirt' } as CreatePatternDto;
     const photos = [{ originalname: 'shirt.png', mimetype: 'image/png', size: 100 }] as Express.Multer.File[];
-    service.createPattern.mockResolvedValue({ id: 9 });
+    const createdPattern = { id: 9, name: 'Shirt' };
+    service.createPattern.mockResolvedValue(createdPattern);
 
-    await expect(controller.createPattern(dto, photos, { id: 3 })).resolves.toEqual({ id: 9 });
+    await expect(controller.createPattern(dto, photos, { id: 3 })).resolves.toBe(createdPattern);
     expect(service.createPattern).toHaveBeenCalledWith(dto, photos, 3);
   });
 

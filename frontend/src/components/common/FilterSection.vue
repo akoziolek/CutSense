@@ -6,7 +6,7 @@ withDefaults(defineProps<{ title: string; defaultOpen?: boolean }>(), { defaultO
 </script>
 
 <template>
-  <Collapsible :default-open="defaultOpen" class="border-t border-border/60 px-4 py-3">
+  <Collapsible :default-open="defaultOpen" class="border-t border-muted px-4 py-3">
     <CollapsibleTrigger
       class="group flex w-full cursor-pointer items-center gap-1.5 text-sm font-semibold font-inter"
     >

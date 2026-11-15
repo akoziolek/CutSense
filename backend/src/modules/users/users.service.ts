@@ -4,6 +4,8 @@ import { DRIZZLE } from '../../db/drizzle.provider.js';
 import type { DrizzleDB } from '../../db/drizzle.provider.js';
 import { users } from '../../db/schema/schema.js';
 import { ResourceConflictException } from '../../common/exceptions/resource-conflict.exception.js';
+import { UserProfileDto } from './dto/user-profile.dto.js';
+import { UsersMapper } from './users.mapper.js';
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -11,6 +13,11 @@ export type NewUser = typeof users.$inferInsert;
 @Injectable()
 export class UsersService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+
+  async getProfileById(id: number): Promise<UserProfileDto | null> {
+    const user = await this.findById(id);
+    return user ? UsersMapper.toProfileDto(user) : null;
+  }
 
   async findByGoogleId(googleId: string): Promise<User | null> {
     const user = await this.db.query.users.findFirst({
@@ -45,30 +52,34 @@ export class UsersService {
       const [user] = await this.db.insert(users).values(data).returning();
       return user;
     } catch (e) {
-      // DB unique constraints are the guarantee
-      const err = ((e as { cause?: unknown }).cause ?? e) as {
-        code?: string;
-        constraint?: string;
-      };
-      if (err.code === '23505') {
-        if (err.constraint?.includes('nickname')) {
-          throw new ResourceConflictException(
-            'This nickname is already taken. Please choose a different one.',
-          );
-        }
-        if (err.constraint?.includes('google')) {
-          throw new ResourceConflictException(
-            'Account for this Google account already exists',
-          );
-        }
-        if (err.constraint?.includes('email')) {
-          throw new ResourceConflictException(
-            'Account for this email address already exists',
-            { field: 'email' },
-          );
-        }
-      }
-      throw e;
+      this.handleUniqueConstraintError(e);
     }
+  }
+
+  private handleUniqueConstraintError(e: unknown): never {
+    // DB unique constraints are the guarantee
+    const err = ((e as { cause?: unknown }).cause ?? e) as {
+      code?: string;
+      constraint?: string;
+    };
+    if (err.code === '23505') {
+      if (err.constraint?.includes('nickname')) {
+        throw new ResourceConflictException(
+          'This nickname is already taken. Please choose a different one.',
+        );
+      }
+      if (err.constraint?.includes('google')) {
+        throw new ResourceConflictException(
+          'Account for this Google account already exists',
+        );
+      }
+      if (err.constraint?.includes('email')) {
+        throw new ResourceConflictException(
+          'Account for this email address already exists',
+          { field: 'email' },
+        );
+      }
+    }
+    throw e;
   }
 }

@@ -18,7 +18,7 @@ const emit = defineEmits<{
     <Button
       :as-child="!!props.to"
       class="h-12 w-12 sm:h-14 sm:w-14 rounded-xl p-0 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
-      aria-label="Floating action"
+      :aria-label="$t('common.actions.floatingAction')"
       @click="emit('click', $event)"
     >
       <RouterLink v-if="props.to" :to="props.to">

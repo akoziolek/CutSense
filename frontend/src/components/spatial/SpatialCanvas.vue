@@ -9,7 +9,7 @@ const props = withDefaults(
     imageUrl?: string | null
     shapes: Point2D[][]
     hiddenShapes?: boolean[]
-    activeShapeIndex?: number
+    activeShapeIndex?: number | null
     hoveredShapeIndex?: number | null
     allShapesEdges?: PolygonEdge[][]
     zoomLevel?: number
@@ -30,7 +30,7 @@ const props = withDefaults(
   {
     imageUrl: null,
     hiddenShapes: () => [],
-    activeShapeIndex: 0,
+    activeShapeIndex: null,
     hoveredShapeIndex: null,
     allShapesEdges: () => [],
     zoomLevel: 1,
@@ -92,24 +92,27 @@ const cursorClass = computed(() => {
   if (isDrawingMode.value) return 'cursor-crosshair'
   return 'cursor-default'
 })
+
 const visibleLabelsSet = computed(() => {
   const visible = new Set<string>()
-  if (!props.showLabels) return visible
+  if (!props.showLabels || props.activeShapeIndex === null) return visible
+  const quantizedZoom = Math.round(props.zoomLevel * 5) / 5
 
-  const w = imageDimensions.value.width * props.zoomLevel
-  const h = imageDimensions.value.height * props.zoomLevel
+  const w = imageDimensions.value.width * quantizedZoom
+  const h = imageDimensions.value.height * quantizedZoom
 
-  const candidates = props.shapes.flatMap((_, shapeIdx) => {
-    if (props.hiddenShapes?.[shapeIdx]) return []
+  if (!w || !h) return visible
 
-    return (props.allShapesEdges[shapeIdx] || []).map((edge) => ({
-      key: `${shapeIdx}-${edge.index}`,
-      isSelected: shapeIdx === props.activeShapeIndex && edge.index === props.selectedEdgeIndex,
-      len: Math.hypot((edge.p2.pctX - edge.p1.pctX) * w, (edge.p2.pctY - edge.p1.pctY) * h),
-      x: ((edge.p1.pctX + edge.p2.pctX) / 200) * w,
-      y: ((edge.p1.pctY + edge.p2.pctY) / 200) * h,
-    }))
-  })
+  const shapeIdx = props.activeShapeIndex
+  if (props.hiddenShapes?.[shapeIdx]) return visible
+
+  const candidates = (props.allShapesEdges[shapeIdx] || []).map((edge) => ({
+    key: `${shapeIdx}-${edge.index}`,
+    isSelected: edge.index === props.selectedEdgeIndex,
+    len: Math.hypot((edge.p2.pctX - edge.p1.pctX) * w, (edge.p2.pctY - edge.p1.pctY) * h),
+    x: ((edge.p1.pctX + edge.p2.pctX) / 200) * w,
+    y: ((edge.p1.pctY + edge.p2.pctY) / 200) * h,
+  }))
 
   candidates.sort((a, b) => Number(b.isSelected) - Number(a.isSelected) || b.len - a.len)
 
@@ -133,16 +136,21 @@ const isLabelVisible = (shapeIdx: number, edgeIdx: number): boolean => {
 const handleWheel = (e: WheelEvent) => {
   e.preventDefault()
 
-  // pinch zoom
   if (e.ctrlKey) {
     const zoomDelta = e.deltaY < 0 ? 0.085 : -0.085
-    const newZoom = Math.min(Math.max(0.5, props.zoomLevel + zoomDelta), 3.5)
+    const newZoom = Math.min(Math.max(0.5, props.zoomLevel + zoomDelta), 5.5)
     emit('update:zoomLevel', Number(newZoom.toFixed(2)))
     return
   }
-  const maxOffset = 200 * (props.zoomLevel - 0.5)
+
   const rawOffsetX = props.canvasOffset.x - e.deltaX
   const rawOffsetY = props.canvasOffset.y - e.deltaY
+
+  const maxImgDimension = Math.max(
+    imageDimensions.value.width,
+    imageDimensions.value.height,
+  ) || 500
+ const maxOffset = (maxImgDimension / 2) * props.zoomLevel + 100
 
   const clampedX = Math.min(Math.max(rawOffsetX, -maxOffset), maxOffset)
   const clampedY = Math.min(Math.max(rawOffsetY, -maxOffset), maxOffset)
@@ -152,7 +160,6 @@ const handleWheel = (e: WheelEvent) => {
     y: Number(clampedY.toFixed(1)),
   })
 }
-
 const handleMouseDown = (e: MouseEvent) => {
   if (e.button === 1 || props.isMoveMode) {
     emit('canvasDragStart', e)
@@ -226,7 +233,7 @@ defineExpose({
 
 <template>
   <div
-    class="relative w-full h-full flex items-center justify-center overflow-hidden z-20"
+    class="relative w-full h-full flex items-center justify-center overflow-hidden z-20 [contain:layout_paint]"
     :class="cursorClass"
     @click="handleCanvasClick"
     @wheel.prevent="handleWheel"
@@ -242,9 +249,11 @@ defineExpose({
     </div>
     <!-- translate, scale applied on all layers  -->
     <div
-      class="relative inline-flex items-center justify-center transition-transform duration-75 ease-out"
+      class="relative inline-flex items-center justify-center"
       :style="{
         transform: `translate(${canvasOffset.x}px, ${canvasOffset.y}px) scale(${zoomLevel})`,
+        '--inverse-zoom': 1 / zoomLevel,
+        '--inverse-rotation': `${-rotation}deg`,
       }"
     >
       <div
@@ -255,8 +264,10 @@ defineExpose({
         <img
           ref="imgRef"
           :src="imageUrl ?? undefined"
-          alt="Workspace canvas"
+          :alt="$t('spatial.workspaceCanvas')"
           draggable="false"
+          decoding="async"
+          loading="eager"
           class="max-h-[460px] w-auto max-w-full object-contain rounded-md shadow-md block pointer-events-none select-none z-10"
           @load="handleImageLoad"
         />
@@ -379,7 +390,7 @@ defineExpose({
             <div
               v-for="(pt, ptIdx) in shape"
               :key="'pt-' + shapeIdx + '-' + ptIdx"
-              class="absolute rounded-full border-2 transition-transform"
+              class="absolute rounded-full border-2"
               :class="[
                 readOnly || isDrawingMode
                   ? 'pointer-events-none opacity-60'
@@ -393,7 +404,21 @@ defineExpose({
               :style="{
                 left: `${pt.pctX}%`,
                 top: `${pt.pctY}%`,
-                transform: `translate(-50%, -50%) scale(${1 / zoomLevel}) rotate(${-rotation}deg)`,
+                transform:
+                  'translate(-50%, -50%) scale(var(--inverse-zoom)) rotate(var(--inverse-rotation))',
+              }"
+              @mousedown.stop.prevent="handlePointMouseDown(shapeIdx, ptIdx, $event)"
+              @click.stop.prevent
+            />
+            <div
+              v-for="(pt, ptIdx) in shape"
+              :key="'pt-hitbox-' + shapeIdx + '-' + ptIdx"
+              class="absolute rounded-full pointer-events-auto opacity-0 w-6 h-6 cursor-grab active:cursor-grabbing z-50"
+              :style="{
+                left: `${pt.pctX}%`,
+                top: `${pt.pctY}%`,
+                transform:
+                  'translate(-50%, -50%) scale(var(--inverse-zoom)) rotate(var(--inverse-rotation))',
               }"
               @mousedown.stop.prevent="handlePointMouseDown(shapeIdx, ptIdx, $event)"
               @click.stop.prevent
@@ -401,7 +426,9 @@ defineExpose({
 
             <template
               v-if="
-                props.showLabels && (!props.hiddenShapes?.length || !props.hiddenShapes[shapeIdx])
+                props.showLabels &&
+                shapeIdx === props.activeShapeIndex &&
+                (!props.hiddenShapes?.length || !props.hiddenShapes[shapeIdx])
               "
             >
               <template
@@ -424,7 +451,8 @@ defineExpose({
                   :style="{
                     left: `${(edge.p1.pctX + edge.p2.pctX) / 2}%`,
                     top: `${(edge.p1.pctY + edge.p2.pctY) / 2}%`,
-                    transform: `translate(-50%, -50%) scale(${1 / zoomLevel}) rotate(${-rotation}deg)`,
+                    transform:
+                      'translate(-50%, -50%) scale(var(--inverse-zoom)) rotate(var(--inverse-rotation))',
                   }"
                   @mousedown.stop.prevent="handleEdgeMouseDown(shapeIdx, edge.index, $event)"
                   @click.stop.prevent
@@ -451,7 +479,8 @@ defineExpose({
               :style="{
                 left: `${pt.pctX}%`,
                 top: `${pt.pctY}%`,
-                transform: `translate(-50%, -50%) scale(${1 / zoomLevel}) rotate(${-rotation}deg)`,
+                transform:
+                  'translate(-50%, -50%) scale(var(--inverse-zoom)) rotate(var(--inverse-rotation))',
               }"
             />
           </template>

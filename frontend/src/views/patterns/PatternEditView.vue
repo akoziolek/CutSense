@@ -5,6 +5,7 @@ import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
 import { useRoute } from 'vue-router'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { ref, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { api, ApiError } from '@/api/client'
 import PatternForm, { type PatternFormPayload } from '@/components/patterns/PatternForm.vue'
 import { PatternSize, PatternVisibility, type NameTag } from '@/types/patterns'
@@ -25,6 +26,7 @@ interface Pattern {
 }
 
 const route = useRoute()
+const { t } = useI18n()
 const { state: auth } = useAuth()
 
 const patternId = computed(() => Number(route.params.id))
@@ -78,8 +80,8 @@ const fetchPattern = async (id: number, activeSignal = { active: true }) => {
 
       if (!isOwner) {
         if (result.visibility === PatternVisibility.PUBLIC)
-          error.value = 'You do not have access to edit this pattern.'
-        else error.value = 'Could not load pattern. Try again'
+          error.value = t('patterns.noEditAccess')
+        else error.value = t('patterns.loadFailed')
         return
       }
 
@@ -97,10 +99,10 @@ const fetchPattern = async (id: number, activeSignal = { active: true }) => {
   } catch (e) {
     if (activeSignal.active) {
       if (e instanceof ApiError && e.status === 403) {
-        error.value = 'Could not load pattern. Please try again.'
+        error.value = t('patterns.loadFailed')
       } else {
         error.value =
-          e instanceof ApiError ? e.body.message : 'Could not load pattern. Please try again.'
+          e instanceof ApiError ? e.body.message : t('patterns.loadFailed')
       }
     }
   } finally {
@@ -144,7 +146,7 @@ const handleSubmit = async (payload: PatternFormPayload) => {
   } catch (e) {
     console.error('Failed to update pattern:', e)
     submitError.value =
-      e instanceof ApiError ? e.body.message : 'Could not update pattern. Please try again.'
+      e instanceof ApiError ? e.body.message : t('patterns.updateFailed')
   } finally {
     isSubmitting.value = false
   }
@@ -169,7 +171,7 @@ watch(
 <template>
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
-      <PageHeader title="Edit Pattern" />
+      <PageHeader :title="t('patterns.edit')" />
       <Transition
         mode="out-in"
         enter-active-class="transition-opacity duration-150 ease-out"
@@ -180,16 +182,16 @@ watch(
         leave-to-class="opacity-0"
       >
         <main v-if="error" key="error">
-          <ErrorState title="Unable to load pattern" :message="error" code="Error">
+          <ErrorState :title="t('patterns.unableToLoad')" :message="error" :code="t('common.errors.errorCode')">
             <template #actions>
               <Button variant="outline" class="rounded-lg gap-2" @click="fetchPattern(patternId)">
                 <RotateCcw class="w-4 h-4" />
-                <span>Try again</span>
+                <span>{{ t('common.actions.tryAgain') }}</span>
               </Button>
               <Button as-child variant="default" class="rounded-lg gap-2">
                 <RouterLink to="/patterns">
                   <ArrowLeft class="w-4 h-4" />
-                  <span>Back to patterns</span>
+                  <span>{{ t('common.actions.backToPatterns') }}</span>
                 </RouterLink>
               </Button>
             </template>

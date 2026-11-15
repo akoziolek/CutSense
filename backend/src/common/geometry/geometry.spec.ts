@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rotateAndAnchor } from './shapes-geometry.js';
+import { placePiece, rotateAndAnchor } from './shapes-geometry.js';
 
 const rect = [
   { x: 0, y: 0 },
@@ -34,5 +34,51 @@ describe('rotateAndAnchor', () => {
   it('moves a piece that is not at the origin to (0, 0)', () => {
     const shifted = rect.map((p) => ({ x: p.x + 100, y: p.y + 50 }));
     expect(rotateAndAnchor(shifted, 0)).toEqual(rect);
+  });
+});
+
+describe('placePiece', () => {
+  it('applies grainline and placement rotation without re-anchoring', () => {
+    expect(
+      placePiece(
+        [
+          { x: 10, y: 20 },
+          { x: 14, y: 20 },
+          { x: 14, y: 22 },
+          { x: 10, y: 22 },
+        ],
+        {
+          rotationAngle: 0,
+          grainline: 90,
+          isMirrored: false,
+          isFlipped180: false,
+          x: 100,
+          y: 200,
+        },
+      ),
+    ).toEqual([
+      { x: 120, y: 190 },
+      { x: 120, y: 186 },
+      { x: 122, y: 186 },
+      { x: 122, y: 190 },
+    ]);
+  });
+
+  it('mirrors across the X axis before applying rotation', () => {
+    expect(
+      placePiece(rect, {
+        rotationAngle: 0,
+        grainline: 0,
+        isMirrored: true,
+        isFlipped180: false,
+        x: 10,
+        y: 20,
+      }),
+    ).toEqual([
+      { x: 10, y: 20 },
+      { x: 20, y: 20 },
+      { x: 20, y: 15 },
+      { x: 10, y: 15 },
+    ]);
   });
 });

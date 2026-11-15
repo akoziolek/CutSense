@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ZoomIn, ZoomOut, RotateCcw, X, Eye, EyeOff } from 'lucide-vue-next'
 import SpatialCanvas from '../spatial/SpatialCanvas.vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
+import AppImage from './AppImage.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -29,6 +30,8 @@ const zoomLevel = ref(1)
 const canvasOffset = ref({ x: 0, y: 0 })
 const showOverlay = ref(true)
 
+const hasError = ref(!props.src)
+
 const zoomIn = () => {
   zoomLevel.value = Math.min(zoomLevel.value + 0.25, 3.5)
 }
@@ -45,29 +48,34 @@ const resetZoom = () => {
 
 <template>
   <Dialog @update:open="resetZoom">
-    <DialogTrigger as-child>
-      <slot name="trigger">
+    <div
+      v-if="hasError"
+      class="relative flex w-full h-full items-center justify-center rounded-md border border-muted/50 bg-card overflow-hidden"
+    >
+      <AppImage :src="props.src" :alt="props.alt" :show-message="false" />
+    </div>
+
+    <DialogTrigger v-else as-child>
+      <slot v-if="$slots.trigger" name="trigger" />
+
+      <div
+        v-else
+        class="relative group cursor-zoom-in overflow-hidden rounded-md bg-card border border-muted/50 shadow-sm w-full h-full flex items-center justify-center"
+      >
+        <AppImage :src="props.src" :alt="props.alt" @error="hasError = true" />
+
         <div
-          class="relative group cursor-zoom-in overflow-hidden rounded-md bg-card border border-muted/50 shadow-sm w-full h-full min-h-[300px]"
+          class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-30"
         >
-          <img
-            :src="src"
-            :alt="alt"
-            draggable="false"
-            class="w-full h-full object-cover block select-none pointer-events-none transition-transform duration-300 group-hover:scale-105"
-          />
-          <div
-            class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-30"
-          >
-            <span class="rounded-full bg-background/80 p-2 shadow-sm backdrop-blur-sm text-foreground">
-              <ZoomIn class="h-5 w-5" />
-            </span>
-          </div>
+          <span class="rounded-full bg-background/80 p-2 shadow-sm backdrop-blur-sm text-foreground">
+            <ZoomIn class="h-5 w-5" />
+          </span>
         </div>
-      </slot>
+      </div>
     </DialogTrigger>
 
     <DialogContent
+      v-if="!hasError"
       class="max-w-[95vw] w-full h-[90vh] p-0 flex flex-col items-center justify-center bg-background border overflow-hidden [&>button]:hidden z-50"
       @open-auto-focus="(e) => e.preventDefault()"
     >
@@ -93,7 +101,7 @@ const resetZoom = () => {
             size="icon"
             variant="ghost"
             class="h-9 w-9 transition-colors cursor-pointer"
-            :title="showOverlay ? 'Hide shape' : 'Show shape'"
+            :title="$t(showOverlay ? 'common.actions.hideShape' : 'common.actions.showShape')"
             @click="showOverlay = !showOverlay"
           >
             <Eye v-if="showOverlay" class="h-3.5 w-3.5" />
@@ -106,7 +114,7 @@ const resetZoom = () => {
         class="absolute top-4 right-4 z-50 bg-background/80 backdrop-blur-sm p-1.5 rounded-md border shadow-sm"
       >
         <DialogClose as-child>
-          <Button size="icon" variant="ghost">
+          <Button size="icon" variant="ghost" :aria-label="$t('common.actions.close')">
             <X class="h-4 w-4" />
           </Button>
         </DialogClose>
@@ -114,9 +122,9 @@ const resetZoom = () => {
 
       <div class="w-full h-full relative">
         <SpatialCanvas
-          :image-url="src"
+          :image-url="props.src"
           :shapes="showOverlay ? props.shapes : []"
-          :active-shape-index="props.activeShapeIndex ?? undefined"
+          :active-shape-index="props.activeShapeIndex"
           :all-shapes-edges="showOverlay ? props.allShapesEdges : []"
           :show-labels="showOverlay"
           :zoom-level="zoomLevel"

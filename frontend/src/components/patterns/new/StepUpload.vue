@@ -27,16 +27,15 @@ const handleSubmit = () => {
 <template>
   <div class="space-y-6">
     <p class="text-sm text-muted-foreground">
-      Upload photos of physical paper patterns to digitize and vectorize them. High-resolution
-      photos on a clean background work best.
+      {{ $t('patterns.uploadDescription') }}
     </p>
 
     <main class="flex flex-col items-center px-3 pb-14">
       <UploadFileCard v-model="selectedPhotos" :multiple="true" :max-size-mb="10" :max-files="10" />
 
       <FormFloatingActions
-        cancel-label="Cancel"
-        next-label="Calibrate"
+        :cancel-label="$t('common.actions.cancel')"
+        :next-label="$t('common.actions.calibrate')"
         :disabled="selectedPhotos.length === 0"
         @cancel="emit('cancel')"
         @next="handleSubmit"

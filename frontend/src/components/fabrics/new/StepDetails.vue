@@ -5,6 +5,7 @@ import { api, ApiError } from '@/api/client'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
 import { toPostgisBoundary } from '@/utils/fabricBoundary'
 import FabricForm, { type FabricFormPayload } from '@/components/fabrics/FabricForm.vue'
+import { useI18n } from 'vue-i18n'
 
 const emit = defineEmits<{
   (e: 'cancel'): void
@@ -15,6 +16,7 @@ const router = useRouter()
 
 const isSubmitting = ref(false)
 const submitError = ref('')
+const { t } = useI18n()
 
 const saveDetails = async (payload: Partial<FabricFormPayload>) => {
   try {
@@ -35,7 +37,7 @@ const handleSubmit = async (payload: FabricFormPayload) => {
   const { file, config } = fabricStore
 
   if (!file || !fabricStore.isShapeConfigured) {
-    submitError.value = 'Fabric photo configuration is missing. Return to the previous step.'
+    submitError.value = t('fabrics.missingPhotoConfiguration')
     return
   }
 
@@ -72,8 +74,7 @@ const handleSubmit = async (payload: FabricFormPayload) => {
     await router.push({ name: 'FabricDetails', params: { id: createdFabric.id } })
   } catch (error) {
     console.error('Failed to create fabric:', error)
-    submitError.value =
-      error instanceof ApiError ? error.body.message : 'Could not save fabric. Please try again.'
+    submitError.value = error instanceof ApiError ? error.body.message : t('fabrics.saveError')
   } finally {
     isSubmitting.value = false
   }

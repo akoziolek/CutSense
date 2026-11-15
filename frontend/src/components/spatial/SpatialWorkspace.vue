@@ -92,9 +92,9 @@ defineExpose({
       class="flex flex-col items-center justify-center gap-3 text-muted-foreground"
     >
       <ImageOff class="h-10 w-10 stroke-1" />
-      <p class="text-sm font-medium">No image loaded. Please upload an image first.</p>
+      <p class="text-sm font-medium">{{ $t('spatial.noImage') }}</p>
       <Button type="button" variant="outline" size="sm" @click="emit('cancel')">
-        Go to upload
+        {{ $t('common.actions.goToUpload') }}
       </Button>
     </div>
 

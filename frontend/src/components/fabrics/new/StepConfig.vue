@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch, nextTick } from 'vue'
 import { toast } from 'vue-sonner'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
 import { useSpatialWorkspace } from '@/composables/useSpatialWorkspace'
@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/api/client'
 import BaseModal from '@/components/common/BaseModal.vue'
 import type { Point2D } from '@/types/geometry'
+import { useI18n } from 'vue-i18n'
 
 interface ShapeAnalysisResponse {
   shapes: Point2D[][]
@@ -29,6 +30,7 @@ const isErrorModalOpen = ref(false)
 const isAnalyzing = ref(false)
 const analysisError = ref('')
 let isSyncing = false
+const { t } = useI18n()
 
 const {
   points,
@@ -86,15 +88,15 @@ const loadSavedConfig = () => {
     imageRotation.value = fabricStore.config.rotation
   }
 
-  setTimeout(() => {
+  void nextTick(() => {
     isSyncing = false
-  }, 50)
+  })
 }
 
 const detectFabricBoundary = async () => {
   const picture = fabricStore.file
   if (!picture) {
-    analysisError.value = 'Fabric photo is missing. Return to the upload step and select a photo.'
+    analysisError.value = t('fabrics.missingPhoto')
     isErrorModalOpen.value = true
     return
   }
@@ -129,14 +131,12 @@ const detectFabricBoundary = async () => {
   } catch (error) {
     console.error('Failed to analyze fabric photo:', error)
     analysisError.value =
-      error instanceof ApiError
-        ? error.body.message
-        : 'Could not analyze fabric photo. Please try again.'
+      error instanceof ApiError ? error.body.message : t('fabrics.analysisFailed')
     isErrorModalOpen.value = true
   } finally {
-    setTimeout(() => {
+    void nextTick(() => {
       isSyncing = false
-    }, 50)
+    })
     isAnalyzing.value = false
   }
 }
@@ -158,7 +158,7 @@ const handleImageLoaded = (image?: HTMLImageElement) => {
 
 const handleSubmit = async () => {
   if (!fabricStore.file) {
-    toast.error('Fabric photo is not ready. Please try again.')
+    toast.error(t('fabrics.photoNotReady'))
     return
   }
 
@@ -174,7 +174,7 @@ const handleSubmit = async () => {
     )
     emit('next')
   } catch {
-    toast.error('Could not save fabric configuration. Please try again.')
+    toast.error(t('fabrics.configSaveError'))
   }
 }
 
@@ -231,7 +231,7 @@ onMounted(() => {
 <template>
   <div>
     <div v-if="isAnalyzing" role="status" aria-live="polite">
-      <p class="mb-3 text-sm text-muted-foreground">Detecting fabric outline from the photo...</p>
+      <p class="mb-3 text-sm text-muted-foreground">{{ $t('fabrics.detectingOutline') }}</p>
       <div class="flex flex-col lg:flex-row items-start gap-6">
         <Skeleton class="w-full h-[520px] rounded-md" />
         <div class="w-full lg:w-80 space-y-4">
@@ -260,9 +260,7 @@ onMounted(() => {
         :is-move-mode="isMoveMode"
         :is-dragging-canvas="isDraggingCanvas"
         :is-interactive-dragging="isInteractiveDragging"
-        @activate-and-select-edge="
-          ({ edgeIndex, event }) => handleEdgeMouseDown(edgeIndex, event)
-        "
+        @activate-and-select-edge="({ edgeIndex, event }) => handleEdgeMouseDown(edgeIndex, event)"
         @select-point="
           (idx) => {
             selectedPointIndex = idx
@@ -288,18 +286,18 @@ onMounted(() => {
     </div>
 
     <FormFloatingActions
-      cancel-label="Cancel"
-      next-label="Next"
+      :cancel-label="$t('common.actions.cancel')"
+      :next-label="$t('common.actions.next')"
       :disabled="isAnalyzing || pxPerMm <= 0"
       @cancel="emit('cancel')"
       @next="handleSubmit"
     />
 
     <BaseModal
-      title="We couldn't process your image."
-      description="Try again later or use the default shape and adjust it manually"
+      :title="$t('fabrics.imageProcessError')"
+      :description="$t('fabrics.imageProcessDescription')"
       :open="isErrorModalOpen"
-      confirmLabel="I understand"
+      :confirmLabel="$t('common.actions.gotIt')"
       fullWidthButton
       @confirm="handleConfirm"
     />

@@ -30,7 +30,7 @@ const bbox = computed(() => {
   const shapeHeight = Math.max(boxPointBottom - boxPointTop, 0.1)
 
   const largestDimension = Math.max(shapeWidth, shapeHeight)
-  let cropSize = Math.min(100, largestDimension * 1.05)
+  let cropSize = Math.min(100, largestDimension * 1.15)
   if (cropSize < largestDimension) {
     cropSize = largestDimension
   }
@@ -63,7 +63,7 @@ const polygonPointsStr = computed(() => props.points.map((p) => `${p.pctX},${p.p
   <ImagePreview
     v-if="imageUrl"
     :src="imageUrl"
-    alt="Pattern piece preview"
+    :alt="$t('patterns.piecePreview')"
     :shapes="allShapes || [points]"
     :active-shape-index="shapeIndex"
     :all-shapes-edges="allShapesEdges"

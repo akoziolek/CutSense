@@ -12,7 +12,7 @@ defineProps<{
 
 <template>
   <Card
-    class="w-full max-w-[320px] lg:max-w-none border-2 border-bg-primary bg-white rounded-2xl shadow-none p-8 flex flex-col items-center text-center justify-between min-h-[380px]"
+    class="w-full max-w-[320px] lg:max-w-none border-2 border-bg-primary bg-card rounded-2xl shadow-none p-8 flex flex-col items-center text-center justify-between min-h-[380px]"
   >
     <CardContent class="p-0 flex flex-col items-center">
       <div

@@ -37,16 +37,16 @@ const gridClass = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
     </div>
 
     <div v-else-if="error" key="error">
-      <ErrorState :title="`Unable to load ${noun}`" :message="error" code="Error">
+      <ErrorState :title="$t('common.errors.unableToLoad', { resource: noun })" :message="error" :code="$t('common.errors.errorCode')">
         <template #actions>
           <Button variant="outline" class="rounded-lg gap-2" @click="emit('retry')">
             <RotateCcw class="w-4 h-4" />
-            <span>Try again</span>
+            <span>{{ $t('common.actions.tryAgain') }}</span>
           </Button>
           <Button as-child variant="default" class="rounded-lg gap-2">
             <RouterLink to="/">
               <ArrowLeft class="w-4 h-4" />
-              <span>Back to home</span>
+              <span>{{ $t('common.actions.backToHome') }}</span>
             </RouterLink>
           </Button>
         </template>
@@ -61,10 +61,10 @@ const gridClass = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
     >
       <SearchX class="size-8 text-muted-foreground" />
       <p class="max-w-xs text-xs text-muted-foreground">
-        We couldn't find any {{ noun }} matching your criteria.
+        {{ $t('common.errors.noResults', { resource: noun }) }}
       </p>
       <Button variant="outline" size="sm" class="mt-2 rounded-lg" @click="emit('reset')">
-        Clear filters
+        {{ $t('common.actions.clearFilters') }}
       </Button>
     </div>
 

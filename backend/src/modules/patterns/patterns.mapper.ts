@@ -28,14 +28,14 @@ export interface PatternWithRelations {
   userId: number;
   createdAt: Date;
   tags: { tag: { id: number; name: string } }[];
-  user: { id: number; nickname: string | null; name: string };
+  user: { id: number; nickname: string | null; };
   images: {
     id: number;
     pictureS3Key: string;
     imageWidthMm: number;
     imageHeightMm: number;
     orderIndex: number;
-    pieces: { id: number; geojson: string; grainline: number }[];
+    pieces: { id: number; normalCount: number; mirroredCount: number; geojson: string; grainline: number }[];
   }[];
   favoritedBy: { userId: number }[];
 }
@@ -69,6 +69,8 @@ export class PatternsMapper {
     const allPieces = (pattern.images ?? []).flatMap((image) =>
       image.pieces.map((piece) => ({
         id: piece.id,
+        normalCount: piece.normalCount,
+        mirroredCount: piece.mirroredCount,
         patternImageId: image.id,
         grainline: piece.grainline,
         points: PatternsMapper.piecePointsFromGeoJson(piece.geojson),
@@ -102,7 +104,7 @@ export class PatternsMapper {
       ),
       author: {
         id: pattern.user.id,
-        nickname: pattern.user.nickname ?? pattern.user.name,
+        nickname: pattern.user.nickname,
       },
       images,
       pieces: allPieces,

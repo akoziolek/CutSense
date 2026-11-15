@@ -93,6 +93,8 @@ export const patterns = pgTable(
     name: varchar('name', { length: 35 }).notNull(),
     description: varchar('description', { length: 400 }),
     size: patternSizeEnum('size').notNull(),
+    minFabricLengthMM: smallint('min_fabric_length_mm'),
+    minFabricWidthMM: smallint('min_fabric_width_mm'),
     visibility: visibilityLevelEnum('visibility').notNull().default('PRIVATE'),
     starCount: integer('star_count').notNull().default(0),
     starAverage: numeric('star_average', { precision: 3, scale: 2 })

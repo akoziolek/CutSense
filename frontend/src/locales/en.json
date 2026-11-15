@@ -12,7 +12,8 @@
       "toggleTheme": "Toggle theme",
       "selectLanguage": "Select language",
       "userMenu": "User menu",
-      "toggleNavigation": "Toggle navigation"
+      "toggleNavigation": "Toggle navigation",
+      "viewAll": "View all"
     },
     "language": {
       "pl": "Polski",
@@ -187,6 +188,36 @@
     "detailsDescription": "Here you can view and update your data.",
     "email": "Email address",
     "nickname": "Nickname"
+  },
+  "home": {
+    "hello": "Hello",
+    "lastOptimizations": "Last optimizations",
+    "statistics": "Statistics",
+    "newFabrics": "Recently added fabrics",
+    "newPatterns": "Recently added patterns",
+    "actions": {
+      "quickActions": "Quick actions",
+      "newOptimization": "New optimization",
+      "newOptimizationDescription": "Start a fresh run with fabric, pattern, and algorithm.",
+      "newFabric": "New fabric",
+      "newFabricDescription": "Add to your stash to run instant layout optimizations.",
+      "newPattern": "New pattern",
+      "newPatternDescription": "Save your pattern once to reuse it across different fabrics."
+    },
+    "stats": {
+      "optimizations": "Total optimizations",
+      "fabrics": "Fabrics saved",
+      "patterns": "Patterns saved",
+      "addedThisWeek": "new this week",
+      "noneThisWeek": "No new items this week",
+      "loadFailed": "Statistics could not be loaded. Please try again later.",
+      "emptyOptimizations": "Nothing saved yet",
+      "emptyFabrics": "No fabrics yet",
+      "emptyPatterns": "No patterns yet",
+      "startFirst": "Start first",
+      "addFirstFabric": "Add first",
+      "addFirstPattern": "Add first"
+    }
   },
   "fabrics": {
     "name": "Fabric name",

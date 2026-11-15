@@ -3,6 +3,7 @@ import { useAuth } from '../composables/useAuth'
 import { consumeReturnTo } from '../utils/returnTo'
 
 const LandingPage = () => import('../views/LandingPage.vue')
+const HomePage = () => import('../views/HomePage.vue')
 const AccountPage = () => import('../views/account/AccountView.vue')
 const ComingSoonPage = () => import('../views/ComingSoonPage.vue')
 const FabricPage = () => import('../views/fabrics/FabricView.vue')
@@ -19,7 +20,6 @@ const NewOptimizationPage = () => import('../views/optimizations/NewOptimization
 
 const routes = [
   { path: '/', name: 'Landing', component: LandingPage, meta: { isPublic: true } },
-
   // public pages (guests can browse public patterns)
   { path: '/patterns', name: 'Patterns', component: PatternsPage, meta: { isPublic: true } },
   {
@@ -42,7 +42,7 @@ const routes = [
   },
 
   // pages that are private unless explicitly marked public above
-  { path: '/home', name: 'Home', component: ComingSoonPage },
+  { path: '/home', name: 'Home', component: HomePage },
   { path: '/account', name: 'UserAccount', component: AccountPage },
   {
     path: '/optimizations',

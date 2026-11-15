@@ -326,7 +326,11 @@
     "uploadDescription": "Prześlij zdjęcia wykrojów, aby je zdigitalizować i zwektoryzować. Najlepiej sprawdzą się zdjęcia w wysokiej rozdzielczości na czystym tle.",
     "detectingBoundaries": "Wykrywanie granic elementów wykroju ze zdjęcia nr {number}...",
     "analysisFailed": "Nie udało się przeanalizować granic zdjęcia. Dostosuj je ręcznie.",
-    "noSheetsToDisplay": "Brak arkuszy wykroju do wyświetlenia"
+    "noSheetsToDisplay": "Brak arkuszy wykroju do wyświetlenia",
+    "minLength": "Min. długość materiału",
+    "minLengthValue": "{lengthM}\u00A0m × {widthM}\u00A0m",
+    "calculating": "Obliczanie...",
+    "calculationUnavailable": "Obliczenie niedostępne"
   },
   "optimizations": {
     "addFirstFabric": "Dodaj pierwszą tkaninę",

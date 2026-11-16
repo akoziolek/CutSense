@@ -1,0 +1,1 @@
+ALTER TABLE "optimization_results" ALTER COLUMN "spent_time" SET DATA TYPE integer;

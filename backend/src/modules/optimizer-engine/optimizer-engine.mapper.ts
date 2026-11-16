@@ -22,7 +22,7 @@ const pt = ([x, y]: OptimizerPointDto): EnginePoint => ({
   y: Math.round(y * UNITS.inputPerMm),
 });
 
-export function fabricOriginYMm(fabric: OptimizerInputDto['fabric']): number {
+const getLibraryFabricTransform = (boundary: OptimizerInputDto['fabric']): number {
   if (fabric.fabricId === undefined || fabric.boundary.length === 0) return 0;
   return Math.min(...fabric.boundary.map(([, y]) => Math.round(y * UNITS.inputPerMm)));
 }
@@ -31,18 +31,23 @@ export function toEngineInput(
   input: OptimizerInputDto,
   algorithmId: number,
 ): EngineInput {
-  const fabric: EngineFabric =
-    input.fabric.fabricId === undefined
-      ? {
-          width: Math.round(input.fabric.widthMm * UNITS.inputPerMm),
-          length: Math.round(input.fabric.lengthMm * UNITS.inputPerMm),
-        }
-      : {
-          boundary: input.fabric.boundary.map(([x, y]) => ({
-            x: Math.round(x * UNITS.inputPerMm),
-            y: Math.round(y * UNITS.inputPerMm),
-          })),
-        };
+  const fabric: EngineFabric = (() => {
+    if (input.fabric.fabricId === undefined) {
+      return {
+        width: Math.round(input.fabric.widthMm * UNITS.inputPerMm),
+        length: Math.round(input.fabric.lengthMm * UNITS.inputPerMm),
+      };
+    }
+
+    // place at (0, 0)
+    const { minX, maxY } = getLibraryFabricTransform(input.fabric.boundary);
+    return {
+      boundary: input.fabric.boundary.map(([x, y]) => ({
+        x: Math.round((maxY - y) * UNITS.inputPerMm),
+        y: Math.round((x - minX) * UNITS.inputPerMm),
+      })),
+    };
+  })();
 
   const enginePieces: EnginePiece[] = [];
 
@@ -53,39 +58,34 @@ export function toEngineInput(
     );
     const points = p.boundary.map(pt);
 
-    for (let i = 0; i < p.normalCount; i++) {
-      enginePieces.push({
-        id: p.patternPieceId,
-        points,
-        grainline: p.grainline,
-        seamAllowance,
-        cuttingAllowance,
-        constraints: [
-          {
-            rotationAngle: p.direction,
-            isMirrored: false,
-            requiredQuantity: 1,
-            twoWay: p.twoWay,
-          },
-        ],
+    const constraints = [];
+
+    if (p.normalCount > 0) {
+      constraints.push({
+        rotationAngle: p.direction,
+        isMirrored: false,
+        requiredQuantity: p.normalCount,
+        twoWay: p.twoWay,
       });
     }
 
-    for (let i = 0; i < p.mirroredCount; i++) {
+    if (p.mirroredCount > 0) {
+      constraints.push({
+        rotationAngle: p.direction,
+        isMirrored: true,
+        requiredQuantity: p.mirroredCount,
+        twoWay: p.twoWay,
+      });
+    }
+
+    if (constraints.length > 0) {
       enginePieces.push({
         id: p.patternPieceId,
         points,
         grainline: p.grainline,
         seamAllowance,
         cuttingAllowance,
-        constraints: [
-          {
-            rotationAngle: p.direction,
-            isMirrored: true,
-            requiredQuantity: 1,
-            twoWay: p.twoWay,
-          },
-        ],
+        constraints,
       });
     }
   }

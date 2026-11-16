@@ -22,10 +22,10 @@ const pt = ([x, y]: OptimizerPointDto): EnginePoint => ({
   y: Math.round(y * UNITS.inputPerMm),
 });
 
-const getLibraryFabricTransform = (boundary: OptimizerInputDto['fabric']): number {
-  if (fabric.fabricId === undefined || fabric.boundary.length === 0) return 0;
-  return Math.min(...fabric.boundary.map(([, y]) => Math.round(y * UNITS.inputPerMm)));
-}
+const getLibraryFabricTransform = (boundary: OptimizerPointDto[]) => ({
+  minX: boundary.length > 0 ? Math.min(...boundary.map(([x]) => x)) : 0,
+  maxY: boundary.length > 0 ? Math.max(...boundary.map(([, y]) => y)) : 0,
+});
 
 export function toEngineInput(
   input: OptimizerInputDto,

@@ -6,7 +6,6 @@ export interface CurrentUser {
   id: number;
   nickname: string | null;
   email: string;
-  avatar: string | null;
 }
 
 const state = reactive<{ user: CurrentUser | null; loaded: boolean }>({

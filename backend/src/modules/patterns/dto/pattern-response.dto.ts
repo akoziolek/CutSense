@@ -92,6 +92,24 @@ export class PatternResponseDto {
   size!: PatternSize;
 
   @ApiProperty({
+    description:
+      'Minimum required fabric length in millimeters for the reference width',
+    type: Number,
+    nullable: true,
+    example: 1450,
+  })
+  minFabricLengthMM!: number | null;
+
+  @ApiProperty({
+    description:
+      'Reference fabric width in millimeters used to calculate minimum length',
+    type: Number,
+    nullable: true,
+    example: 1400,
+  })
+  minFabricWidthMM!: number | null;
+
+  @ApiProperty({
     description: 'Visibility level of the pattern',
     example: 'PRIVATE',
     enum: PatternVisibility,

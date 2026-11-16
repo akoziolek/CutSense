@@ -14,7 +14,11 @@ export interface PatternFilters extends BaseFilters {
   communityOnly: boolean
 }
 
-export const emptyFilters = (): PatternFilters => ({ ...emptyBaseFilters(), sizes: [], communityOnly: true, })
+export const emptyFilters = (): PatternFilters => ({
+  ...emptyBaseFilters(),
+  sizes: [],
+  communityOnly: false,
+})
 
 const asSizes = (v: unknown): PatternSize[] => {
   if (typeof v !== 'string') return []
@@ -25,13 +29,13 @@ const asSizes = (v: unknown): PatternSize[] => {
 export const filtersFromQuery = (query: LocationQuery): PatternFilters => ({
   ...baseFromQuery(query),
   sizes: asSizes(query.sizes),
-  communityOnly: query.community !== '0',
+  communityOnly: query.community === '1' || query.community === 'true',
 })
 
 export const filtersToQuery = (f: PatternFilters): Record<string, string | undefined> => ({
   ...baseToQuery(f),
   sizes: f.sizes.length ? f.sizes.join(',') : undefined,
-  community: f.communityOnly ? undefined : '0',
+  community: f.communityOnly ? '1' : undefined,
 })
 
 export const filtersToApiParams = (f: PatternFilters): Record<string, string> => {

@@ -1,4 +1,7 @@
-export interface EnginePoint { x: number; y: number }
+export interface EnginePoint {
+  x: number;
+  y: number;
+}
 
 export interface EngineConstraint {
   rotationAngle: number;
@@ -16,7 +19,8 @@ export interface EnginePiece {
   cuttingAllowance: number;
 }
 
-export type EngineFabric = { width: number; length: number } | { boundary: EnginePoint[] };
+export type EngineFabric =
+  { width: number; length: number } | { boundary: EnginePoint[] };
 
 export interface EngineInput {
   fabric: EngineFabric;
@@ -52,10 +56,19 @@ export interface EngineResult {
   positions: EnginePosition[];
 }
 
-export type ViewStats = Omit<NestingStats, 'usableScrapCount' | 'remainingFabricLength'>;
+export interface CalcMinimumInput {
+  width: number;
+  pieces: EnginePiece[];
+}
+
+export type ViewStats = Omit<
+  NestingStats,
+  'usableScrapCount' | 'remainingFabricLength'
+>;
 
 export interface OptimizerEngine {
   run(input: EngineInput): Promise<EngineResult>;
+  calcMinimum(input: CalcMinimumInput): Promise<number>;
 }
 
 export const OPTIMIZER_ENGINE = Symbol('OPTIMIZER_ENGINE');

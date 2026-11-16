@@ -109,6 +109,8 @@ const pattern = {
   starAverage: '4.43',
   userId: 3,
   createdAt: '2026-08-10T00:00:00.000Z',
+  minFabricLengthMM: null,
+  minFabricWidthMM: null,
   tags: ['summer', 'tops'],
   author: { id: 3, nickname: 'Lily43' },
   pieces: [
@@ -169,6 +171,28 @@ describe('PatternView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Visibility: Public')
+  })
+
+  it('displays the calculated minimum fabric size', async () => {
+    apiMock.mockResolvedValue({
+      ...pattern,
+      minFabricLengthMM: 1250,
+      minFabricWidthMM: 1400,
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Min. fabric length: 1.25 m (on 1.40 m wide fabric)')
+  })
+
+  it('keeps the minimum-size row visible when the calculation is unavailable', async () => {
+    apiMock.mockResolvedValue(pattern)
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Min. fabric length: Calculation unavailable')
   })
 
   it('passes empty tags and no description to the details card', async () => {

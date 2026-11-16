@@ -327,7 +327,11 @@
     "uploadDescription": "Upload photos of physical paper patterns to digitize and vectorize them. High-resolution photos on a clean background work best.",
     "detectingBoundaries": "Detecting pattern piece boundaries from photo #{number}...",
     "analysisFailed": "Could not analyze photo boundary. Please adjust manually.",
-    "noSheetsToDisplay": "No pattern sheets to display"
+    "noSheetsToDisplay": "No pattern sheets to display",
+    "minLength": "Min. fabric length",
+    "minLengthValue": "{lengthM}\u00A0m × {widthM}\u00A0m",
+    "calculating": "Calculating...",
+    "calculationUnavailable": "Calculation unavailable"
   },
   "optimizations": {
     "addFirstFabric": "Add your first fabric",

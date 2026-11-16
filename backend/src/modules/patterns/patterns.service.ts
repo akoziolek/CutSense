@@ -48,17 +48,22 @@ import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { patternFavourites } from '../../db/schema/schema.js';
 import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 import { StoragePaths, StorageService } from '../storage/storage.service.js';
+import { NestingEngine } from '../optimizer-engine/nesting.engine.js';
+import type { EnginePiece } from '../optimizer-engine/optimizer-engine.types.js';
 
 // identity ids start at 1, so this never matches a favourite row (used for guests)
 const NO_USER_ID = 0;
+const REFERENCE_FABRIC_WIDTH_MM = 1400;
 
 @Injectable()
 export class PatternsService {
+  private readonly logger = new Logger(PatternsService.name);
   constructor(
     @Inject(DRIZZLE)
     private readonly db: DrizzleDB,
     private readonly shapesEngineClient: ShapesEngineClient,
     private readonly storageService: StorageService,
+    private readonly nestingEngine: NestingEngine,
   ) {}
 
   async analyzePatternBoundary(
@@ -333,7 +338,34 @@ export class PatternsService {
       throw error;
     }
 
+    const enginePieces = PatternsMapper.mapPiecesForEngine(dto.pieces);
+    void this.calculateMinLengthInBackground(createdPatternId, enginePieces);
+
     return this.getPatternById(createdPatternId, userId);
+  }
+
+  private async calculateMinLengthInBackground(
+    patternId: number,
+    pieces: EnginePiece[],
+  ): Promise<void> {
+    try {
+      const minLengthMm = await this.nestingEngine.calcMinimum({
+        width: REFERENCE_FABRIC_WIDTH_MM,
+        pieces,
+      });
+
+      await this.db
+        .update(patterns)
+        .set({
+          minFabricLengthMM: minLengthMm,
+          minFabricWidthMM: REFERENCE_FABRIC_WIDTH_MM,
+        })
+        .where(eq(patterns.id, patternId));
+    } catch (error) {
+      this.logger.warn(
+        `Failed to compute minLength for pattern ${patternId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   async getPatternTags(): Promise<PatternTagDto[]> {

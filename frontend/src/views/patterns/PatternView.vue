@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import {
   CalendarDays,
   RulerDimensionLine,
+  Scissors,
   Lock,
   Globe,
   ArrowLeft,
@@ -35,6 +36,8 @@ interface Pattern {
   description?: string
   size: string
   visibility: 'PUBLIC' | 'PRIVATE'
+  minFabricLengthMM: number | null
+  minFabricWidthMM: number | null
   starCount: number
   starAverage: string
   tags: NameTag[]
@@ -50,6 +53,9 @@ interface Pattern {
   }[]
   isFavourite: boolean
 }
+
+const POLL_DELAYS_MS = [1000, 2000, 4000, 8000, 15000]
+const FRESHNESS_WINDOW_MS = 60_000
 
 const {
   confirmOpen,
@@ -74,9 +80,11 @@ const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
 const isNotFound = ref(false)
+const minLengthStatus = ref<'calculating' | 'unavailable' | null>(null)
 const { toggle: toggleFavourite, pending } = useFavouriteToggle('/patterns')
 
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
+let pollTimer: ReturnType<typeof setTimeout> | null = null
 const { state: auth } = useAuth()
 
 const clearSkeletonTimer = () => {
@@ -86,32 +94,96 @@ const clearSkeletonTimer = () => {
   }
 }
 
+const clearPollTimer = () => {
+  if (pollTimer) {
+    clearTimeout(pollTimer)
+    pollTimer = null
+  }
+}
+
+const formatMinLength = (lengthMm: number, widthMm: number | null) => {
+  const lengthM = (lengthMm / 1000).toFixed(2)
+  const widthM = ((widthMm ?? 1400) / 1000).toFixed(2)
+  return t('patterns.minLengthValue', { lengthM, widthM })
+}
+
 const isOwner = computed(() => !!pattern.value && auth.user?.id === pattern.value.userId)
 
-const metaItems = computed<MetaItem[]>(() =>
-  pattern.value
-    ? [
-        {
-          icon: CalendarDays,
-          label: t('common.details.added'),
-          value: new Date(pattern.value.createdAt).toLocaleDateString(),
-        },
-        {
-          icon: pattern.value.visibility === 'PRIVATE' ? Lock : Globe,
-          label: t('common.details.visibility'),
-          value: t(pattern.value.visibility === 'PRIVATE' ? 'patterns.private' : 'patterns.public'),
-        },
-        {
-          icon: RulerDimensionLine,
-          label: t('common.details.size'),
-          value: pattern.value.size,
-        },
-      ]
-    : [],
-)
+const metaItems = computed<MetaItem[]>(() => {
+  if (!pattern.value) return []
+
+  const items: MetaItem[] = [
+    {
+      icon: CalendarDays,
+      label: t('common.details.added'),
+      value: new Date(pattern.value.createdAt).toLocaleDateString(),
+    },
+    {
+      icon: pattern.value.visibility === 'PRIVATE' ? Lock : Globe,
+      label: t('common.details.visibility'),
+      value: t(pattern.value.visibility === 'PRIVATE' ? 'patterns.private' : 'patterns.public'),
+    },
+    {
+      icon: RulerDimensionLine,
+      label: t('common.details.size'),
+      value: pattern.value.size,
+    },
+  ]
+
+  const minLengthMm = pattern.value.minFabricLengthMM
+  if (typeof minLengthMm === 'number' || minLengthStatus.value !== null) {
+    items.push({
+      icon: Scissors,
+      label: t('patterns.minLength'),
+      value:
+        typeof minLengthMm === 'number'
+          ? formatMinLength(minLengthMm, pattern.value.minFabricWidthMM)
+          : t(
+              minLengthStatus.value === 'calculating'
+                ? 'patterns.calculating'
+                : 'patterns.calculationUnavailable',
+            ),
+    })
+  }
+
+  return items
+})
+
+const startMinLengthPolling = (id: string, activeSignal: { active: boolean }, attempt = 0) => {
+  if (!activeSignal.active) {
+    return
+  }
+  if (attempt >= POLL_DELAYS_MS.length) {
+    clearPollTimer()
+    minLengthStatus.value = 'unavailable'
+    return
+  }
+
+  minLengthStatus.value = 'calculating'
+  pollTimer = setTimeout(async () => {
+    try {
+      const updated = await api<Pattern>(`/patterns/${encodeURIComponent(id)}`)
+      if (!activeSignal.active) return
+
+      if (typeof updated.minFabricLengthMM === 'number' && pattern.value) {
+        pattern.value.minFabricLengthMM = updated.minFabricLengthMM
+        pattern.value.minFabricWidthMM = updated.minFabricWidthMM
+        minLengthStatus.value = null
+        clearPollTimer()
+        return
+      }
+    } catch {
+      // ignore transient network errors during background polling
+    }
+
+    startMinLengthPolling(id, activeSignal, attempt + 1)
+  }, POLL_DELAYS_MS[attempt])
+}
 
 const fetchPattern = async (id: string, activeSignal = { active: true }) => {
   clearSkeletonTimer()
+  clearPollTimer()
+  minLengthStatus.value = null
   pattern.value = null
   error.value = ''
   isNotFound.value = false
@@ -126,12 +198,22 @@ const fetchPattern = async (id: string, activeSignal = { active: true }) => {
 
   try {
     const result = await api<Pattern>(`/patterns/${encodeURIComponent(id)}`)
-    if (activeSignal.active) pattern.value = result
+    if (activeSignal.active) {
+      pattern.value = result
+
+      if (typeof result.minFabricLengthMM !== 'number') {
+        const isFresh = Date.now() - new Date(result.createdAt).getTime() < FRESHNESS_WINDOW_MS
+        if (isFresh) {
+          startMinLengthPolling(id, activeSignal)
+        } else {
+          minLengthStatus.value = 'unavailable'
+        }
+      }
+    }
   } catch (e) {
     if (activeSignal.active) {
       isNotFound.value = e instanceof ApiError && e.status === 404
-      error.value =
-        e instanceof ApiError ? e.body.message : t('patterns.loadFailed')
+      error.value = e instanceof ApiError ? e.body.message : t('patterns.loadFailed')
     }
   } finally {
     if (activeSignal.active) {
@@ -149,6 +231,7 @@ watch(
     onCleanup(() => {
       activeSignal.active = false
       clearSkeletonTimer()
+      clearPollTimer()
     })
     fetchPattern(id, activeSignal)
   },
@@ -211,9 +294,7 @@ watch(
         <main v-else-if="error" key="error">
           <ErrorState
             :title="t(isNotFound ? 'patterns.notFound' : 'patterns.unableToLoad')"
-            :message="
-              isNotFound ? t('patterns.notFoundMessage') : error
-            "
+            :message="isNotFound ? t('patterns.notFoundMessage') : error"
             :code="t(isNotFound ? 'common.errors.notFoundCode' : 'common.errors.errorCode')"
           >
             <template #actions>

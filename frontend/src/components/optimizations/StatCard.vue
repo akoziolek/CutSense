@@ -22,7 +22,10 @@ defineProps<{
         {{ value }}
       </div>
 
-      <div v-if="subtext || $slots.subtext" class="text-[11px] text-zinc-600 font-normal leading-tight pt-0.5">
+      <div
+        v-if="subtext || $slots.subtext"
+        class="pt-0.5 text-[11px] font-normal leading-tight text-brand-green-foreground/80"
+      >
         <slot name="subtext">
           {{ subtext }}
         </slot>

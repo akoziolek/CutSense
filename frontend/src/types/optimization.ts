@@ -92,8 +92,9 @@ export interface OptimizationListItem {
   createdAt: string
   patternId: number
   patternName: string
+  fabricName?: string
+  algorithmName: string
   minLengthMm: number
-  imageUrl?: string
 }
 
 export interface OptimizationListResponse {
@@ -104,7 +105,8 @@ export interface OptimizationListResponse {
   totalPages: number
 }
 
-export type OptimizationSort = 'name_asc' | 'name_desc' | 'date_desc' | 'date_asc'
+export type OptimizationSortField = 'name' | 'date' | 'pattern' | 'fabric' | 'algorithm'
+export type OptimizationSort = `${OptimizationSortField}_${'asc' | 'desc'}`
 
 export interface OptimizationStats {
   usableScrapsArea: number

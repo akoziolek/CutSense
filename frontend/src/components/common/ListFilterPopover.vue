@@ -35,9 +35,10 @@ const props = withDefaults(
     active: boolean
     showFavourites?: boolean
     showCommunity?: boolean
+    showTags?: boolean
     extraError?: (filters: F) => string
   }>(),
-  { showFavourites: true, showCommunity: false },
+  { showFavourites: true, showCommunity: false, showTags: true  },
 )
 
 const emit = defineEmits<{

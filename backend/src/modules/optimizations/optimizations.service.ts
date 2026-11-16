@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, count, desc, eq, ilike, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, AnyColumn, asc, count, desc, eq, gte, ilike, inArray, lte, sql, type SQL } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import {
   algorithmTypes,
@@ -39,8 +39,7 @@ import {
   fromEngineResult,
   toEngineInput,
 } from '../optimizer-engine/optimizer-engine.mapper.js';
-import { patternImages } from '../../db/schema/schema.js';
-import { likeTerm } from '../../common/utils/list-query.js';
+import { assertDateRange, likeTerm } from '../../common/utils/list-query.js';
 import { StorageService } from '../storage/storage.service.js';
 import {
   ListOptimizationsQueryDto,
@@ -116,25 +115,16 @@ export class OptimizationsService {
     return run;
   }
 
-  async getOptimizations(
-    query: ListOptimizationsQueryDto,
-    userId: number,
-  ): Promise<OptimizationListResponseDto> {
-    const { page, limit, sort } = query;
+  async getOptimizations(query: ListOptimizationsQueryDto, userId: number): Promise<OptimizationListResponseDto> {
+    const { page, limit, sort, createdFrom, createdTo } = query;
+    assertDateRange(createdFrom, createdTo);
     const term = likeTerm(query.q);
     const where = and(
       eq(optimizationResults.userId, userId),
       term ? ilike(optimizationResults.name, term) : undefined,
+      createdFrom ? gte(optimizationResults.createdAt, new Date(createdFrom)) : undefined,
+      createdTo ? lte(optimizationResults.createdAt, new Date(createdTo)) : undefined,
     )!;
-
-    const firstImage = this.db
-      .selectDistinctOn([patternImages.patternId], {
-        patternId: patternImages.patternId,
-        pictureS3Key: patternImages.pictureS3Key,
-      })
-      .from(patternImages)
-      .orderBy(patternImages.patternId, asc(patternImages.orderIndex), asc(patternImages.id))
-      .as('first_image');
 
     const [rows, [{ total }]] = await Promise.all([
       this.db
@@ -144,21 +134,20 @@ export class OptimizationsService {
           createdAt: optimizationResults.createdAt,
           patternId: optimizationResults.patternId,
           patternName: patterns.name,
-          pictureS3Key: firstImage.pictureS3Key,
+          algorithmName: algorithmTypes.name,
+          fabricName: fabrics.name,
           minLengthMm: optimizationResults.minLengthMm,
         })
         .from(optimizationResults)
         .innerJoin(patterns, eq(patterns.id, optimizationResults.patternId))
-        .leftJoin(firstImage, eq(firstImage.patternId, optimizationResults.patternId))
+        .innerJoin(algorithmTypes, eq(algorithmTypes.id, optimizationResults.algorithmId))
+        .leftJoin(fabrics, eq(fabrics.id, optimizationResults.customFabricId))
         .where(where)
         .orderBy(...this.getOrderBy(sort))
         .limit(limit)
         .offset((page - 1) * limit),
       this.db.select({ total: count() }).from(optimizationResults).where(where),
     ]);
-
-    const keys = rows.flatMap((row) => (row.pictureS3Key ? [row.pictureS3Key] : []));
-    const imageUrls = await this.storageService.generatePresignedUrls(keys);
 
     return {
       items: rows.map((row) => ({
@@ -167,29 +156,39 @@ export class OptimizationsService {
         createdAt: row.createdAt.toISOString(),
         patternId: row.patternId,
         patternName: row.patternName,
-        imageUrl: row.pictureS3Key ? imageUrls.get(row.pictureS3Key) : undefined,
+        fabricName: row.fabricName ?? undefined,
+        algorithmName: row.algorithmName,
         minLengthMm: row.minLengthMm,
       })),
-      total,
-      page,
-      limit,
+      total, page, limit,
       totalPages: Math.ceil(total / limit),
     };
   }
 
   private getOrderBy(sort: OptimizationSortOption): SQL[] {
-    const nameLower = sql`lower(${optimizationResults.name})`;
+    const lower = (c: SQL | AnyColumn) => sql`lower(${c})`;
+    const id = optimizationResults.id;
     switch (sort) {
-      case OptimizationSortOption.NAME_ASC:
-        return [asc(nameLower), asc(optimizationResults.id)];
-      case OptimizationSortOption.NAME_DESC:
-        return [desc(nameLower), desc(optimizationResults.id)];
-      case OptimizationSortOption.DATE_ASC:
-        return [asc(optimizationResults.createdAt), asc(optimizationResults.id)];
+      case OptimizationSortOption.NAME_ASC: return [asc(lower(optimizationResults.name)), asc(id)];
+      case OptimizationSortOption.NAME_DESC: return [desc(lower(optimizationResults.name)), desc(id)];
+      case OptimizationSortOption.DATE_ASC: return [asc(optimizationResults.createdAt), asc(id)];
+      case OptimizationSortOption.PATTERN_ASC: return [asc(lower(patterns.name)), asc(id)];
+      case OptimizationSortOption.PATTERN_DESC: return [desc(lower(patterns.name)), desc(id)];
+      case OptimizationSortOption.FABRIC_ASC: return [asc(lower(sql`coalesce(${fabrics.name}, '')`)), asc(id)];
+      case OptimizationSortOption.FABRIC_DESC: return [desc(lower(sql`coalesce(${fabrics.name}, '')`)), desc(id)];
+      case OptimizationSortOption.ALGORITHM_ASC: return [asc(lower(algorithmTypes.name)), asc(id)];
+      case OptimizationSortOption.ALGORITHM_DESC: return [desc(lower(algorithmTypes.name)), desc(id)];
       case OptimizationSortOption.DATE_DESC:
-      default:
-        return [desc(optimizationResults.createdAt), desc(optimizationResults.id)];
+      default: return [desc(optimizationResults.createdAt), desc(id)];
     }
+  }
+
+  async delete(id: number, userId: number): Promise<void> {
+    const [deleted] = await this.db
+      .delete(optimizationResults)
+      .where(and(eq(optimizationResults.id, id), eq(optimizationResults.userId, userId)))
+      .returning({ id: optimizationResults.id });
+    if (!deleted) throw new ResourceNotFoundException('Optimization', id);
   }
 
   async prepareOptimization(

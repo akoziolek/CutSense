@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -8,12 +9,14 @@ import {
   ParseIntPipe,
   ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
   ApiCookieAuth,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -33,7 +36,6 @@ import { OptimizationDefaultsDto } from './dto/optimization-defaults.dto.js';
 import { OptimizerInputDto } from './dto/optimizer-input.dto.js';
 import { OptimizationViewDto } from './dto/optimization-view.dto.js';
 import { SaveOptimizationDto } from './dto/save-optimization.dto.js';
-import { Query /* , ...existing */ } from '@nestjs/common';
 import { ListOptimizationsQueryDto } from './dto/list-optimizations-query.dto.js';
 import { OptimizationListResponseDto } from './dto/optimization-list.dto.js';
 
@@ -178,5 +180,18 @@ export class OptimizationController {
     @CurrentUser() user: AuthUser,
   ): Promise<OptimizationViewDto> {
     return this.optimizationsService.getSaved(id, user.id);
+  }
+
+  @Delete(':id')
+  @UseGuards(SessionGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiCookieAuth('session')
+  @ApiOperation({ summary: 'Delete a saved optimization' })
+  @ApiParam({ name: 'id', type: Number, example: 1 })
+  @ApiNoContentResponse({ description: 'The optimization was deleted.' })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  @ApiNotFoundResponse({ description: 'The optimization does not exist or is not owned by the current user.' })
+  delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser): Promise<void> {
+    return this.optimizationsService.delete(id, user.id);
   }
 }

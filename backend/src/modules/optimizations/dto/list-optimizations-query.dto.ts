@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength, IsDateString  } from 'class-validator';
 import { BaseListQueryDto } from '../../../common/dto/base-list-query.dto.js';
 
 export enum OptimizationSortOption {
@@ -8,6 +8,12 @@ export enum OptimizationSortOption {
   NAME_DESC = 'name_desc',
   DATE_DESC = 'date_desc',
   DATE_ASC = 'date_asc',
+  PATTERN_ASC = 'pattern_asc',
+  PATTERN_DESC = 'pattern_desc',
+  FABRIC_ASC = 'fabric_asc',
+  FABRIC_DESC = 'fabric_desc',
+  ALGORITHM_ASC = 'algorithm_asc',
+  ALGORITHM_DESC = 'algorithm_desc',
 }
 
 export class ListOptimizationsQueryDto extends BaseListQueryDto {
@@ -31,4 +37,14 @@ export class ListOptimizationsQueryDto extends BaseListQueryDto {
   @IsOptional()
   @IsEnum(OptimizationSortOption)
   sort: OptimizationSortOption = OptimizationSortOption.DATE_DESC;
+
+  @ApiPropertyOptional({ example: '2026-03-01T00:00:00.000Z' })
+  @IsOptional()
+  @IsDateString()
+  createdFrom?: string;
+
+  @ApiPropertyOptional({ example: '2026-03-31T23:59:59.999Z' })
+  @IsOptional()
+  @IsDateString()
+  createdTo?: string;
 }

@@ -12,13 +12,12 @@ import {
   geometry,
   index,
   uuid,
-  jsonb
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { postgisPolygon } from './custom-types.js';
 import type { OptimizerInputDto } from '../../modules/optimizations/dto/optimizer-input.dto.js';
 import type { EngineResult } from '../../modules/optimizer-engine/optimizer-engine.types.js';
-
 
 // ==========================================
 // ENUMS
@@ -107,7 +106,10 @@ export const patterns = pgTable(
       .notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
-  (table) => [index('patterns_user_id_idx').on(table.userId)],
+  (table) => [
+    index('patterns_user_id_idx').on(table.userId),
+    index('pattern_user_created_idx').on(table.userId, table.createdAt),
+  ],
 );
 
 export const patternImages = pgTable(
@@ -181,6 +183,7 @@ export const fabrics = pgTable(
   (table) => [
     index('fabrics_user_id_idx').on(table.userId),
     index('fabrics_boundary_idx').using('gist', table.boundary),
+    index('fabrics_user_created_idx').on(table.userId, table.createdAt),
   ],
 );
 
@@ -324,11 +327,15 @@ export const optimizationResults = pgTable(
     cuttingAllowance: integer('cutting_allowance').notNull(),
     minLengthMm: integer('min_length_mm').notNull(),
     spentTime: smallint('spent_time').notNull(),
-    usableScrapsArea: bigint('usable_scraps_area', { mode: 'number' }).notNull(),
+    usableScrapsArea: bigint('usable_scraps_area', {
+      mode: 'number',
+    }).notNull(),
     usableScrapsPercentage: smallint('usable_scraps_percentage').notNull(),
     wasteScrapsArea: bigint('waste_scraps_area', { mode: 'number' }).notNull(),
     wasteScrapsPercentage: smallint('waste_scraps_percentage').notNull(),
-    remainingFabricArea: bigint('remaining_fabric_area', { mode: 'number' }).notNull(),
+    remainingFabricArea: bigint('remaining_fabric_area', {
+      mode: 'number',
+    }).notNull(),
     remainingAreaPercentage: smallint('remaining_area_percentage').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
@@ -340,6 +347,7 @@ export const optimizationResults = pgTable(
     index('optimization_results_pattern_id_idx').on(table.patternId),
     index('optimization_results_algorithm_id_idx').on(table.algorithmId),
     index('optimization_results_custom_fabric_id_idx').on(table.customFabricId),
+    index('optimization_user_created_idx').on(table.userId, table.createdAt),
   ],
 );
 

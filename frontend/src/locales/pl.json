@@ -12,7 +12,8 @@
       "toggleTheme": "Zmień motyw",
       "selectLanguage": "Wybierz język",
       "userMenu": "Menu użytkownika",
-      "toggleNavigation": "Rozwiń lub zwiń nawigację"
+      "toggleNavigation": "Rozwiń lub zwiń nawigację",
+      "viewAll": "Zobacz wszystko"
     },
     "language": {
       "pl": "Polski",
@@ -187,6 +188,36 @@
     "detailsDescription": "W tym miejscu wygodnie sprawdzisz i zmienisz swoje dane.",
     "email": "Adres mailowy",
     "nickname": "Pseudonim"
+  },
+  "home": {
+    "hello": "Cześć",
+    "lastOptimizations": "Ostatnie optymalizacje",
+    "statistics": "Statystyki",
+    "newFabrics": "Ostatnio dodane materiały",
+    "newPatterns": "Ostatnio dodane wykroje",
+    "actions": {
+      "quickActions": "Na skróty",
+      "newOptimization": "Nowa optymalizacja",
+      "newOptimizationDescription": "Uruchom nową optymalizację, wybierając tkaninę, wykrój i algorytm.",
+      "newFabric": "Nowa tkanina",
+      "newFabricDescription": "Dodaj do swoich zasobów, aby od razu uruchamiać optymalizacje układu.",
+      "newPattern": "Nowy wykrój",
+      "newPatternDescription": "Zapisz wykrój raz i wykorzystuj go wielokrotnie na różnych tkaninach."
+    },
+    "stats": {
+      "optimizations": "Zapisane optymalizacje",
+      "fabrics": "Tkaniny w zasobach",
+      "patterns": "Zapisane wykroje",
+      "addedThisWeek": "w tym tygodniu",
+      "noneThisWeek": "Brak nowych w tym tygodniu",
+      "loadFailed": "Nie udało się wczytać statystyk. Spróbuj ponownie później.",
+      "emptyOptimizations": "Brak zapisanych",
+      "emptyFabrics": "Brak tkanin",
+      "emptyPatterns": "Brak wykrojów",
+      "startFirst": "Uruchom pierwszą",
+      "addFirstFabric": "Dodaj pierwszą",
+      "addFirstPattern": "Dodaj pierwszy"
+    }
   },
   "fabrics": {
     "name": "Nazwa tkaniny",

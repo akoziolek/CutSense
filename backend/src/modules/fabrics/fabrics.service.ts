@@ -34,6 +34,7 @@ import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 import { gte, lte, ilike } from 'drizzle-orm';
 import { assertDateRange, likeTerm } from '../../common/utils/list-query.js';
+import type { FabricGeometryDto } from '../optimizations/dto/fabric-geometry.dto.js';
 
 @Injectable()
 export class FabricService {
@@ -263,6 +264,34 @@ export class FabricService {
       },
       pictureUrl,
     );
+  }
+
+  async getOwnedFabricGeometry(
+    fabricId: number,
+    currentUserId: number,
+  ): Promise<FabricGeometryDto> {
+    const fabric = await this.db.query.fabrics.findFirst({
+      where: and(eq(fabrics.id, fabricId), eq(fabrics.userId, currentUserId)),
+      columns: {
+        id: true,
+        name: true,
+        createdAt: true,
+        imageWidthMm: true,
+        imageHeightMm: true,
+      },
+      extras: {
+        boundaryGeoJson:
+          sql<string>`ST_AsGeoJSON(${fabrics.boundary})::json`.as(
+            'boundary_geo_json',
+          ),
+      },
+    });
+
+    if (!fabric) {
+      throw new ResourceNotFoundException('Fabric', fabricId);
+    }
+
+    return FabricMapper.toGeometryDto(fabric);
   }
 
   private getOrderBy(sort: FabricSortOption): SQL[] {

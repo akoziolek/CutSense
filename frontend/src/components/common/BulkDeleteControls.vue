@@ -6,10 +6,12 @@ import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
 import { useBulkDelete } from '@/composables/useBulkDelete'
 
 const props = defineProps<{
-  basePath: string // '/fabrics', '/patterns'
-  noun: string // singular: 'fabric', 'pattern'
+  basePath: string
+  noun: string
   ids: number[]
   visible: boolean
+  description?: string
+  successDescription?: (count: number) => string
 }>()
 
 const emit = defineEmits<{
@@ -18,15 +20,17 @@ const emit = defineEmits<{
 }>()
 
 const count = computed(() => props.ids.length)
+const pendingIds = ref<number[]>([])
 const confirmCount = ref(0)
 const plural = computed(() => (confirmCount.value === 1 ? props.noun : `${props.noun}s`))
 
 const { confirmOpen, successOpen, isDeleting, error, deletedCount, request, confirm, closeSuccess } =
-  useBulkDelete(props.basePath, () => props.ids, () => emit('finished'))
+  useBulkDelete(props.basePath, () => pendingIds.value, () => emit('finished'))
 
 const requestDelete = () => {
   if (count.value === 0) return
-  confirmCount.value = count.value
+  pendingIds.value = [...props.ids]
+  confirmCount.value = pendingIds.value.length
   request()
 }
 
@@ -34,6 +38,7 @@ const requestDelete = () => {
 const cancel = () => {
   if (isDeleting.value) return
   confirmOpen.value = false
+  pendingIds.value = []
   emit('cancelled')
 }
 </script>
@@ -70,9 +75,9 @@ const cancel = () => {
     :is-deleting="isDeleting"
     :error="error"
     :title="$t('common.actions.deleteItemsTitle', { count: confirmCount, noun: plural })"
-    :description="$t('common.confirmations.deleteDescription')"
+    :description="description ?? $t('common.confirmations.deleteDescription')"
     :success-title="$t('common.actions.deleteSuccessTitle', { noun: plural })"
-    :success-description="$t('common.actions.deleteSuccessDescription', { count: deletedCount, noun: plural })"
+    :success-description="successDescription ? successDescription(deletedCount) : $t('common.actions.deleteSuccessDescription', { count: deletedCount, noun: plural })"
     @confirm="confirm"
     @cancel="cancel"
     @close-success="closeSuccess"

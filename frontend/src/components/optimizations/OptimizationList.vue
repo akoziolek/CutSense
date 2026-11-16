@@ -9,6 +9,8 @@ import FilterSection from '@/components/common/FilterSection.vue'
 import FilterMultiSelect from '@/components/common/FilterMultiSelect.vue'
 import ResourceList from '@/components/common/ResourceList.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
+import SelectableRow from '@/components/common/SelectableRow.vue'
+import BulkDeleteControls from '@/components/common/BulkDeleteControls.vue'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -16,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { api, ApiError } from '@/api/client'
 import { useListQuery, type SortOption } from '@/composables/useListQuery'
 import { usePagedList } from '@/composables/usePagedList'
+import { useSelection } from '@/composables/useSelection'
 import { formatCardDate } from '@/utils/formatCardDate'
 import {
   countActiveFilters,
@@ -98,6 +101,19 @@ const sectionTitle = (label: string, count: number) =>
 const toggleId = (ids: number[], id: number) =>
   ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
 
+// ---------- selection (right click / long press) ----------
+const contentRef = ref<HTMLElement | null>(null)
+const { selectionMode, selectedIds, isSelected, toggleSelect, selectFromGesture, stopSelecting } =
+  useSelection(contentRef)
+
+const showTrash = computed(() => (data.value?.total ?? 0) > 0)
+const onBulkDeleted = () => {
+  stopSelecting()
+  options.value = null
+  void refetch()
+}
+watch([page, sort, search, () => JSON.stringify(filters.value)], stopSelecting)
+
 // ---------- list ----------
 const { data, showSkeleton, error, refetch } = usePagedList<OptimizationListResponse>({
   path: '/optimizations',
@@ -154,7 +170,7 @@ const closeSuccess = () => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div ref="contentRef" class="space-y-6">
     <ListToolbar
       v-model:search="searchInput"
       v-model:sort="sortModel"
@@ -281,7 +297,15 @@ const closeSuccess = () => {
           </TableHeader>
 
           <TableBody>
-            <TableRow v-for="item in data?.items ?? []" :key="item.id" class="bg-brand-grey/60">
+            <SelectableRow
+              v-for="item in data?.items ?? []"
+              :key="item.id"
+              :selectable="selectionMode"
+              :selected="isSelected(item.id)"
+              @toggle-select="toggleSelect(item.id)"
+              @long-press="selectFromGesture(item.id)"
+              @contextmenu.prevent="selectFromGesture(item.id)"
+            >
               <TableCell class="font-medium">
                 <RouterLink
                   :to="{ name: 'OptimizationDetails', params: { id: item.id } }"
@@ -310,6 +334,7 @@ const closeSuccess = () => {
                     variant="ghost"
                     size="icon"
                     class="h-8 w-8 cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    :disabled="selectionMode"
                     :aria-label="t('optimizations.list.delete', { name: item.name })"
                     @click="requestDelete(item)"
                   >
@@ -317,7 +342,7 @@ const closeSuccess = () => {
                   </Button>
                 </div>
               </TableCell>
-            </TableRow>
+            </SelectableRow>
           </TableBody>
         </Table>
       </div>
@@ -359,6 +384,17 @@ const closeSuccess = () => {
       @confirm="confirmDelete"
       @cancel="confirmOpen = false"
       @close-success="closeSuccess"
+    />
+
+    <BulkDeleteControls
+      base-path="/optimizations"
+      noun="optimization"
+      :ids="selectedIds"
+      :visible="showTrash"
+      :description="t('optimizations.list.deleteDescription')"
+      :success-description="(count: number) => t('optimizations.list.bulkDeleted', { count })"
+      @cancelled="stopSelecting"
+      @finished="onBulkDeleted"
     />
   </div>
 </template>

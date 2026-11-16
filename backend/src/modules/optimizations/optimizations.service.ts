@@ -50,6 +50,7 @@ import type { StoredRun } from './optimization-runs.store.js';
 import type { SaveOptimizationDto } from './dto/save-optimization.dto.js';
 import { OptimizationViewMapper } from './optimization-view.mapper.js';
 import { OptimizationFilterOptionsDto } from './dto/optimization-filter-options.dto.js';
+import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 
 const isSet = (value: unknown) => value !== undefined && value !== null;
 
@@ -193,6 +194,14 @@ export class OptimizationsService {
       .where(and(eq(optimizationResults.id, id), eq(optimizationResults.userId, userId)))
       .returning({ id: optimizationResults.id });
     if (!deleted) throw new ResourceNotFoundException('Optimization', id);
+  }
+
+  async deleteOptimizations(ids: number[], userId: number): Promise<BulkDeleteResponseDto> {
+    const deleted = await this.db
+      .delete(optimizationResults)
+      .where(and(inArray(optimizationResults.id, ids), eq(optimizationResults.userId, userId)))
+      .returning({ id: optimizationResults.id });
+    return { deletedIds: deleted.map((row) => row.id) };
   }
 
   async prepareOptimization(

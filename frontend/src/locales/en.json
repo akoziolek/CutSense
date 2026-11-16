@@ -333,6 +333,7 @@
     "list": {
       "actions": "Actions",
       "algorithm": "Algorithm",
+      "bulkDeleted": "Optimizations deleted: {count}.",
       "date": "Date",
       "delete": "Delete {name}",
       "deleteDescription": "This action cannot be undone.",

@@ -39,6 +39,7 @@ import { SaveOptimizationDto } from './dto/save-optimization.dto.js';
 import { ListOptimizationsQueryDto } from './dto/list-optimizations-query.dto.js';
 import { OptimizationListResponseDto } from './dto/optimization-list.dto.js';
 import { OptimizationFilterOptionsDto } from './dto/optimization-filter-options.dto.js';
+import { BulkDeleteDto, BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 
 @Controller('optimizations')
 @ApiTags('Optimizations')
@@ -194,6 +195,26 @@ export class OptimizationController {
     @CurrentUser() user: AuthUser,
   ): Promise<OptimizationViewDto> {
     return this.optimizationsService.getSaved(id, user.id);
+  }
+
+  @Post('bulk-delete')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(SessionGuard)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Delete several optimizations',
+    description:
+      'Permanently deletes the listed optimizations owned by the current user. IDs that do not exist or belong to someone else are skipped.',
+  })
+  @ApiBody({ type: BulkDeleteDto })
+  @ApiOkResponse({ type: BulkDeleteResponseDto })
+  @ApiBadRequestResponse({ description: 'ids must be 1–100 unique positive integers.' })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  deleteOptimizations(
+    @Body() dto: BulkDeleteDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<BulkDeleteResponseDto> {
+    return this.optimizationsService.deleteOptimizations(dto.ids, user.id);
   }
 
   @Delete(':id')

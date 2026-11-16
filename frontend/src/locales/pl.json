@@ -332,6 +332,7 @@
     "list": {
       "actions": "Akcje",
       "algorithm": "Algorytm",
+      "bulkDeleted": "Usunięto optymalizacje: {count}.",
       "date": "Data",
       "delete": "Usuń {name}",
       "deleteDescription": "Tej operacji nie można cofnąć.",

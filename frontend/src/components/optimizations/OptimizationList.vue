@@ -1,78 +1,114 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { RouterLink } from 'vue-router'
-import { useRoute } from 'vue-router'
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Sparkles, Trash2, Upload } from 'lucide-vue-next'
 import ListToolbar from '@/components/common/ListToolbar.vue'
 import ListFilterPopover from '@/components/common/ListFilterPopover.vue'
+import FilterSection from '@/components/common/FilterSection.vue'
+import FilterMultiSelect from '@/components/common/FilterMultiSelect.vue'
 import ResourceList from '@/components/common/ResourceList.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api, ApiError } from '@/api/client'
 import { useListQuery, type SortOption } from '@/composables/useListQuery'
 import { usePagedList } from '@/composables/usePagedList'
 import { formatCardDate } from '@/utils/formatCardDate'
 import {
-  baseFromQuery, baseToApiParams, baseToQuery, countActive, emptyBaseFilters, type BaseFilters,
-} from '@/utils/listFilters'
+  countActiveFilters,
+  emptyFilters,
+  filtersFromQuery,
+  filtersToApiParams,
+  filtersToQuery,
+  type OptimizationFilters,
+} from '@/utils/optimizationFilters'
 import type {
-  OptimizationListItem, OptimizationListResponse, OptimizationSort, OptimizationSortField,
+  OptimizationFilterOptions,
+  OptimizationListItem,
+  OptimizationListResponse,
+  OptimizationSort,
+  OptimizationSortField,
 } from '@/types/optimization'
 
 const emit = defineEmits<{ (e: 'loaded', total: number): void }>()
 
-const PAGE_SIZE = 12
 const { t } = useI18n()
-const COLUMNS = computed(() => [
-  { field: 'name' as const, label: t('optimizations.list.name') },
-  { field: 'date' as const, label: t('optimizations.list.date') },
-  { field: 'pattern' as const, label: t('optimizations.list.pattern') },
-  { field: 'fabric' as const, label: t('optimizations.list.fabric') },
-  { field: 'algorithm' as const, label: t('optimizations.list.algorithm') },
-])
-const SORT_OPTIONS = computed<SortOption<OptimizationSort>[]>(() =>
-  COLUMNS.value.flatMap(({ field, label }) =>
-    (['asc', 'desc'] as const).map((dir) => ({
-      value: `${field}_${dir}` as OptimizationSort,
-      label: t(dir === 'asc' ? 'optimizations.list.sortAscending' : 'optimizations.list.sortDescending', { label }),
-    })),
-  ),
+const route = useRoute()
+
+const PAGE_SIZE = 12
+const COLUMNS: { field: OptimizationSortField; labelKey: string }[] = [
+  { field: 'name', labelKey: 'optimizations.list.name' },
+  { field: 'date', labelKey: 'optimizations.list.date' },
+  { field: 'pattern', labelKey: 'optimizations.list.pattern' },
+  { field: 'fabric', labelKey: 'optimizations.list.fabric' },
+  { field: 'algorithm', labelKey: 'optimizations.list.algorithm' },
+]
+// sorting is done via the column headers, so these labels are never displayed
+const SORT_OPTIONS: SortOption<OptimizationSort>[] = COLUMNS.flatMap(({ field }) =>
+  (['asc', 'desc'] as const).map((dir) => {
+    const value = `${field}_${dir}` as OptimizationSort
+    return { value, label: value }
+  }),
 )
 
-const route = useRoute()
 const {
   page, sort, search, searchMax, sortModel, goToPage, applyQuery,
   searchInput, flushSearch, clearSearch, resetCriteria,
-} = useListQuery<OptimizationSort>({ defaultSort: 'date_desc', sortOptions: SORT_OPTIONS.value })
+} = useListQuery<OptimizationSort>({ defaultSort: 'date_desc', sortOptions: SORT_OPTIONS })
 
 // ---------- sorting by column headers ----------
 const activeField = computed(() => sort.value.split('_')[0] as OptimizationSortField)
 const activeDir = computed(() => sort.value.split('_')[1] as 'asc' | 'desc')
 const toggleSort = (field: OptimizationSortField) => {
-  const dir = activeField.value === field
-    ? (activeDir.value === 'asc' ? 'desc' : 'asc')
-    : (field === 'date' ? 'desc' : 'asc')
+  const dir =
+    activeField.value === field
+      ? activeDir.value === 'asc' ? 'desc' : 'asc'
+      : field === 'date' ? 'desc' : 'asc'
   sortModel.value = `${field}_${dir}` as OptimizationSort
 }
 
-// ---------- filters (date range) ----------
-const filters = computed(() => baseFromQuery(route.query))
-const hasActiveFilters = computed(() => countActive(baseToQuery(filters.value)) > 0)
-const applyFilters = (next: BaseFilters) => applyQuery(baseToQuery(next))
+// ---------- filters ----------
+const filters = computed(() => filtersFromQuery(route.query))
+const hasActiveFilters = computed(() => countActiveFilters(filters.value) > 0)
+const applyFilters = (next: OptimizationFilters) => applyQuery(filtersToQuery(next))
+
+const options = ref<OptimizationFilterOptions | null>(null)
+const optionsLoading = ref(false)
+const optionsError = ref('')
+const loadOptions = async () => {
+  if (options.value || optionsLoading.value) return
+  optionsError.value = ''
+  optionsLoading.value = true
+  try {
+    options.value = await api<OptimizationFilterOptions>('/optimizations/filter-options')
+  } catch (e) {
+    optionsError.value =
+      e instanceof ApiError ? e.body.message : t('common.filters.optionsLoadFailed')
+  } finally {
+    optionsLoading.value = false
+  }
+}
+
+const sectionTitle = (label: string, count: number) =>
+  count ? t('common.filters.selectedCount', { label, count }) : label
+
+const toggleId = (ids: number[], id: number) =>
+  ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
 
 // ---------- list ----------
 const { data, showSkeleton, error, refetch } = usePagedList<OptimizationListResponse>({
   path: '/optimizations',
-  noun: 'optimizations',
+  noun: t('optimizations.plural'),
   page,
   params: () => {
     const params: Record<string, string> = {
       page: String(page.value),
       limit: String(PAGE_SIZE),
       sort: sort.value,
-      ...baseToApiParams(filters.value),
+      ...filtersToApiParams(filters.value),
     }
     if (search.value) params.q = search.value
     return params
@@ -103,7 +139,8 @@ const confirmDelete = async () => {
     confirmOpen.value = false
     successOpen.value = true
   } catch (e) {
-    deleteError.value = e instanceof ApiError ? e.body.message : t('common.errors.somethingWentWrongRetry')
+    deleteError.value =
+      e instanceof ApiError ? e.body.message : t('common.errors.somethingWentWrongRetry')
   } finally {
     isDeleting.value = false
   }
@@ -111,6 +148,7 @@ const confirmDelete = async () => {
 const closeSuccess = () => {
   successOpen.value = false
   target.value = null
+  options.value = null // counts in the filters changed
   void refetch()
 }
 </script>
@@ -131,19 +169,71 @@ const closeSuccess = () => {
       <template #filter>
         <ListFilterPopover
           :model-value="filters"
-          :empty-filters="emptyBaseFilters"
+          :empty-filters="emptyFilters"
           :tags="[]"
           :show-tags="false"
           :show-favourites="false"
           :active="hasActiveFilters"
           @apply="applyFilters"
-        />
+          @opened="loadOptions"
+        >
+          <template #default="{ draft }">
+            <FilterSection
+              :title="sectionTitle(t('optimizations.list.pattern'), draft.patternIds.length)"
+              :default-open="false"
+            >
+              <FilterMultiSelect
+                v-model="draft.patternIds"
+                :options="options?.patterns ?? []"
+                :loading="optionsLoading"
+                :error="optionsError"
+                :placeholder="t('patterns.search')"
+              />
+            </FilterSection>
+
+            <FilterSection
+              :title="sectionTitle(t('optimizations.list.fabric'), draft.fabricIds.length)"
+              :default-open="false"
+            >
+              <FilterMultiSelect
+                v-model="draft.fabricIds"
+                :options="options?.fabrics ?? []"
+                :loading="optionsLoading"
+                :error="optionsError"
+                :placeholder="t('fabrics.search')"
+              />
+            </FilterSection>
+
+            <FilterSection
+              :title="sectionTitle(t('optimizations.list.algorithm'), draft.algorithmIds.length)"
+              :default-open="false"
+            >
+              <p v-if="optionsError" class="text-xs text-destructive" role="alert">{{ optionsError }}</p>
+              <div class="space-y-2">
+                <div
+                  v-for="algorithm in options?.algorithms ?? []"
+                  :key="algorithm.id"
+                  class="flex items-center gap-2"
+                >
+                  <Checkbox
+                    :id="`filter-algorithm-${algorithm.id}`"
+                    :model-value="draft.algorithmIds.includes(algorithm.id)"
+                    @update:model-value="draft.algorithmIds = toggleId(draft.algorithmIds, algorithm.id)"
+                  />
+                  <Label :for="`filter-algorithm-${algorithm.id}`" class="cursor-pointer text-xs font-normal">
+                    {{ algorithm.name }}
+                  </Label>
+                </div>
+              </div>
+            </FilterSection>
+          </template>
+        </ListFilterPopover>
       </template>
     </ListToolbar>
 
     <ResourceList
       plain
-      noun="optimizations"
+      :noun="t('optimizations.plural')"
       :total="data?.total ?? null"
       :loading="showSkeleton"
       :error="error"
@@ -159,7 +249,9 @@ const closeSuccess = () => {
           {{ t('optimizations.list.noSavedDescription') }}
         </p>
         <Button as-child size="sm" class="mt-2 rounded-lg">
-          <RouterLink :to="{ name: 'OptimizationNew' }">{{ t('optimizations.list.newOptimization') }}</RouterLink>
+          <RouterLink :to="{ name: 'OptimizationNew' }">
+            {{ t('optimizations.list.newOptimization') }}
+          </RouterLink>
         </Button>
       </template>
 
@@ -171,10 +263,10 @@ const closeSuccess = () => {
                 <button
                   type="button"
                   class="inline-flex cursor-pointer items-center gap-1 font-bold font-inter text-foreground"
-                  :aria-label="t('optimizations.list.sortBy', { label: col.label })"
+                  :aria-label="t('optimizations.list.sortBy', { label: t(col.labelKey) })"
                   @click="toggleSort(col.field)"
                 >
-                  {{ col.label }}
+                  {{ t(col.labelKey) }}
                   <template v-if="activeField === col.field">
                     <ArrowDown v-if="activeDir === 'desc'" class="size-3.5" />
                     <ArrowUp v-else class="size-3.5" />
@@ -182,7 +274,9 @@ const closeSuccess = () => {
                   <ArrowUpDown v-else class="size-3.5 opacity-60" />
                 </button>
               </TableHead>
-              <TableHead class="text-center font-bold font-inter text-foreground">{{ t('optimizations.list.actions') }}</TableHead>
+              <TableHead class="text-center font-bold font-inter text-foreground">
+                {{ t('optimizations.list.actions') }}
+              </TableHead>
             </TableRow>
           </TableHeader>
 
@@ -230,11 +324,23 @@ const closeSuccess = () => {
 
       <template #footer>
         <div v-if="data && data.totalPages > 1" class="flex items-center justify-center gap-6 text-sm">
-          <Button variant="ghost" size="icon" :disabled="page <= 1" :aria-label="t('common.pagination.previous')" @click="goToPage(page - 1)">
+          <Button
+            variant="ghost"
+            size="icon"
+            :disabled="page <= 1"
+            :aria-label="t('common.pagination.previous')"
+            @click="goToPage(page - 1)"
+          >
             <ChevronLeft class="size-4" />
           </Button>
           <span>{{ t('optimizations.list.pageOf', { page, totalPages: data.totalPages }) }}</span>
-          <Button variant="ghost" size="icon" :disabled="page >= data.totalPages" :aria-label="t('common.pagination.next')" @click="goToPage(page + 1)">
+          <Button
+            variant="ghost"
+            size="icon"
+            :disabled="page >= data.totalPages"
+            :aria-label="t('common.pagination.next')"
+            @click="goToPage(page + 1)"
+          >
             <ChevronRight class="size-4" />
           </Button>
         </div>

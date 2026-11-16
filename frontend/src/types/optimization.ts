@@ -116,3 +116,11 @@ export interface OptimizationStats {
   wasteArea: number
   wastePercentage: number
 }
+
+import type { FilterOption } from '@/utils/listFilters'
+
+export interface OptimizationFilterOptions {
+  patterns: FilterOption[]
+  fabrics: FilterOption[]
+  algorithms: FilterOption[]
+}

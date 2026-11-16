@@ -83,7 +83,12 @@
       "searchTags": "Szukaj tagów...",
       "area": "Powierzchnia",
       "size": "Rozmiar",
-      "noItemsFound": "Brak wyników"
+      "noItemsFound": "Brak wyników",
+      "removeOption": "Usuń: {name}",
+      "loadingOptions": "Wczytywanie...",
+      "noMatchingOptions": "Brak pasujących opcji",
+      "selectedCount": "{label} (wybrano: {count})",
+      "optionsLoadFailed": "Nie udało się wczytać opcji filtrów. Otwórz ponownie, aby spróbować jeszcze raz."
     },
     "status": {
       "loadingTags": "Wczytywanie tagów...",
@@ -359,6 +364,7 @@
     "patternLoadFailed": "Nie udało się wczytać wykroju. Spróbuj ponownie.",
     "pieceLabel": "Element nr {number}{copy}",
     "pieceNeedsCopy": "Dodaj co najmniej jedną kopię lub usuń ten element.",
+    "plural": "optymalizacji",
     "prepareConfiguration": "Przygotuj konfigurację",
     "prepareFailed": "Nie udało się przygotować konfiguracji optymalizacji. Spróbuj ponownie.",
     "prepared": "Przygotowano ustawienia dla {count} elementów. Integracja optymalizatora nie jest jeszcze dostępna.",

@@ -38,6 +38,7 @@ import { OptimizationViewDto } from './dto/optimization-view.dto.js';
 import { SaveOptimizationDto } from './dto/save-optimization.dto.js';
 import { ListOptimizationsQueryDto } from './dto/list-optimizations-query.dto.js';
 import { OptimizationListResponseDto } from './dto/optimization-list.dto.js';
+import { OptimizationFilterOptionsDto } from './dto/optimization-filter-options.dto.js';
 
 @Controller('optimizations')
 @ApiTags('Optimizations')
@@ -164,6 +165,19 @@ export class OptimizationController {
     @CurrentUser() user: AuthUser,
   ): Promise<OptimizationListResponseDto> {
     return this.optimizationsService.getOptimizations(query, user.id);
+  }
+
+  @Get('filter-options')
+  @UseGuards(SessionGuard)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Get options for the list filters',
+    description: 'Patterns used in the user\'s optimizations, the user\'s fabrics and the available algorithms, each with a count.',
+  })
+  @ApiOkResponse({ type: OptimizationFilterOptionsDto })
+  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  getFilterOptions(@CurrentUser() user: AuthUser): Promise<OptimizationFilterOptionsDto> {
+    return this.optimizationsService.getFilterOptions(user.id);
   }
 
   // must stay after 'algorithms' and 'defaults'

@@ -49,6 +49,7 @@ import type { OptimizationListResponseDto } from './dto/optimization-list.dto.js
 import type { StoredRun } from './optimization-runs.store.js';
 import type { SaveOptimizationDto } from './dto/save-optimization.dto.js';
 import { OptimizationViewMapper } from './optimization-view.mapper.js';
+import { OptimizationFilterOptionsDto } from './dto/optimization-filter-options.dto.js';
 
 const isSet = (value: unknown) => value !== undefined && value !== null;
 
@@ -116,7 +117,7 @@ export class OptimizationsService {
   }
 
   async getOptimizations(query: ListOptimizationsQueryDto, userId: number): Promise<OptimizationListResponseDto> {
-    const { page, limit, sort, createdFrom, createdTo } = query;
+    const { page, limit, sort, createdFrom, createdTo, patternIds, fabricIds, algorithmIds } = query;
     assertDateRange(createdFrom, createdTo);
     const term = likeTerm(query.q);
     const where = and(
@@ -124,6 +125,9 @@ export class OptimizationsService {
       term ? ilike(optimizationResults.name, term) : undefined,
       createdFrom ? gte(optimizationResults.createdAt, new Date(createdFrom)) : undefined,
       createdTo ? lte(optimizationResults.createdAt, new Date(createdTo)) : undefined,
+      patternIds?.length ? inArray(optimizationResults.patternId, patternIds) : undefined,
+      fabricIds?.length ? inArray(optimizationResults.customFabricId, fabricIds) : undefined,
+      algorithmIds?.length ? inArray(optimizationResults.algorithmId, algorithmIds) : undefined,
     )!;
 
     const [rows, [{ total }]] = await Promise.all([
@@ -513,5 +517,41 @@ export class OptimizationsService {
         ),
       ),
     };
+  }
+
+  async getFilterOptions(userId: number): Promise<OptimizationFilterOptionsDto> {
+    const [patternRows, fabricRows, algorithmRows] = await Promise.all([
+      // only patterns that appear in the user's optimizations
+      this.db
+        .select({ id: patterns.id, name: patterns.name, count: count() })
+        .from(optimizationResults)
+        .innerJoin(patterns, eq(patterns.id, optimizationResults.patternId))
+        .where(eq(optimizationResults.userId, userId))
+        .groupBy(patterns.id, patterns.name)
+        .orderBy(asc(sql`lower(${patterns.name})`)),
+      // all of the user's fabrics, also those with 0 optimizations (like "Satin (0)" in the mockup)
+      this.db
+        .select({ id: fabrics.id, name: fabrics.name, count: count(optimizationResults.id) })
+        .from(fabrics)
+        .leftJoin(
+          optimizationResults,
+          and(eq(optimizationResults.customFabricId, fabrics.id), eq(optimizationResults.userId, userId)),
+        )
+        .where(eq(fabrics.userId, userId))
+        .groupBy(fabrics.id, fabrics.name)
+        .orderBy(asc(sql`lower(${fabrics.name})`)),
+      this.db
+        .select({ id: algorithmTypes.id, name: algorithmTypes.name, count: count(optimizationResults.id) })
+        .from(algorithmTypes)
+        .leftJoin(
+          optimizationResults,
+          and(eq(optimizationResults.algorithmId, algorithmTypes.id), eq(optimizationResults.userId, userId)),
+        )
+        .where(inArray(algorithmTypes.name, AVAILABLE_ALGORITHMS))
+        .groupBy(algorithmTypes.id, algorithmTypes.name)
+        .orderBy(asc(algorithmTypes.id)),
+    ]);
+
+    return { patterns: patternRows, fabrics: fabricRows, algorithms: algorithmRows };
   }
 }

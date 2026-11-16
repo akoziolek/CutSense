@@ -90,7 +90,12 @@
       "searchTags": "Search tags...",
       "area": "Area",
       "size": "Size",
-      "noItemsFound": "No items found"
+      "noItemsFound": "No items found",
+      "removeOption": "Remove {name}",
+      "loadingOptions": "Loading...",
+      "noMatchingOptions": "No matching options",
+      "selectedCount": "{label} ({count} selected)",
+      "optionsLoadFailed": "Could not load filter options. Reopen to retry."
     },
     "status": {
       "loadingTags": "Loading tags...",
@@ -360,6 +365,7 @@
     "patternLoadFailed": "Could not load the pattern. Please try again.",
     "pieceLabel": "Piece #{number}{copy}",
     "pieceNeedsCopy": "Add at least one copy or remove this piece.",
+    "plural": "optimizations",
     "prepareFailed": "Could not prepare the optimization configuration. Please try again.",
     "prepareConfiguration": "Prepare configuration",
     "prepared": "Prepared {count} piece settings. Optimizer integration is not connected yet.",

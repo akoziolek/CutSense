@@ -9,12 +9,7 @@ import type {
   EnginePoint,
   EngineResult,
 } from './optimizer-engine.types.js';
-const toInt = (v: number) => Math.trunc(v);
-
-const pt = ([x, y]: OptimizerPointDto): EnginePoint => ({
-  x: toInt(x),
-  y: toInt(y),
-});
+const pt = ([x, y]: OptimizerPointDto): EnginePoint => ({ x, y });
 
 export function toEngineInput(
   input: OptimizerInputDto,
@@ -23,16 +18,14 @@ export function toEngineInput(
   const fabric: EngineFabric =
     input.fabric.fabricId === undefined
       ? {
-          width: toInt(input.fabric.widthMm),
-          length: toInt(input.fabric.lengthMm),
+          width: input.fabric.widthMm,
+          length: input.fabric.lengthMm,
         }
       : {
           boundary: input.fabric.boundary.map(pt),
           grainline: input.fabric.grainline ?? 0,
         };
 
-  const seamAllowance = toInt(input.seamAllowanceMm);
-  const cuttingAllowance = toInt(input.cuttingAllowanceMm);
   const enginePieces: EnginePiece[] = [];
 
   for (const [index, p] of input.pieces.entries()) {
@@ -61,8 +54,8 @@ export function toEngineInput(
         id: index + 1,
         points: p.boundary.map(pt),
         grainline: p.grainline,
-        seamAllowance,
-        cuttingAllowance,
+        seamAllowance: input.seamAllowanceMm,
+        cuttingAllowance: input.cuttingAllowanceMm,
         constraints,
       });
     }

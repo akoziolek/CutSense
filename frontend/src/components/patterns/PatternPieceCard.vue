@@ -1,17 +1,29 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { ArrowUp, Copy, FlipHorizontal2 } from 'lucide-vue-next'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import PatternPieceImage from '@/components/patterns/PatternPieceImage.vue'
+import PatternPiecePreview from '@/components/patterns/PatternPiecePreview.vue'
 import type { PatternPiece } from '@/components/patterns/PatternPiecesCarousel.vue'
-import type { PieceImageSource } from '@/types/geometry'
+import type { PieceImageSource, Point2D } from '@/types/geometry'
 
-defineProps<{
+const props = defineProps<{
   piece: PatternPiece
   label: string
   image?: PieceImageSource
   showDimensions?: boolean
 }>()
+
+// the API gives points in mm with Y up; the preview takes % of the photo with Y down
+const shape = computed<Point2D[]>(() => {
+  const w = props.image?.imageWidthMm
+  const h = props.image?.imageHeightMm
+  if (!w || !h) return []
+  return props.piece.points.map(([x, y]) => ({
+    pctX: (x / w) * 100,
+    pctY: ((h - y) / h) * 100,
+  }))
+})
 </script>
 
 <template>
@@ -19,14 +31,18 @@ defineProps<{
     class="gap-0 overflow-hidden border border-muted-foreground/20 p-0 shadow-xs transition-shadow hover:shadow-md"
   >
     <div class="relative aspect-square w-full bg-muted/20">
-<PatternPieceImage
-  :points="piece.points"
-  :image="image"
-  :label="label"
-  :show-dimensions="showDimensions"
-  :reserve-top="32"
-  class="h-full w-full"
-/>
+      <PatternPiecePreview
+        fill
+        dim-outside
+        :image-url="image?.url"
+        :points="shape"
+        :shape-index="0"
+        :image-width-mm="image?.imageWidthMm"
+        :image-height-mm="image?.imageHeightMm"
+        :margin="1.15"
+        :show-dimensions="showDimensions"
+        :reserve-top="32"
+      />
 
       <!-- pills over the picture -->
       <div class="pointer-events-none absolute inset-x-2 top-2 flex items-start justify-between gap-2">

@@ -141,6 +141,13 @@
       "when": 1794771477472,
       "tag": "0019_add_pattern_min_fabric_size",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794830409157,
+      "tag": "0020_change_optimization_time_to_integer",
+      "breakpoints": true
     }
   ]
 }

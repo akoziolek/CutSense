@@ -26,11 +26,14 @@ import {
   patterns,
   tagsForPatterns,
   patternImages,
+  patternFavourites,
 } from '../../db/schema/schema.js';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
 import { PatternTagDto } from './dto/pattern-tag.dto.js';
 import type { CreatePatternDto } from './dto/create-pattern.dto.js';
 import { EditPatternDto } from './dto/edit-pattern.dto.js';
+import { PatternPieceGeometryDto } from './dto/pattern-piece-geometry.dto.js';
+import { PatternCoverDto } from './dto/pattern-cover.dto.js';
 import { PatternsMapper } from './patterns.mapper.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 import { AnalysisShapesDto } from '../shapes-engine/dto/analysis-shapes.dto.js';
@@ -45,7 +48,6 @@ import {
 } from './dto/list-patterns-query.dto.js';
 import { assertDateRange, likeTerm } from '../../common/utils/list-query.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
-import { patternFavourites } from '../../db/schema/schema.js';
 import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 import { StoragePaths, StorageService } from '../storage/storage.service.js';
 import { NestingEngine } from '../optimizer-engine/nesting.engine.js';
@@ -209,6 +211,118 @@ export class PatternsService {
     );
 
     return PatternsMapper.toResponseDto(pattern, imageUrls);
+  }
+
+  private firstImagesQuery(patternIds?: number[]) {
+    const query = this.db
+      .selectDistinctOn([patternImages.patternId], {
+        patternId: patternImages.patternId,
+        pictureS3Key: patternImages.pictureS3Key,
+      })
+      .from(patternImages);
+
+    if (patternIds) {
+      query.where(inArray(patternImages.patternId, patternIds));
+    }
+
+    return query.orderBy(
+      patternImages.patternId,
+      asc(patternImages.orderIndex),
+      asc(patternImages.id),
+    );
+  }
+
+  async getPatternCovers(
+    patternIds: number[],
+    currentUserId?: number,
+  ): Promise<PatternCoverDto[]> {
+    const uniqueIds = [...new Set(patternIds)];
+    if (uniqueIds.length === 0) return [];
+
+    const visible =
+      currentUserId === undefined
+        ? eq(patterns.visibility, 'PUBLIC')
+        : or(
+            eq(patterns.visibility, 'PUBLIC'),
+            eq(patterns.userId, currentUserId),
+          );
+
+    const firstImage = this.firstImagesQuery(uniqueIds).as('first_image');
+
+    const rows = await this.db
+      .select({
+        patternId: patterns.id,
+        pictureS3Key: firstImage.pictureS3Key,
+      })
+      .from(patterns)
+      .innerJoin(firstImage, eq(firstImage.patternId, patterns.id))
+      .where(and(inArray(patterns.id, uniqueIds), visible));
+
+    const keys = rows
+      .map((r) => r.pictureS3Key)
+      .filter((key): key is string => Boolean(key));
+
+    const presigned = await this.storageService.generatePresignedUrls(keys);
+
+    return rows.map((row) =>
+      PatternsMapper.toCoverDto(
+        row.patternId,
+        row.pictureS3Key ? presigned.get(row.pictureS3Key) : undefined,
+      ),
+    );
+  }
+
+  async getAccessiblePatternPieces(
+    patternId: number,
+    currentUserId?: number,
+  ): Promise<PatternPieceGeometryDto[]> {
+    const pattern = await this.db.query.patterns.findFirst({
+      where: eq(patterns.id, patternId),
+      columns: { id: true, userId: true, visibility: true },
+      with: {
+        images: {
+          with: {
+            pieces: {
+              columns: { id: true, grainline: true },
+              extras: (piece, { sql }) => ({
+                geojson: sql<string>`ST_AsGeoJSON(${piece.boundary})`.as(
+                  'geojson',
+                ),
+              }),
+            },
+          },
+        },
+      },
+    });
+
+    if (
+      !pattern ||
+      (pattern.visibility === 'PRIVATE' && pattern.userId !== currentUserId)
+    ) {
+      throw new ResourceNotFoundException('Pattern', patternId);
+    }
+
+    return pattern.images.flatMap((image) =>
+      image.pieces.map((piece) => PatternsMapper.toPieceGeometryDto(piece)),
+    );
+  }
+
+  async getPiecesGeometryByIds(
+    pieceIds: number[],
+  ): Promise<PatternPieceGeometryDto[]> {
+    const uniqueIds = [...new Set(pieceIds)];
+    if (uniqueIds.length === 0) return [];
+
+    const rows = await this.db
+      .select({
+        id: patternPieces.id,
+        grainline: patternPieces.grainline,
+        geojson: sql<string>`ST_AsGeoJSON(${patternPieces.boundary})`,
+      })
+      .from(patternPieces)
+      .where(inArray(patternPieces.id, uniqueIds));
+
+    return rows.map((row) => PatternsMapper.toPieceGeometryDto(row));
   }
 
   async createPattern(
@@ -399,19 +513,7 @@ export class PatternsService {
     const { page, limit, sort } = query;
 
     const where = this.buildWhere(query, currentUserId);
-
-    const firstImageSubquery = this.db
-      .selectDistinctOn([patternImages.patternId], {
-        patternId: patternImages.patternId,
-        pictureS3Key: patternImages.pictureS3Key,
-      })
-      .from(patternImages)
-      .orderBy(
-        patternImages.patternId,
-        asc(patternImages.orderIndex),
-        asc(patternImages.id),
-      )
-      .as('first_image');
+    const firstImageSubquery = this.firstImagesQuery().as('first_image');
 
     const [rows, [{ total }]] = await Promise.all([
       this.db

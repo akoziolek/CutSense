@@ -1,6 +1,7 @@
 import { ref, computed, onMounted, onUnmounted, type Ref } from 'vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
 import { useSpatialHistory, type SpatialHistoryAction } from './useSpatialHistory'
+import { useCanvasViewport } from './useCanvasViewport'
 
 export type { SpatialHistoryAction }
 
@@ -104,15 +105,38 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
 
   const selectedEdgeIndex = ref<number | null>(null)
   const selectedPointIndex = ref<number | null>(null)
-  const zoomLevel = ref(1)
   const imageRotation = ref(0)
   const threadAngle = ref(currentThreadAngle?.value ?? 0)
 
   const activeTool = ref<'select' | 'pan'>('select')
-  const canvasOffset = ref({ x: 0, y: 0 })
   const isSpacePressed = ref(false)
-  const isDraggingCanvas = ref(false)
-  const panStart = ref({ x: 0, y: 0 })
+  const isMoveMode = computed(() => isSpacePressed.value || activeTool.value === 'pan')
+
+  const imageDimensions = ref({ width: 1000, height: 1000 })
+  const setImageDimensions = (width: number, height: number) => {
+    if (width > 0 && height > 0) {
+      imageDimensions.value = { width, height }
+    }
+  }
+
+  const {
+    zoomLevel,
+    canvasOffset,
+    isDragging: isDraggingCanvas,
+    handleMouseDown: handleViewportMouseDown,
+    handleMouseMove: handleViewportMouseMove,
+    stopDragging: stopViewportDragging,
+  } = useCanvasViewport({
+    minZoom: 0.5,
+    maxZoom: 5.5,
+    wheelZoomStep: 0.085,
+    canStartDrag: (e) => e.button === 1 || isMoveMode.value,
+    getMaxOffset: (zoom) => {
+      const maxDim = Math.max(imageDimensions.value.width, imageDimensions.value.height) || 500
+      const maxOffset = (maxDim / 2) * zoom + 100
+      return { x: maxOffset, y: maxOffset }
+    },
+  })
 
   const creatingEdgeIndex = ref<number | null>(null)
   const previewPoint = ref<Point2D | null>(null)
@@ -123,8 +147,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
 
   const drawingPoints = ref<Point2D[]>([])
   const AUTO_CLOSE_THRESHOLD_PCT = 3.5
-
-  const isMoveMode = computed(() => isSpacePressed.value || activeTool.value === 'pan')
 
   const canDelete = computed(() => points.value.length > 0 || drawingPoints.value.length > 0)
   const isInteractiveDragging = computed(
@@ -217,13 +239,6 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     }
   }
 
-  const imageDimensions = ref({ width: 1000, height: 1000 })
-  const setImageDimensions = (width: number, height: number) => {
-    if (width > 0 && height > 0) {
-      imageDimensions.value = { width, height }
-    }
-  }
-
   const getImagePixelDistance = (p1: Point2D, p2: Point2D): number => {
     const { width, height } = imageDimensions.value
     const w = width > 0 ? width : 1000
@@ -297,7 +312,8 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
       }
     }
 
-    if (e.key === 'Space' && !isSpacePressed.value) {
+    if ((e.code === 'Space' || e.key === ' ') && !isSpacePressed.value) {
+      e.preventDefault()
       isSpacePressed.value = true
     } else if (e.key === 'Escape') {
       cancelDrawing()
@@ -310,7 +326,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   }
 
   const handleKeyUp = (e: KeyboardEvent) => {
-    if (e.key === 'Space') {
+    if (e.code === 'Space' || e.key === ' ') {
       isSpacePressed.value = false
     }
   }
@@ -353,11 +369,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     if (e.button === 1 || isMoveMode.value) {
       e.preventDefault()
       e.stopPropagation()
-      isDraggingCanvas.value = true
-      panStart.value = {
-        x: e.clientX - canvasOffset.value.x,
-        y: e.clientY - canvasOffset.value.y,
-      }
+      handleViewportMouseDown(e)
     }
   }
 
@@ -375,10 +387,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   const handleGlobalMouseMove = (e: MouseEvent) => {
     // moving canvas
     if (isDraggingCanvas.value) {
-      canvasOffset.value = {
-        x: e.clientX - panStart.value.x,
-        y: e.clientY - panStart.value.y,
-      }
+      handleViewportMouseMove(e)
       return
     }
 
@@ -402,7 +411,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   const handleGlobalMouseUp = () => {
     // moving view
     if (isDraggingCanvas.value) {
-      isDraggingCanvas.value = false
+      stopViewportDragging()
     }
 
     const wasInteracting = creatingEdgeIndex.value !== null || draggingPointIndex.value !== null

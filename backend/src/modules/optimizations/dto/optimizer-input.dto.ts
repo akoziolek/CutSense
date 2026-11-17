@@ -12,6 +12,9 @@ export class OptimizerFabricInputDto {
   @ApiProperty({ description: 'Fabric length in millimeters.' })
   lengthMm!: number;
 
+  @ApiProperty({ description: 'Fabric grainline in degrees.' })
+  grainline!: number;
+
   @ApiProperty({
     description: 'Fabric boundary points in millimeters, without a repeated closing point.',
     type: 'array',

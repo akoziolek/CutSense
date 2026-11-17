@@ -8,6 +8,8 @@ import {
 import { PatternTagDto } from './dto/pattern-tag.dto.js';
 import { type CreatePatternDto } from './dto/create-pattern.dto.js';
 import type { EnginePiece } from '../optimizer-engine/optimizer-engine.types.js';
+import type { PatternPieceGeometryDto } from './dto/pattern-piece-geometry.dto.js';
+import type { PatternCoverDto } from './dto/pattern-cover.dto.js';
 
 interface PatternListRow {
   id: number;
@@ -140,6 +142,25 @@ export class PatternsMapper {
   static piecePointsFromGeoJson(geojson: string): [number, number][] {
     return (JSON.parse(geojson) as { coordinates: [number, number][][] })
       .coordinates[0];
+  }
+
+  static toPieceGeometryDto(piece: {
+    id: number;
+    grainline: number;
+    geojson: string;
+  }): PatternPieceGeometryDto {
+    return {
+      id: piece.id,
+      grainline: piece.grainline,
+      boundary: this.piecePointsFromGeoJson(piece.geojson),
+    };
+  }
+
+  static toCoverDto(patternId: number, imageUrl?: string): PatternCoverDto {
+    return {
+      patternId,
+      imageUrl,
+    };
   }
 
   static mapPiecesForEngine(pieces: CreatePatternDto['pieces']): EnginePiece[] {

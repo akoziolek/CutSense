@@ -1,4 +1,5 @@
 import type { Point2D } from '@/types/geometry'
+import { Clipper, JoinType, EndType, type Path64, type Point64 } from 'clipper2-ts'
 
 export interface GeometryOriginMm {
   minX: number
@@ -58,37 +59,33 @@ export function clampPanOffset(
   }
 }
 
-export function offsetPolygonMm(mmPts: [number, number][], offsetMm: number): [number, number][] {
-  const n = mmPts.length
-  if (n < 3 || offsetMm <= 0) return mmPts
 
-  let area = 0
-  for (let i = 0; i < n; i++) {
-    const [x1, y1] = mmPts[i]!
-    const [x2, y2] = mmPts[(i + 1) % n]!
-    area += (x2 - x1) * (y2 + y1)
-  }
-  const sign = area > 0 ? 1 : -1
+export function offsetPolygonMm(
+  mmPts: [number, number][],
+  offsetMm: number,
+  miterLimit = 2,
+): [number, number][] {
+  if (mmPts.length < 3 || offsetMm <= 0) return mmPts
 
-  const normals = mmPts.map(([x1, y1], i) => {
-    const [x2, y2] = mmPts[(i + 1) % n]!
-    const dx = x2 - x1
-    const dy = y2 - y1
-    const len = Math.hypot(dx, dy) || 1
-    return { nx: (-dy / len) * sign, ny: (dx / len) * sign }
-  })
+  const scale = 1000
+  const rawPath: Path64 = mmPts.map(([x, y]): Point64 => ({
+    x: Math.round(x * scale),
+    y: Math.round(y * scale),
+  }))
 
-  return mmPts.map(([px, py], i) => {
-    const prev = normals[(i - 1 + n) % n]!
-    const curr = normals[i]!
-    const bx = prev.nx + curr.nx
-    const by = prev.ny + curr.ny
-    const bLen = Math.hypot(bx, by)
-    const ux = bLen > 1e-6 ? bx / bLen : curr.nx
-    const uy = bLen > 1e-6 ? by / bLen : curr.ny
-    const miterDist = offsetMm / Math.max(0.4, ux * curr.nx + uy * curr.ny)
-    return [px + ux * miterDist, py + uy * miterDist]
-  })
+  const simplified = Clipper.simplifyPath(rawPath, 0.1 * scale)
+  const inflated = Clipper.inflatePaths(
+    [simplified],
+    offsetMm * scale,
+    JoinType.Miter,
+    EndType.Polygon,
+    miterLimit,
+  )
+
+  const resultPath = inflated[0]
+  if (!resultPath || resultPath.length < 3) return mmPts
+
+  return resultPath.map((pt: Point64) => [pt.x / scale, pt.y / scale])
 }
 
 export function buildRulerTicks(params: {

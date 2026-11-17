@@ -12,6 +12,7 @@ defineProps<{
   error: string
   hasCriteria: boolean
   pageSize: number
+  plain?: boolean
 }>()
 const emit = defineEmits<{ (e: 'retry'): void; (e: 'reset'): void }>()
 
@@ -28,25 +29,32 @@ const gridClass = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
     leave-from-class="opacity-100"
     leave-to-class="opacity-0"
   >
-    <div v-if="loading" key="skeleton" :class="gridClass">
-      <div v-for="n in pageSize" :key="n" class="space-y-3">
-        <Skeleton class="aspect-square w-full rounded-md" />
-        <Skeleton class="h-4 w-2/3" />
-        <Skeleton class="h-3 w-1/2" />
-      </div>
+    <!-- loading -->
+    <div v-if="loading" key="skeleton" :class="plain ? 'space-y-2' : gridClass">
+      <template v-if="plain">
+        <Skeleton v-for="n in 8" :key="n" class="h-10 w-full" />
+      </template>
+      <template v-else>
+        <div v-for="n in pageSize" :key="n" class="space-y-3">
+          <Skeleton class="aspect-square w-full rounded-md" />
+          <Skeleton class="h-4 w-2/3" />
+          <Skeleton class="h-3 w-1/2" />
+        </div>
+      </template>
     </div>
 
+    <!-- error -->
     <div v-else-if="error" key="error">
-      <ErrorState :title="$t('common.errors.unableToLoad', { resource: noun })" :message="error" :code="$t('common.errors.errorCode')">
+      <ErrorState :title="`Unable to load ${noun}`" :message="error" code="Error">
         <template #actions>
           <Button variant="outline" class="rounded-lg gap-2" @click="emit('retry')">
             <RotateCcw class="w-4 h-4" />
-            <span>{{ $t('common.actions.tryAgain') }}</span>
+            <span>Try again</span>
           </Button>
           <Button as-child variant="default" class="rounded-lg gap-2">
             <RouterLink to="/">
               <ArrowLeft class="w-4 h-4" />
-              <span>{{ $t('common.actions.backToHome') }}</span>
+              <span>Back to home</span>
             </RouterLink>
           </Button>
         </template>
@@ -61,10 +69,10 @@ const gridClass = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
     >
       <SearchX class="size-8 text-muted-foreground" />
       <p class="max-w-xs text-xs text-muted-foreground">
-        {{ $t('common.errors.noResults', { resource: noun }) }}
+        We couldn't find any {{ noun }} matching your criteria.
       </p>
       <Button variant="outline" size="sm" class="mt-2 rounded-lg" @click="emit('reset')">
-        {{ $t('common.actions.clearFilters') }}
+        Clear filters
       </Button>
     </div>
 
@@ -77,8 +85,9 @@ const gridClass = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
       <slot name="empty" />
     </div>
 
+    <!-- list -->
     <div v-else-if="total !== null" key="list" class="space-y-10">
-      <div :class="gridClass"><slot /></div>
+      <div :class="plain ? '' : gridClass"><slot /></div>
       <slot name="footer" />
     </div>
   </Transition>

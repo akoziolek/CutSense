@@ -375,6 +375,7 @@ onMounted(() => {
                 <div class="flex items-center w-full gap-2">
                   <ListboxFilter v-model="searchTerm" as-child>
                     <TagsInputInput
+                      data-wizard-keys-ignore
                       :placeholder="t('common.form.searchOrAddTags')"
                       class="w-full text-sm bg-transparent p-0 focus:outline-hidden border-none shadow-none cursor-text"
                       @keydown.enter.prevent="handleEnterKey"

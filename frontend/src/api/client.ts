@@ -17,6 +17,8 @@ export class ApiError extends Error {
   }
 }
 
+export const UNAUTHORIZED_EVENT = 'auth:unauthorized'
+
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers)
   if (!(init.body instanceof FormData) && !headers.has('Content-Type')) {
@@ -26,10 +28,12 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     credentials: 'include',
+    cache: 'no-store',
     headers,
   })
 
   if (!res.ok) {
+    if (res.status === 401) window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
     const body = (await res.json().catch(() => ({
       statusCode: res.status,
       errorCode: 'INTERNAL_ERROR',

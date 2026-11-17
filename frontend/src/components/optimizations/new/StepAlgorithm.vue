@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { Puzzle, RotateCcw } from 'lucide-vue-next'
+import { ArrowDownWideNarrow, RotateCw, Sparkles, RotateCcw } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import ErrorState from '@/components/common/ErrorState.vue'
@@ -26,6 +26,13 @@ const isLoading = ref(true)
 const error = ref('')
 const isSubmitting = ref(false)
 const submitError = ref('')
+
+const getAlgorithmIcon = (algorithm: OptimizationAlgorithm): Component => {
+  const key = algorithm.name.toLowerCase()
+  if (key.includes('rotation')) return RotateCw
+  if (key.includes('decreasing')) return ArrowDownWideNarrow
+  return Sparkles
+}
 
 const load = async () => {
   isLoading.value = true
@@ -116,7 +123,9 @@ const handleSubmit = async () => {
         :selected="store.algorithmId === algorithm.id"
         @select="store.selectAlgorithm(algorithm.id)"
       >
-        <template #icon><Puzzle class="size-8" /></template>
+        <template #icon>
+          <component :is="getAlgorithmIcon(algorithm)" class="size-8" />
+        </template>
       </SelectableOptionCard>
     </div>
 

@@ -1,7 +1,23 @@
 <script setup lang="ts">
+import { watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Toaster } from 'vue-sonner'
 import 'vue-sonner/style.css'
-import AuthModal from './components/auth/AuthModal.vue';
+import AuthModal from './components/auth/AuthModal.vue'
+import { useAuth } from '@/composables/useAuth'
+
+const route = useRoute()
+const router = useRouter()
+const { state } = useAuth()
+
+watch(
+  () => state.user,
+  (user, previous) => {
+    if (previous && !user && !route.meta.isPublic) {
+      void router.replace({ name: 'Landing' })
+    }
+  },
+)
 </script>
 
 <template>

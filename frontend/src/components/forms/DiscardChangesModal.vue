@@ -16,6 +16,7 @@ const emit = defineEmits<{
     :confirm-label="$t('common.actions.yesDiscard')"
     :cancel-label="$t('common.actions.continueEditing')"
     show-cancel
+    focus-confirm
     @confirm="emit('confirm')"
     @cancel="isOpen = false"
   />

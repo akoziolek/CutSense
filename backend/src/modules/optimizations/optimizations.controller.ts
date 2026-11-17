@@ -9,6 +9,9 @@ import {
   ParseUUIDPipe,
   Post,
   UseGuards,
+  ParseEnumPipe,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -36,11 +39,24 @@ import { SaveOptimizationDto } from './dto/save-optimization.dto.js';
 import { Query /* , ...existing */ } from '@nestjs/common';
 import { ListOptimizationsQueryDto } from './dto/list-optimizations-query.dto.js';
 import { OptimizationListResponseDto } from './dto/optimization-list.dto.js';
+import type { Response } from 'express';
+import {
+  OptimizationPdfService,
+  type OptimizationPdfFormat,
+} from './pdf/optimization-pdf.service.js';
+
+enum PdfFormatParam {
+  A4 = 'a4',
+  ACTUAL = 'actual',
+}
 
 @Controller('optimizations')
 @ApiTags('Optimizations')
 export class OptimizationController {
-  constructor(private readonly optimizationsService: OptimizationsService) {}
+  constructor(
+    private readonly optimizationsService: OptimizationsService,
+    private readonly optimizationPdfService: OptimizationPdfService,
+  ) {}
 
   @Get('algorithms')
   @ApiOperation({
@@ -182,6 +198,55 @@ export class OptimizationController {
     @CurrentUser() user: AuthUser,
   ): Promise<OptimizationListResponseDto> {
     return this.optimizationsService.getOptimizations(query, user.id);
+  }
+
+  private async sendPdfResponse(
+    view: OptimizationViewDto,
+    format: PdfFormatParam,
+    res: Response,
+  ): Promise<StreamableFile> {
+    const { buffer, filename } = await this.optimizationPdfService.generate(
+      view,
+      format as OptimizationPdfFormat,
+    );
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    });
+    return new StreamableFile(buffer);
+  }
+
+  @Get('runs/:runId/pdf')
+  @UseGuards(OptionalSessionGuard)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Download optimization run layout as PDF (A4 or 1:1 actual size)',
+  })
+  async downloadRunPdf(
+    @Param('runId', ParseUUIDPipe) runId: string,
+    @Query('format', new ParseEnumPipe(PdfFormatParam)) format: PdfFormatParam,
+    @Res({ passthrough: true }) res: Response,
+    @OptionalUser() user?: AuthUser,
+  ): Promise<StreamableFile> {
+    const view = await this.optimizationsService.getRun(runId, user?.id);
+    return this.sendPdfResponse(view, format, res);
+  }
+
+  @Get(':id/pdf')
+  @UseGuards(SessionGuard)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary:
+      'Download saved optimization layout as PDF (A4 or 1:1 actual size)',
+  })
+  async downloadSavedPdf(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('format', new ParseEnumPipe(PdfFormatParam)) format: PdfFormatParam,
+    @Res({ passthrough: true }) res: Response,
+    @CurrentUser() user: AuthUser,
+  ): Promise<StreamableFile> {
+    const view = await this.optimizationsService.getSaved(id, user.id);
+    return this.sendPdfResponse(view, format, res);
   }
 
   // must stay after 'algorithms' and 'defaults'

@@ -3,7 +3,7 @@ import { ref, watch, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { api, ApiError } from '@/api/client'
+import { api, ApiError, apiBlob } from '@/api/client'
 import type { OptimizationView } from '@/types/optimization'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -28,10 +28,20 @@ import {
   LogIn,
   Timer,
   Shapes,
+  Download,
+  FileText,
+  Maximize2,
+  Loader2,
 } from 'lucide-vue-next'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { login, useAuth } from '@/composables/useAuth'
 import { getGeometryBoundsMm } from '@/utils/geometry'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 const route = useRoute()
 const router = useRouter()
@@ -47,6 +57,7 @@ const isFetching = ref(true)
 const showSkeleton = ref(false)
 const error = ref('')
 const isNotFound = ref(false)
+const isDownloadingPdf = ref(false)
 
 const isCanvasExpanded = ref(false)
 const isSaveOpen = ref(false)
@@ -91,22 +102,31 @@ const normalizedLayout = computed(() => {
           [0, opt.fabric.lengthMm],
         ]
 
-  const pieces: PlacedPieceViewItem[] = (opt.placements ?? []).flatMap((placement, index) =>
-    placement.polygon && placement.polygon.length >= 3
-      ? [
-          {
-            id: index + 1,
-            patternPieceId: placement.patternPieceId,
-            points: placement.polygon,
-          },
-        ]
-      : [],
-  )
+  const pieceTypeNumberById = new Map<number, number>()
+  for (const placement of opt.placements ?? []) {
+    if (!pieceTypeNumberById.has(placement.patternPieceId)) {
+      pieceTypeNumberById.set(placement.patternPieceId, pieceTypeNumberById.size + 1)
+    }
+  }
 
-  const bounds = getGeometryBoundsMm([
-    fabricBoundary,
-    ...pieces.map((piece) => piece.points),
-  ])
+  const pieces: PlacedPieceViewItem[] = (opt.placements ?? []).flatMap((placement, index) => {
+    if (!placement.polygon || placement.polygon.length < 3) return []
+    const totalRotation =
+      ((((placement.rotationAngle ?? 0) + (placement.isFlipped180 ? 180 : 0)) % 360) + 360) % 360
+
+    return [
+      {
+        id: index + 1,
+        patternPieceId: placement.patternPieceId,
+        pieceNumber: pieceTypeNumberById.get(placement.patternPieceId) ?? index + 1,
+        isMirrored: placement.isMirrored,
+        rotationAngle: totalRotation,
+        points: placement.polygon,
+      },
+    ]
+  })
+
+  const bounds = getGeometryBoundsMm([fabricBoundary, ...pieces.map((piece) => piece.points)])
 
   return {
     fabricBoundary,
@@ -164,6 +184,40 @@ const fetchOptimization = async (activeSignal = { active: true }) => {
       showSkeleton.value = false
       clearSkeletonTimer()
     }
+  }
+}
+
+const handleDownloadPdf = async (format: 'a4' | 'actual') => {
+  const opt = optimization.value
+  if (!opt || isDownloadingPdf.value) return
+
+  const basePath =
+    opt.isSaved && opt.id !== undefined
+      ? `/optimizations/${opt.id}/pdf`
+      : opt.runId
+        ? `/optimizations/runs/${encodeURIComponent(opt.runId)}/pdf`
+        : null
+
+  if (!basePath) return
+
+  isDownloadingPdf.value = true
+  try {
+    const blob = await apiBlob(`${basePath}?format=${format}`)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const baseName = (opt.name ?? opt.pattern?.name ?? 'optimization')
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, '-')
+    link.href = url
+    link.download = `${baseName}-${format === 'actual' ? '1-to-1' : 'a4'}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.body.message : t('optimizations.downloadPdfFailed'))
+  } finally {
+    isDownloadingPdf.value = false
   }
 }
 
@@ -230,29 +284,74 @@ watch(
       >
         <template #actions>
           <div
-            v-if="optimization && optimization.wasSuccessful && !optimization.isSaved"
-            class="flex items-center gap-2 font-inter"
+            v-if="optimization && optimization.wasSuccessful"
+            class="flex flex-wrap items-center justify-end gap-2.5 font-inter"
           >
-            <Button
-              v-if="auth.user"
-              variant="ghost"
-              size="sm"
-              class="border-2 hover:bg-brand-grey! hover:text-foreground"
-              @click="openSave"
-            >
-              <Save class="w-4 h-4" />
-              {{ t('optimizations.save') }}
-            </Button>
-            <Button
-              v-else
-              variant="outline"
-              size="sm"
-              class="gap-2 rounded-lg border-brand-green/40 text-foreground hover:bg-brand-green hover:text-brand-green-foreground"
-              @click="login(route.fullPath)"
-            >
-              <LogIn class="w-4 h-4" />
-              {{ t('optimizations.signInToSave') }}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button
+                  variant="outline"
+                  class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-background hover:bg-muted/20 cursor-pointer font-medium shadow-2xs"
+                  :disabled="isDownloadingPdf"
+                >
+                  <Loader2 v-if="isDownloadingPdf" class="h-4 w-4 animate-spin" />
+                  <Download v-else class="h-4.5 w-4.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                class="w-64 sm:w-72 max-w-[calc(100vw-2rem)] border border-foreground/30 p-1.5 shadow-md"
+              >
+                <DropdownMenuItem
+                  class="items-start gap-2.5 rounded-md p-2.5 cursor-pointer"
+                  @select="handleDownloadPdf('a4')"
+                >
+                  <FileText class="h-4 w-4 shrink-0 mt-0.5" />
+                  <div class="flex flex-col gap-0.5">
+                    <span class="font-medium leading-tight">
+                      {{ t('optimizations.downloadPdfA4') }}
+                    </span>
+                    <span class="text-xs text-muted-foreground leading-snug">
+                      {{ t('optimizations.downloadPdfA4Description') }}
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  class="items-start gap-2.5 rounded-md p-2.5 cursor-pointer"
+                  @select="handleDownloadPdf('actual')"
+                >
+                  <Maximize2 class="h-4 w-4 shrink-0 mt-0.5" />
+                  <div class="flex flex-col gap-0.5">
+                    <span class="font-medium leading-tight">
+                      {{ t('optimizations.downloadPdfActual') }}
+                    </span>
+                    <span class="text-xs text-muted-foreground leading-snug">
+                      {{ t('optimizations.downloadPdfActualDescription') }}
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <template v-if="!optimization.isSaved">
+              <Button
+                v-if="auth.user"
+                class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-brand-pink/50 hover:bg-brand-pink/80 cursor-pointer font-medium shadow-2xs"
+                @click="openSave"
+              >
+                <Save class="h-4.5 w-4.5" />
+                <span>{{ t('optimizations.save') }}</span>
+              </Button>
+              <Button
+                v-else
+                variant="outline"
+                class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-background hover:bg-muted/20 cursor-pointer font-medium shadow-2xs"
+                @click="login(route.fullPath)"
+              >
+                <LogIn class="h-4.5 w-4.5" />
+                <span>{{ t('optimizations.signInToSave') }}</span>
+              </Button>
+            </template>
           </div>
         </template>
       </PageHeader>

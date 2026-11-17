@@ -19,7 +19,6 @@ import {
 let pieceSeq = 0
 const nextPieceKey = () => `optimization-piece-${++pieceSeq}`
 
-// Wizard state lives here so that going back and forth between steps keeps what was entered.
 export const useOptimizationAddingStore = defineStore('addingOptimization', () => {
   const fabricSource = ref<FabricSource | null>(null)
   const customWidthCm = ref('')
@@ -28,14 +27,20 @@ export const useOptimizationAddingStore = defineStore('addingOptimization', () =
   const pattern = ref<SelectedItem | null>(null)
   const algorithmId = ref<number | null>(null)
   const pieces = ref<OptimizationPieceConfig[]>([])
-  // pattern the current `pieces` were built for
   const piecesPatternId = ref<number | null>(null)
   const seamAllowanceCm = ref('')
   const cuttingAllowanceCm = ref('')
+  const isSubmitted = ref(false)
 
   const isDirty = computed(
-    () => fabricSource.value !== null || pattern.value !== null || algorithmId.value !== null,
+    () => 
+      !isSubmitted.value &&
+      (fabricSource.value !== null || pattern.value !== null || algorithmId.value !== null),
   )
+
+  function markSubmitted() {
+    isSubmitted.value = true
+  }
 
   const isFabricConfigured = computed(() => {
     if (fabricSource.value === 'custom') {
@@ -95,7 +100,6 @@ export const useOptimizationAddingStore = defineStore('addingOptimization', () =
     if (piece) Object.assign(piece, partial)
   }
 
-  // the copy is placed right after the source and can be configured independently
   function duplicatePiece(key: string) {
     const index = pieces.value.findIndex((p) => p.key === key)
     const source = pieces.value[index]
@@ -139,6 +143,7 @@ export const useOptimizationAddingStore = defineStore('addingOptimization', () =
   }
 
   function reset() {
+    isSubmitted.value = false
     fabricSource.value = null
     customWidthCm.value = ''
     customHeightCm.value = ''
@@ -167,6 +172,8 @@ export const useOptimizationAddingStore = defineStore('addingOptimization', () =
     allowancesValid,
     piecesValid,
     canSubmit,
+    isSubmitted,
+    markSubmitted,
     selectFabricSource,
     selectFabric,
     selectPattern,

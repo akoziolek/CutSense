@@ -12,6 +12,9 @@ export class OptimizerFabricInputDto {
   @ApiProperty({ description: 'Fabric length in millimeters.' })
   lengthMm!: number;
 
+  @ApiProperty({ description: 'Fabric grainline in degrees.' })
+  grainline!: number;
+
   @ApiProperty({
     description: 'Fabric boundary points in millimeters, without a repeated closing point.',
     type: 'array',
@@ -42,6 +45,12 @@ export class OptimizerPieceInputDto {
 
   @ApiProperty({ description: 'Number of mirrored copies.' })
   mirroredCount!: number;
+
+  @ApiProperty({
+    description:
+      'Grainline of the pattern piece in degrees, clockwise from vertical, in the piece boundary coordinates.',
+  })
+  grainline!: number;
 
   @ApiProperty({ description: 'Allowed direction in degrees.' })
   direction!: number;

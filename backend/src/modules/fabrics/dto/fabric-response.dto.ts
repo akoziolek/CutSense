@@ -41,6 +41,7 @@ export class FabricResponseDto {
   })
   grainline!: number;
 
+  // TODO chooose one convention for sending points PointDto[][] or [number, number][]
   @ApiProperty({
     description:
       'Fabric boundaries as calibrated Cartesian point lists in millimeters, ordered counter-clockwise. A fabric currently has one shape.',

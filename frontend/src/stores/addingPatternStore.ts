@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { get, set, del } from 'idb-keyval'
-import { type Point2D } from '@/types/geometry'
+import type { Point2D } from '@/types/geometry'
 import type { NameTag } from '@/types/patterns'
 
 export interface PatternPhotoData {
   shapes: Point2D[][]
+  shapeIds: string[]
   hiddenShapes: boolean[]
   pxPerMm: number
   rotation: number
@@ -18,7 +19,7 @@ export interface PatternPhotoData {
 export interface PatternPiece {
   id: string
   photoIndex: number
-  shapeIndex: number
+  shapeId: string
   name: string
   normal: number
   mirrored: number
@@ -53,14 +54,14 @@ const DEFAULT_SHAPE: Point2D[] = [
   { pctX: 20, pctY: 80 },
 ]
 
+const createShapeId = (): string => crypto.randomUUID()
+
 export const usePatternAddingStore = defineStore('addingPattern', () => {
   const photos = ref<File[]>([])
   const photoConfigs = ref<PatternPhotoData[]>([])
   const pieces = ref<PatternPiece[]>([])
   const details = ref<PatternDetails>({ ...DEFAULT_DETAILS })
   const isHydrated = ref(false)
-
-  let writeQueue = Promise.resolve()
 
   function sanitizePhotoConfig(config?: Partial<PatternPhotoData>): PatternPhotoData {
     const shapes =
@@ -69,9 +70,16 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
         : [JSON.parse(JSON.stringify(DEFAULT_SHAPE))]
 
     const hiddenShapes = shapes.map((_, idx) => config?.hiddenShapes?.[idx] ?? idx !== 0)
+    const shapeIds = shapes.map((_, idx) => {
+      const savedId = config?.shapeIds?.[idx]
+      return savedId && !config.shapeIds?.slice(0, idx).includes(savedId)
+        ? savedId
+        : createShapeId()
+    })
 
     return {
       shapes: JSON.parse(JSON.stringify(shapes)),
+      shapeIds,
       hiddenShapes,
       pxPerMm: typeof config?.pxPerMm === 'number' && config.pxPerMm > 0 ? config.pxPerMm : 1,
       rotation: typeof config?.rotation === 'number' ? config.rotation : 0,
@@ -84,17 +92,10 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     }
   }
 
-  function savePhotoConfigsToIDB() {
-    const snapshot = JSON.parse(JSON.stringify(photoConfigs.value))
-    writeQueue = writeQueue.then(() => set(STORAGE_CONFIGS_KEY, snapshot))
-    return writeQueue
-  }
-
-  function savePiecesToIDB() {
-    const snapshot = JSON.parse(JSON.stringify(pieces.value))
-    writeQueue = writeQueue.then(() => set(STORAGE_PIECES_KEY, snapshot))
-    return writeQueue
-  }
+  const persistConfigs = () =>
+    set(STORAGE_CONFIGS_KEY, JSON.parse(JSON.stringify(photoConfigs.value)))
+  const persistPieces = () => set(STORAGE_PIECES_KEY, JSON.parse(JSON.stringify(pieces.value)))
+  const persistDetails = () => set(STORAGE_DETAILS_KEY, JSON.parse(JSON.stringify(details.value)))
 
   const previewUrls = computed(() => photos.value.map((file) => URL.createObjectURL(file)))
 
@@ -134,12 +135,11 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     photoConfigs.value = updatedConfigs
     pieces.value = []
 
-    writeQueue = writeQueue.then(async () => {
-      await set(STORAGE_PHOTOS_KEY, newPhotos)
-      await set(STORAGE_CONFIGS_KEY, updatedConfigs)
-      await set(STORAGE_PIECES_KEY, [])
-    })
-    await writeQueue
+    await Promise.all([
+      set(STORAGE_PHOTOS_KEY, newPhotos),
+      set(STORAGE_CONFIGS_KEY, updatedConfigs),
+      set(STORAGE_PIECES_KEY, []),
+    ])
   }
 
   function syncPiecesFromConfigs() {
@@ -148,20 +148,29 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
 
     photoConfigs.value.forEach((config, photoIdx) => {
       config.shapes.forEach((_, shapeIdx) => {
+        const shapeId = config.shapeIds[shapeIdx]
+        if (!shapeId) return
+
         const existing = pieces.value.find(
-          (p) => p.photoIndex === photoIdx && p.shapeIndex === shapeIdx,
+          (p) =>
+            p.shapeId === shapeId ||
+            (p.photoIndex === photoIdx &&
+              (p as unknown as { shapeIndex?: number }).shapeIndex === shapeIdx),
         )
 
         if (existing) {
           newPieces.push({
             ...existing,
+            id: `piece-${shapeId}`,
+            photoIndex: photoIdx,
+            shapeId,
             name: existing.name || `Piece #${counter}`,
           })
         } else {
           newPieces.push({
-            id: `piece-${photoIdx}-${shapeIdx}`,
+            id: `piece-${shapeId}`,
             photoIndex: photoIdx,
-            shapeIndex: shapeIdx,
+            shapeId,
             name: `Piece #${counter}`,
             normal: 1,
             mirrored: 0,
@@ -173,23 +182,48 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     })
 
     pieces.value = newPieces
-    void savePiecesToIDB()
+    void persistPieces()
   }
 
   function updatePiece(id: string, partial: Partial<PatternPiece>) {
     const piece = pieces.value.find((p) => p.id === id)
     if (piece) {
       Object.assign(piece, partial)
-      void savePiecesToIDB()
+      void persistPieces()
     }
+  }
+
+  function removeShape(photoIndex: number, shapeIndex: number) {
+    const config = photoConfigs.value[photoIndex]
+    if (!config) return
+
+    const targetShapeId = config.shapeIds[shapeIndex]
+
+    config.shapes.splice(shapeIndex, 1)
+    config.shapeIds.splice(shapeIndex, 1)
+    config.hiddenShapes.splice(shapeIndex, 1)
+
+    if (targetShapeId) {
+      const targetPieceIdx = pieces.value.findIndex((p) => p.shapeId === targetShapeId)
+      if (targetPieceIdx !== -1) {
+        pieces.value.splice(targetPieceIdx, 1)
+      }
+    }
+
+    void persistConfigs()
+    void persistPieces()
   }
 
   function removePieceById(id: string) {
     const piece = pieces.value.find((p) => p.id === id)
     if (piece) {
-      removeShape(piece.photoIndex, piece.shapeIndex)
-      pieces.value = pieces.value.filter((p) => p.id !== id)
-      void savePiecesToIDB()
+      const photoConfig = photoConfigs.value[piece.photoIndex]
+      if (photoConfig) {
+        const shapeIndex = photoConfig.shapeIds.indexOf(piece.shapeId)
+        if (shapeIndex !== -1) {
+          removeShape(piece.photoIndex, shapeIndex)
+        }
+      }
     }
   }
 
@@ -198,12 +232,13 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     if (!config) return
 
     config.shapes = JSON.parse(JSON.stringify(shapes))
+    config.shapeIds = shapes.map(() => createShapeId())
     config.hiddenShapes = shapes.map((_, idx) => idx !== 0)
     config.isAnalyzed = true
     config.isAnalyzing = false
 
     syncPiecesFromConfigs()
-    return savePhotoConfigsToIDB()
+    return persistConfigs()
   }
 
   function setPhotoAnalyzing(photoIndex: number, isAnalyzing: boolean) {
@@ -217,10 +252,10 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     if (!config) return
 
     config.hiddenShapes[shapeIndex] = !config.hiddenShapes[shapeIndex]
-    return savePhotoConfigsToIDB()
+    return persistConfigs()
   }
 
-  function addShape(photoIndex: number, newShape: Point2D[]) {
+  function addShape(photoIndex: number, newShape: Point2D[], shapeId = createShapeId()) {
     if (!newShape || !Array.isArray(newShape) || newShape.length < 3) {
       return null
     }
@@ -229,22 +264,56 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     if (!config) return null
 
     config.shapes.push(JSON.parse(JSON.stringify(newShape)))
+    config.shapeIds.push(shapeId)
     config.hiddenShapes.push(true)
 
     syncPiecesFromConfigs()
-    void savePhotoConfigsToIDB()
+    void persistConfigs()
     return config.shapes.length - 1
   }
 
-  function removeShape(photoIndex: number, shapeIndex: number) {
-    const config = photoConfigs.value[photoIndex]
-    if (!config) return
+  function insertShapeAtIndex(
+    photoIndex: number,
+    shapeIndex: number,
+    newShape: Point2D[],
+    shapeId = createShapeId(),
+  ) {
+    if (!newShape || !Array.isArray(newShape) || newShape.length < 3) {
+      return null
+    }
 
-    config.shapes.splice(shapeIndex, 1)
-    config.hiddenShapes.splice(shapeIndex, 1)
+    const config = photoConfigs.value[photoIndex]
+    if (!config) return null
+
+    const cloned = JSON.parse(JSON.stringify(newShape))
+    if (shapeIndex >= config.shapes.length) {
+      config.shapes.push(cloned)
+      config.shapeIds.push(shapeId)
+      config.hiddenShapes.push(true)
+    } else {
+      config.shapes.splice(shapeIndex, 0, cloned)
+      config.shapeIds.splice(shapeIndex, 0, shapeId)
+      config.hiddenShapes.splice(shapeIndex, 0, true)
+    }
 
     syncPiecesFromConfigs()
-    return savePhotoConfigsToIDB()
+    void persistConfigs()
+    return shapeIndex
+  }
+
+  function getShapeId(photoIndex: number, shapeIndex: number) {
+    return photoConfigs.value[photoIndex]?.shapeIds[shapeIndex]
+  }
+
+  function findShapeIndex(photoIndex: number, shapeId: string) {
+    return photoConfigs.value[photoIndex]?.shapeIds.indexOf(shapeId) ?? -1
+  }
+
+  function removeShapeById(photoIndex: number, shapeId: string) {
+    const shapeIndex = findShapeIndex(photoIndex, shapeId)
+    if (shapeIndex < 0) return null
+    removeShape(photoIndex, shapeIndex)
+    return shapeIndex
   }
 
   function updateShapePoints(photoIndex: number, shapeIndex: number, points: Point2D[]) {
@@ -252,7 +321,7 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     if (!config) return
 
     config.shapes[shapeIndex] = JSON.parse(JSON.stringify(points))
-    return savePhotoConfigsToIDB()
+    return persistConfigs()
   }
 
   function updatePhotoScale(photoIndex: number, pxPerMm: number) {
@@ -260,7 +329,7 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     if (!config || pxPerMm <= 0) return
 
     config.pxPerMm = pxPerMm
-    return savePhotoConfigsToIDB()
+    return persistConfigs()
   }
 
   function updatePhotoRotation(photoIndex: number, rotation: number) {
@@ -268,7 +337,7 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     if (!config) return
 
     config.rotation = rotation
-    return savePhotoConfigsToIDB()
+    return persistConfigs()
   }
 
   async function updatePhotoDimensions(
@@ -281,7 +350,7 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
 
     config.imageWidth = imageWidth
     config.imageHeight = imageHeight
-    await savePhotoConfigsToIDB()
+    await persistConfigs()
   }
 
   function updateDetails(partialDetails: Partial<PatternDetails>) {
@@ -290,9 +359,7 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
       ...partialDetails,
       tags: partialDetails.tags ? [...partialDetails.tags] : [...details.value.tags],
     }
-    const snapshot = JSON.parse(JSON.stringify(details.value)) as PatternDetails
-    writeQueue = writeQueue.then(() => set(STORAGE_DETAILS_KEY, snapshot))
-    return writeQueue
+    return persistDetails()
   }
 
   async function initFromIndexedDB() {
@@ -338,7 +405,6 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     details.value = { ...DEFAULT_DETAILS }
 
     try {
-      await writeQueue
       await Promise.all([
         del(STORAGE_PHOTOS_KEY),
         del(STORAGE_CONFIGS_KEY),
@@ -368,6 +434,10 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     toggleShapeVisibility,
     removeShape,
     addShape,
+    insertShapeAtIndex,
+    getShapeId,
+    findShapeIndex,
+    removeShapeById,
     updateShapePoints,
     updatePhotoScale,
     updatePhotoRotation,

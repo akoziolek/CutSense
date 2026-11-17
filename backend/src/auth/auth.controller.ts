@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   Post,
-  Query,
   Req,
   Res,
   HttpCode,
@@ -13,14 +12,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { CookieOptions, Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
-import { UsersService } from '../modules/users/users.service.js';
 import { GoogleAuthGuard } from './guards/google-auth.guard.js';
 import { GoogleProfile } from './strategies/google.strategy.js';
-import { SessionGuard } from './guards/session.guard.js';
-import { CurrentUser } from '../common/decorators/current-user.decorator.js';
-import type { AuthUser } from '../common/decorators/current-user.decorator.js';
 import { RegisterDto } from './dto/register.dto.js';
-import { CheckNicknameDto } from './dto/check-nickname.dto.js';
 
 const SESSION_MAX_AGE = 7 * 24 * 3600 * 1000;
 const REGISTRATION_MAX_AGE = 15 * 60 * 1000;
@@ -42,7 +36,6 @@ const cookieOpts = (maxAge: number): CookieOptions => ({
 export class AuthController {
   constructor(
     private readonly auth: AuthService,
-    private readonly users: UsersService,
     private readonly config: ConfigService,
   ) {}
 
@@ -84,19 +77,6 @@ export class AuthController {
     return { email, avatar, name };
   }
 
-  @Get('check-nickname')
-  async checkNickname(@Query() query: CheckNicknameDto) {
-    const exists = await this.users.nicknameExists(query.nickname);
-    return { available: !exists };
-  }
-
-  // Frontend endpoint
-  @Get('me')
-  @UseGuards(SessionGuard)
-  me(@CurrentUser() user: AuthUser) {
-    return this.auth.getCurrentUser(user.id);
-  }
-  //POST endpoint
   @Post('register')
   async register(
     @Req() req: Request,

@@ -6,7 +6,6 @@ export interface CurrentUser {
   id: number;
   nickname: string | null;
   email: string;
-  avatar: string | null;
 }
 
 const state = reactive<{ user: CurrentUser | null; loaded: boolean }>({
@@ -19,7 +18,7 @@ export function useAuth() {
   async function loadUser(force = false) {
     if (state.loaded && !force) return;
     try {
-      state.user = await api<CurrentUser>('/auth/me');
+      state.user = await api<CurrentUser>('/users/me');
     } catch (e) {
       if (!(e instanceof ApiError) || e.status !== 401) throw e;
       state.user = null;

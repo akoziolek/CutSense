@@ -234,6 +234,7 @@ watch(
                 :alt="fabric.name"
                 :shapes="normalizedShapes"
                 :all-shapes-edges="[edges]"
+                :active-shape-index="0"
               />
               <div
                 v-else

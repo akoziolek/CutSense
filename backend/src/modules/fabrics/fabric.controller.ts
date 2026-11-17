@@ -37,7 +37,10 @@ import { FabricResponseDto } from './dto/fabric-response.dto.js';
 import { FabricService } from './fabrics.service.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { SessionGuard } from '../../auth/guards/session.guard.js';
-import { CreateFabricDto } from './dto/create-fabric.dto.js';
+import {
+  CreateFabricDto,
+  CreateFabricUploadDto,
+} from './dto/create-fabric.dto.js';
 import { AnalysisShapesDto } from '../shapes-engine/dto/analysis-shapes.dto.js';
 import { EditFabricDto } from './dto/edit-fabric.dto.js';
 import { FabricTagDto } from './dto/fabric-tags.dto.js';
@@ -45,7 +48,10 @@ import { FabricListResponseDto } from './dto/fabric-list.dto.js';
 import { ListFabricsQueryDto } from './dto/list-fabrics-query.dto.js';
 import { SetFavouriteDto } from '../../common/dto/set-favourite.dto.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
-import { BulkDeleteDto, BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
+import {
+  BulkDeleteDto,
+  BulkDeleteResponseDto,
+} from '../../common/dto/bulk-delete.dto.js';
 
 @Controller('fabrics')
 @ApiTags('Fabrics')
@@ -141,60 +147,45 @@ export class FabricController {
     return this.fabricService.analyzeFabricBoundary(picture);
   }
 
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get a fabric by ID',
+    description:
+      'Returns a fabric owned by the current user, including its shapes and tags. Fabric shape data is a list containing one boundary.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique identifier of the fabric',
+    type: Number,
+    example: 1,
+  })
+  @ApiOkResponse({
+    description: 'The fabric was found and returned successfully.',
+    type: FabricResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'The fabric ID is not a valid integer.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  @ApiNotFoundResponse({
+    description:
+      'The fabric does not exist or is not owned by the current user.',
+  })
+  async getFabricById(
+    @Param('id', ParseIntPipe) fabricId: number,
+    @CurrentUser() user: { id: number },
+  ): Promise<FabricResponseDto> {
+    return this.fabricService.getFabricById(fabricId, user.id);
+  }
+
   @Post()
   @UseInterceptors(
     FileInterceptor('picture', { limits: { fileSize: 5 * 1024 * 1024 } }),
   )
   @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: [
-        'name',
-        'picture',
-        'boundary',
-        'grainline',
-        'imageWidthMm',
-        'imageHeightMm',
-      ],
-      properties: {
-        name: { type: 'string', maxLength: 35, example: 'Cotton canvas' },
-        description: { type: 'string', maxLength: 400 },
-        tagIds: {
-          type: 'string',
-          description: 'JSON-encoded array of fabric tag IDs.',
-          example: '[1,2]',
-        },
-        boundary: {
-          type: 'string',
-          description:
-            'JSON-encoded array of { x, y } points in calibrated millimeters.',
-          example:
-            '[{"x":-2500,"y":1250},{"x":2500,"y":1250},{"x":2500,"y":6250},{"x":-2500,"y":6250}]',
-        },
-        grainline: {
-          type: 'number',
-          description: 'Grainline angle in degrees [0, 359].',
-          example: 90,
-        },
-        imageWidthMm: {
-          type: 'number',
-          description: 'Image width in calibrated millimeters.',
-          example: 600,
-        },
-        imageHeightMm: {
-          type: 'number',
-          description: 'Image height in calibrated millimeters.',
-          example: 400,
-        },
-        picture: {
-          type: 'string',
-          format: 'binary',
-          description: 'Fabric photo (PNG, JPG, or WEBP; maximum 5 MB).',
-        },
-      },
-    },
-  })
+  @ApiBody({ type: CreateFabricUploadDto })
   @ApiOperation({
     summary: 'Add a fabric',
     description:
@@ -285,11 +276,12 @@ export class FabricController {
     return this.fabricService.setFavourite(fabricId, dto.isFavourite, user.id);
   }
 
-  @Get(':id')
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: 'Get a fabric by ID',
+    summary: 'Delete a fabric',
     description:
-      'Returns a fabric owned by the current user, including its shapes and tags. Fabric shape data is a list containing one boundary.',
+      'Permanently deletes a fabric owned by the current user, together with its tags, its optimizations and its stored photo.',
   })
   @ApiParam({
     name: 'id',
@@ -297,9 +289,8 @@ export class FabricController {
     type: Number,
     example: 1,
   })
-  @ApiOkResponse({
-    description: 'The fabric was found and returned successfully.',
-    type: FabricResponseDto,
+  @ApiNoContentResponse({
+    description: 'The fabric and its optimizations were deleted.',
   })
   @ApiBadRequestResponse({
     description: 'The fabric ID is not a valid integer.',
@@ -311,25 +302,6 @@ export class FabricController {
     description:
       'The fabric does not exist or is not owned by the current user.',
   })
-  async getFabricById(
-    @Param('id', ParseIntPipe) fabricId: number,
-    @CurrentUser() user: { id: number },
-  ): Promise<FabricResponseDto> {
-    return this.fabricService.getFabricById(fabricId, user.id);
-  }
-
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({
-  summary: 'Delete a fabric',
-  description:
-    'Permanently deletes a fabric owned by the current user, together with its tags, its optimizations and its stored photo.',
-  })
-  @ApiParam({ name: 'id', description: 'Unique identifier of the fabric', type: Number, example: 1 })
-  @ApiNoContentResponse({ description: 'The fabric and its optimizations were deleted.' })
-  @ApiBadRequestResponse({ description: 'The fabric ID is not a valid integer.' })
-  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
-  @ApiNotFoundResponse({ description: 'The fabric does not exist or is not owned by the current user.' })
   async deleteFabric(
     @Param('id', ParseIntPipe) fabricId: number,
     @CurrentUser() user: { id: number },
@@ -340,18 +312,22 @@ export class FabricController {
   @Post('bulk-delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-  summary: 'Delete several fabrics',
-  description: 'Permanently deletes the listed fabrics owned by the current user, with their optimizations and photos. IDs that do not exist or belong to someone else are skipped.',
+    summary: 'Delete several fabrics',
+    description:
+      'Permanently deletes the listed fabrics owned by the current user, with their optimizations and photos. IDs that do not exist or belong to someone else are skipped.',
   })
   @ApiBody({ type: BulkDeleteDto })
   @ApiOkResponse({ type: BulkDeleteResponseDto })
-  @ApiBadRequestResponse({ description: 'ids must be 1–100 unique positive integers.' })
-  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  @ApiBadRequestResponse({
+    description: 'ids must be 1–100 unique positive integers.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
   async deleteFabrics(
     @Body() dto: BulkDeleteDto,
     @CurrentUser() user: { id: number },
   ): Promise<BulkDeleteResponseDto> {
     return this.fabricService.deleteFabrics(dto.ids, user.id);
   }
-  
 }

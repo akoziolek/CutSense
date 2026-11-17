@@ -1,5 +1,9 @@
 import { ref, computed, onMounted, onUnmounted, type Ref } from 'vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
+import { useSpatialHistory, type SpatialHistoryAction } from './useSpatialHistory'
+import { useCanvasViewport } from './useCanvasViewport'
+
+export type { SpatialHistoryAction }
 
 interface SpatialWorkspaceExposed {
   getPointFromEvent: (e: MouseEvent) => Point2D | null
@@ -9,9 +13,12 @@ interface useSpatialWorkspaceOptions {
   workspaceRef: Ref<SpatialWorkspaceExposed | null>
   initialPxPerMm?: number
   initialPoints?: Point2D[]
+  getCurrentTarget?: () => { photoIndex: number; shapeId: string } | null
+  onUpdateShapePoints?: (points: Point2D[]) => void
+  onRestoreTarget?: (photoIndex: number, shapeId: string, restoredPoints: Point2D[]) => void
   onThreadAngleChange?: (newAngle: number) => void
   currentThreadAngle?: Ref<number>
-  onShapeCreated?: (newShape: Point2D[]) => void
+  onShapeCreated?: (newShape: Point2D[]) => SpatialHistoryAction | void
   allowMultipleShapes?: boolean | Ref<boolean>
 }
 
@@ -21,18 +28,31 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     workspaceRef,
     initialPxPerMm,
     initialPoints,
+    getCurrentTarget,
+    onRestoreTarget,
+    onUpdateShapePoints,
     onThreadAngleChange,
     currentThreadAngle,
     onShapeCreated,
     allowMultipleShapes = false,
   } = options
 
-  const backupShape = [
+  const backupShape: Point2D[] = [
     { pctX: 20, pctY: 20 },
     { pctX: 80, pctY: 20 },
     { pctX: 80, pctY: 80 },
     { pctX: 20, pctY: 80 },
   ]
+
+  const clonePoints = (pts: Point2D[]): Point2D[] => pts.map(({ pctX, pctY }) => ({ pctX, pctY }))
+
+  const pointsMatch = (first: Point2D[], second: Point2D[]) =>
+    first.length === second.length &&
+    first.every((point, index) => {
+      const other = second[index]
+      return other?.pctX === point.pctX && other.pctY === point.pctY
+    })
+
   // how many pixels per millimeter
   const pxPerMm = ref<number>(
     initialPxPerMm && initialPxPerMm > 0 ? initialPxPerMm : defaultPxPerMm,
@@ -40,26 +60,83 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   // postgis format
   const points = ref<Point2D[]>(
     initialPoints && initialPoints.length >= 3
-      ? JSON.parse(JSON.stringify(initialPoints))
-      : JSON.parse(JSON.stringify(backupShape)),
+      ? clonePoints(initialPoints)
+      : clonePoints(backupShape),
   )
-  const originalPoints = ref<Point2D[]>(JSON.parse(JSON.stringify(points.value)))
+  const originalPoints = ref<Point2D[]>(clonePoints(points.value))
+  const dragStartPoints = ref<Point2D[] | null>(null)
+
+  const { recordAction, undo: undoHistory, redo: redoHistory } = useSpatialHistory()
+
+  const recordPointChange = (before: Point2D[], after: Point2D[]) => {
+    if (pointsMatch(before, after)) return
+
+    const target = getCurrentTarget?.()
+    const beforeCloned = clonePoints(before)
+    const afterCloned = clonePoints(after)
+
+    onUpdateShapePoints?.(afterCloned)
+
+    recordAction({
+      undo: () => {
+        if (target?.shapeId && onRestoreTarget) {
+          onRestoreTarget(target.photoIndex, target.shapeId, beforeCloned)
+        } else {
+          points.value = clonePoints(beforeCloned)
+        }
+      },
+      redo: () => {
+        if (target?.shapeId && onRestoreTarget) {
+          onRestoreTarget(target.photoIndex, target.shapeId, afterCloned)
+        } else {
+          points.value = clonePoints(afterCloned)
+        }
+      },
+    })
+  }
+
+  const undoPointMove = () => undoHistory()
+  const redoPointMove = () => redoHistory()
 
   const updateOriginalPoints = (newPoints: Point2D[]) => {
-    originalPoints.value = JSON.parse(JSON.stringify(newPoints))
+    originalPoints.value = clonePoints(newPoints)
+    points.value = clonePoints(newPoints)
   }
 
   const selectedEdgeIndex = ref<number | null>(null)
   const selectedPointIndex = ref<number | null>(null)
-  const zoomLevel = ref(1)
   const imageRotation = ref(0)
   const threadAngle = ref(currentThreadAngle?.value ?? 0)
 
   const activeTool = ref<'select' | 'pan'>('select')
-  const canvasOffset = ref({ x: 0, y: 0 })
   const isSpacePressed = ref(false)
-  const isDraggingCanvas = ref(false)
-  const panStart = ref({ x: 0, y: 0 })
+  const isMoveMode = computed(() => isSpacePressed.value || activeTool.value === 'pan')
+
+  const imageDimensions = ref({ width: 1000, height: 1000 })
+  const setImageDimensions = (width: number, height: number) => {
+    if (width > 0 && height > 0) {
+      imageDimensions.value = { width, height }
+    }
+  }
+
+  const {
+    zoomLevel,
+    canvasOffset,
+    isDragging: isDraggingCanvas,
+    handleMouseDown: handleViewportMouseDown,
+    handleMouseMove: handleViewportMouseMove,
+    stopDragging: stopViewportDragging,
+  } = useCanvasViewport({
+    minZoom: 0.5,
+    maxZoom: 5.5,
+    wheelZoomStep: 0.085,
+    canStartDrag: (e) => e.button === 1 || isMoveMode.value,
+    getMaxOffset: (zoom) => {
+      const maxDim = Math.max(imageDimensions.value.width, imageDimensions.value.height) || 500
+      const maxOffset = (maxDim / 2) * zoom + 100
+      return { x: maxOffset, y: maxOffset }
+    },
+  })
 
   const creatingEdgeIndex = ref<number | null>(null)
   const previewPoint = ref<Point2D | null>(null)
@@ -71,16 +148,16 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   const drawingPoints = ref<Point2D[]>([])
   const AUTO_CLOSE_THRESHOLD_PCT = 3.5
 
-  const isMoveMode = computed(() => isSpacePressed.value || activeTool.value === 'pan')
-
   const canDelete = computed(() => points.value.length > 0 || drawingPoints.value.length > 0)
+  const isInteractiveDragging = computed(
+    () => creatingEdgeIndex.value !== null || draggingPointIndex.value !== null,
+  )
 
   const isNearStartPoint = computed(() => {
     if (!previewPoint.value) return false
     return checkIsNearStart(previewPoint.value)
   })
 
-  
   const cancelDrawing = () => {
     drawingPoints.value = []
     previewPoint.value = null
@@ -88,12 +165,18 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
 
   const finishDrawing = () => {
     if (drawingPoints.value.length >= 3) {
-      const createdShape = JSON.parse(JSON.stringify(drawingPoints.value))
-      if (onShapeCreated) {
-        onShapeCreated(createdShape)
-      }
+      const createdShape = clonePoints(drawingPoints.value)
+      const historyAction = onShapeCreated?.(createdShape)
+      if (historyAction) recordAction(historyAction)
     }
     cancelDrawing()
+  }
+
+  const checkIsNearStart = (pt: Point2D) => {
+    if (drawingPoints.value.length < 3) return false
+    const startPt = drawingPoints.value[0]!
+    const dist = Math.hypot(pt.pctX - startPt.pctX, pt.pctY - startPt.pctY)
+    return dist <= AUTO_CLOSE_THRESHOLD_PCT
   }
 
   const handleImageClick = (clickPoint: Point2D) => {
@@ -127,10 +210,13 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
 
     if (!canDelete.value) return
 
+    const beforeDelete = clonePoints(points.value)
+
     if (selectedPointIndex.value !== null) {
       if (points.value.length > 3) {
         points.value.splice(selectedPointIndex.value, 1)
         selectedPointIndex.value = null
+        recordPointChange(beforeDelete, points.value)
       }
     } else if (selectedEdgeIndex.value !== null) {
       if (points.value.length >= 5) {
@@ -146,16 +232,10 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
           points.value.splice(p1Idx, 2)
         }
         selectedEdgeIndex.value = null
+        recordPointChange(beforeDelete, points.value)
       }
     } else if (onDeleteActiveShape) {
       onDeleteActiveShape()
-    }
-  }
-
-  const imageDimensions = ref({ width: 1000, height: 1000 })
-  const setImageDimensions = (width: number, height: number) => {
-    if (width > 0 && height > 0) {
-      imageDimensions.value = { width, height }
     }
   }
 
@@ -193,9 +273,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     return result
   }
 
-  const edges = computed<PolygonEdge[]>(() => {
-    return calculateEdgesForShape(points.value)
-  })
+  const edges = computed<PolygonEdge[]>(() => calculateEdgesForShape(points.value))
 
   const selectedEdge = computed(() => {
     if (selectedEdgeIndex.value === null) return null
@@ -216,10 +294,26 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   }
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    const isInput = (e.target as HTMLElement).tagName === 'INPUT'
-    if (isInput) return
+    const target = e.target
+    const isEditable =
+      target instanceof HTMLElement &&
+      (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+    if (isEditable) return
 
-    if (e.key === 'Space' && !isSpacePressed.value) {
+    if (e.ctrlKey || e.metaKey) {
+      const key = e.key.toLowerCase()
+      if (key === 'z' || key === 'y') {
+        e.preventDefault()
+        if (drawingPoints.value.length || isInteractiveDragging.value) return
+
+        if (key === 'y' || e.shiftKey) redoPointMove()
+        else undoPointMove()
+        return
+      }
+    }
+
+    if ((e.code === 'Space' || e.key === ' ') && !isSpacePressed.value) {
+      e.preventDefault()
       isSpacePressed.value = true
     } else if (e.key === 'Escape') {
       cancelDrawing()
@@ -232,14 +326,10 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   }
 
   const handleKeyUp = (e: KeyboardEvent) => {
-    if (e.key === 'Space') {
+    if (e.code === 'Space' || e.key === ' ') {
       isSpacePressed.value = false
     }
   }
-
-  const isInteractiveDragging = computed(
-    () => creatingEdgeIndex.value !== null || draggingPointIndex.value !== null,
-  )
 
   // for adding a new point
   const previewNeighbors = computed<{ p1: Point2D; p2: Point2D } | null>(() => {
@@ -270,6 +360,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
         previewPoint.value = clickPoint
         selectedEdgeIndex.value = null
         selectedPointIndex.value = null
+        dragStartPoints.value = clonePoints(points.value)
       }
     }
   }
@@ -278,11 +369,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     if (e.button === 1 || isMoveMode.value) {
       e.preventDefault()
       e.stopPropagation()
-      isDraggingCanvas.value = true
-      panStart.value = {
-        x: e.clientX - canvasOffset.value.x,
-        y: e.clientY - canvasOffset.value.y,
-      }
+      handleViewportMouseDown(e)
     }
   }
 
@@ -293,57 +380,38 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     selectedPointIndex.value = index
     selectedEdgeIndex.value = null
     draggingPointIndex.value = index
+    dragStartPoints.value = clonePoints(points.value)
   }
 
   // any move
   const handleGlobalMouseMove = (e: MouseEvent) => {
     // moving canvas
     if (isDraggingCanvas.value) {
-      canvasOffset.value = {
-        x: e.clientX - panStart.value.x,
-        y: e.clientY - panStart.value.y,
-      }
+      handleViewportMouseMove(e)
       return
     }
 
-    if (drawingPoints.value.length > 0 && workspaceRef.value) {
+    if (
+      (drawingPoints.value.length > 0 || creatingEdgeIndex.value !== null) &&
+      workspaceRef.value
+    ) {
       const point = workspaceRef.value.getPointFromEvent(e)
-      if (point) {
-        previewPoint.value = point
-      }
+      if (point) previewPoint.value = point
       return
-    }
-
-    // new point preview 
-    if (creatingEdgeIndex.value !== null && workspaceRef.value) {
-      const point = workspaceRef.value.getPointFromEvent(e)
-      if (point) {
-        previewPoint.value = point
-      }
     }
 
     // moving existing point
     if (draggingPointIndex.value !== null && workspaceRef.value) {
       const point = workspaceRef.value.getPointFromEvent(e)
-      if (point) {
-        points.value[draggingPointIndex.value] = point
-      }
+      if (point) points.value[draggingPointIndex.value] = point
     }
-  }
-
-
-  const checkIsNearStart = (pt: Point2D) => {
-    if (drawingPoints.value.length < 3) return false
-    const startPt = drawingPoints.value[0]!
-    const dist = Math.hypot(pt.pctX - startPt.pctX, pt.pctY - startPt.pctY)
-    return dist <= AUTO_CLOSE_THRESHOLD_PCT
   }
 
   // on right unclick
   const handleGlobalMouseUp = () => {
     // moving view
     if (isDraggingCanvas.value) {
-      isDraggingCanvas.value = false
+      stopViewportDragging()
     }
 
     const wasInteracting = creatingEdgeIndex.value !== null || draggingPointIndex.value !== null
@@ -351,17 +419,25 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     // inserting new point
     if (creatingEdgeIndex.value !== null && previewPoint.value) {
       const insertIdx = creatingEdgeIndex.value + 1
+      const beforePoints = dragStartPoints.value ?? clonePoints(points.value)
+
       points.value.splice(insertIdx, 0, previewPoint.value)
       selectedPointIndex.value = insertIdx
       selectedEdgeIndex.value = null
-
       creatingEdgeIndex.value = null
       previewPoint.value = null
+
+      recordPointChange(beforePoints, points.value)
+      dragStartPoints.value = null
     }
 
     // finish moving a point
     if (draggingPointIndex.value !== null) {
+      if (dragStartPoints.value) {
+        recordPointChange(dragStartPoints.value, points.value)
+      }
       draggingPointIndex.value = null
+      dragStartPoints.value = null
     }
 
     // Prevent background click event right after interaction
@@ -379,10 +455,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
 
     const newAngle = (threadAngle.value + delta + 360) % 360
     threadAngle.value = newAngle
-
-    if (onThreadAngleChange) {
-      onThreadAngleChange(newAngle)
-    }
+    onThreadAngleChange?.(newAngle)
   }
 
   const resetCanvasPosition = () => {
@@ -390,13 +463,16 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   }
 
   const resetAll = () => {
+    const beforeReset = clonePoints(points.value)
     cancelDrawing()
-    points.value = JSON.parse(JSON.stringify(originalPoints.value))
+    points.value = clonePoints(originalPoints.value)
     selectedEdgeIndex.value = null
     selectedPointIndex.value = null
     creatingEdgeIndex.value = null
     previewPoint.value = null
+    dragStartPoints.value = null
     resetCanvasPosition()
+    recordPointChange(beforeReset, points.value)
   }
 
   onMounted(() => {
@@ -448,5 +524,8 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     resetAll,
     updateOriginalPoints,
     setImageDimensions,
+    recordAction,
+    undoPointMove,
+    redoPointMove,
   }
 }

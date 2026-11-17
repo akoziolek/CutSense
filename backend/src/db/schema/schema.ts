@@ -11,9 +11,13 @@ import {
   primaryKey,
   geometry,
   index,
+  uuid,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { postgisPolygon } from './custom-types.js';
+import type { OptimizerInputDto } from '../../modules/optimizations/dto/optimizer-input.dto.js';
+import type { EngineResult } from '../../modules/optimizer-engine/optimizer-engine.types.js';
 
 // ==========================================
 // ENUMS
@@ -73,10 +77,7 @@ export const users = pgTable('users', {
     .generatedByDefaultAsIdentity(),
   googleId: varchar('google_id', { length: 64 }).notNull().unique(),
   email: varchar('email', { length: 254 }).notNull().unique(),
-  name: varchar('name', { length: 60 }).notNull(),
-  surname: varchar('surname', { length: 60 }),
-  nickname: varchar('nickname', { length: 64 }).unique(),
-  pictureUrl: varchar('picture_url', { length: 2048 }),
+  nickname: varchar('nickname', { length: 64 }).unique().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -92,6 +93,8 @@ export const patterns = pgTable(
     name: varchar('name', { length: 35 }).notNull(),
     description: varchar('description', { length: 400 }),
     size: patternSizeEnum('size').notNull(),
+    minFabricLengthMM: smallint('min_fabric_length_mm'),
+    minFabricWidthMM: smallint('min_fabric_width_mm'),
     visibility: visibilityLevelEnum('visibility').notNull().default('PRIVATE'),
     starCount: integer('star_count').notNull().default(0),
     starAverage: numeric('star_average', { precision: 3, scale: 2 })
@@ -105,7 +108,10 @@ export const patterns = pgTable(
       .notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
-  (table) => [index('patterns_user_id_idx').on(table.userId)],
+  (table) => [
+    index('patterns_user_id_idx').on(table.userId),
+    index('pattern_user_created_idx').on(table.userId, table.createdAt),
+  ],
 );
 
 export const patternImages = pgTable(
@@ -138,7 +144,6 @@ export const patternPieces = pgTable(
     patternImageId: bigint('pattern_image_id', { mode: 'number' })
       .notNull()
       .references(() => patternImages.id, { onDelete: 'cascade' }),
-    // polygon on Cartesian coordinate system
     boundary: postgisPolygon('boundary').notNull(),
     grainline: integer('grainline').notNull().default(0),
     normalCount: integer('normal_count').notNull().default(1),
@@ -180,6 +185,7 @@ export const fabrics = pgTable(
   (table) => [
     index('fabrics_user_id_idx').on(table.userId),
     index('fabrics_boundary_idx').using('gist', table.boundary),
+    index('fabrics_user_created_idx').on(table.userId, table.createdAt),
   ],
 );
 
@@ -304,6 +310,9 @@ export const optimizationResults = pgTable(
       .primaryKey()
       .generatedByDefaultAsIdentity(),
     name: varchar('name', { length: 35 }).notNull(),
+    userId: bigint('user_id', { mode: 'number' })
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     patternId: bigint('pattern_id', { mode: 'number' })
       .notNull()
       .references(() => patterns.id, { onDelete: 'cascade' }),
@@ -318,15 +327,29 @@ export const optimizationResults = pgTable(
     ),
     seamAllowance: integer('seam_allowance').notNull(),
     cuttingAllowance: integer('cutting_allowance').notNull(),
+    minLengthMm: integer('min_length_mm').notNull(),
+    spentTime: integer('spent_time').notNull(),
+    usableScrapsArea: bigint('usable_scraps_area', {
+      mode: 'number',
+    }).notNull(),
+    usableScrapsPercentage: smallint('usable_scraps_percentage').notNull(),
+    wasteScrapsArea: bigint('waste_scraps_area', { mode: 'number' }).notNull(),
+    wasteScrapsPercentage: smallint('waste_scraps_percentage').notNull(),
+    remainingFabricArea: bigint('remaining_fabric_area', {
+      mode: 'number',
+    }).notNull(),
+    remainingAreaPercentage: smallint('remaining_area_percentage').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => [
+    index('optimization_results_user_id_idx').on(table.userId),
     index('optimization_results_pattern_id_idx').on(table.patternId),
     index('optimization_results_algorithm_id_idx').on(table.algorithmId),
     index('optimization_results_custom_fabric_id_idx').on(table.customFabricId),
+    index('optimization_user_created_idx').on(table.userId, table.createdAt),
   ],
 );
 
@@ -469,6 +492,25 @@ export const optimizationResultsRelations = relations(
     }),
     placedPieces: many(placedPieces),
   }),
+);
+
+export const optimizationRuns = pgTable(
+  'optimization_runs',
+  {
+    id: uuid('id').primaryKey(),
+    userId: bigint('user_id', { mode: 'number' }).references(() => users.id, {
+      onDelete: 'cascade',
+    }),
+    input: jsonb('input').$type<OptimizerInputDto>().notNull(),
+    result: jsonb('result').$type<EngineResult>().notNull(),
+    savedId: bigint('saved_id', { mode: 'number' }).references(
+      () => optimizationResults.id,
+      { onDelete: 'set null' },
+    ),
+    savedName: varchar('saved_name', { length: 35 }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [index('optimization_runs_expires_at_idx').on(table.expiresAt)],
 );
 
 export const placedPiecesRelations = relations(placedPieces, ({ one }) => ({

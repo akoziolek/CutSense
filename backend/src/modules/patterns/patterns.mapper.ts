@@ -6,6 +6,10 @@ import {
   PatternImageDto,
 } from './dto/pattern-response.dto.js';
 import { PatternTagDto } from './dto/pattern-tag.dto.js';
+import { type CreatePatternDto } from './dto/create-pattern.dto.js';
+import type { EnginePiece } from '../optimizer-engine/optimizer-engine.types.js';
+import type { PatternPieceGeometryDto } from './dto/pattern-piece-geometry.dto.js';
+import type { PatternCoverDto } from './dto/pattern-cover.dto.js';
 
 interface PatternListRow {
   id: number;
@@ -14,7 +18,7 @@ interface PatternListRow {
   isFavourite: boolean;
   createdAt: Date;
   userId: number;
-  pictureS3Key?: string | null
+  pictureS3Key?: string | null;
 }
 
 export interface PatternWithRelations {
@@ -22,20 +26,28 @@ export interface PatternWithRelations {
   name: string;
   description: string | null;
   size: `${PatternSize}`;
+  minFabricLengthMM: number | null;
+  minFabricWidthMM: number | null;
   visibility: `${PatternVisibility}`;
   starCount: number;
   starAverage: string;
   userId: number;
   createdAt: Date;
   tags: { tag: { id: number; name: string } }[];
-  user: { id: number; nickname: string | null; name: string };
+  user: { id: number; nickname: string | null };
   images: {
     id: number;
     pictureS3Key: string;
     imageWidthMm: number;
     imageHeightMm: number;
     orderIndex: number;
-    pieces: { id: number; normalCount: number; mirroredCount: number; geojson: string; grainline: number }[];
+    pieces: {
+      id: number;
+      normalCount: number;
+      mirroredCount: number;
+      geojson: string;
+      grainline: number;
+    }[];
   }[];
   favoritedBy: { userId: number }[];
 }
@@ -49,7 +61,7 @@ export class PatternsMapper {
   static toListItemDto(
     row: PatternListRow,
     currentUserId?: number,
-    imageUrl?: string
+    imageUrl?: string,
   ): PatternListItemDto {
     return Object.assign(new PatternListItemDto(), {
       id: row.id,
@@ -58,7 +70,7 @@ export class PatternsMapper {
       isFavourite: row.isFavourite,
       createdAt: row.createdAt.toISOString(),
       isOwner: currentUserId !== undefined && row.userId === currentUserId,
-      imageUrl: imageUrl
+      imageUrl: imageUrl,
     });
   }
 
@@ -91,6 +103,8 @@ export class PatternsMapper {
       description: pattern.description ?? undefined,
       size: pattern.size,
       visibility: pattern.visibility,
+      minFabricLengthMM: pattern.minFabricLengthMM ?? null,
+      minFabricWidthMM: pattern.minFabricWidthMM ?? null,
       isFavourite: pattern.favoritedBy.length > 0,
       starCount: pattern.starCount,
       starAverage: pattern.starAverage,
@@ -104,7 +118,7 @@ export class PatternsMapper {
       ),
       author: {
         id: pattern.user.id,
-        nickname: pattern.user.nickname ?? pattern.user.name,
+        nickname: pattern.user.nickname,
       },
       images,
       pieces: allPieces,
@@ -128,5 +142,59 @@ export class PatternsMapper {
   static piecePointsFromGeoJson(geojson: string): [number, number][] {
     return (JSON.parse(geojson) as { coordinates: [number, number][][] })
       .coordinates[0];
+  }
+
+  static toPieceGeometryDto(piece: {
+    id: number;
+    grainline: number;
+    geojson: string;
+  }): PatternPieceGeometryDto {
+    return {
+      id: piece.id,
+      grainline: piece.grainline,
+      boundary: this.piecePointsFromGeoJson(piece.geojson),
+    };
+  }
+
+  static toCoverDto(patternId: number, imageUrl?: string): PatternCoverDto {
+    return {
+      patternId,
+      imageUrl,
+    };
+  }
+
+  static mapPiecesForEngine(pieces: CreatePatternDto['pieces']): EnginePiece[] {
+    return pieces.flatMap((piece, index) => {
+      const constraints: EnginePiece['constraints'] = [];
+      if (piece.normal > 0) {
+        constraints.push({
+          rotationAngle: 0,
+          isMirrored: false,
+          requiredQuantity: piece.normal,
+          twoWay: false,
+        });
+      }
+      if (piece.mirrored > 0) {
+        constraints.push({
+          rotationAngle: 0,
+          isMirrored: true,
+          requiredQuantity: piece.mirrored,
+          twoWay: false,
+        });
+      }
+
+      if (constraints.length === 0) return [];
+
+      return [
+        {
+          id: index + 1,
+          points: piece.points,
+          grainline: piece.grainline,
+          constraints,
+          seamAllowance: 0,
+          cuttingAllowance: 0,
+        },
+      ];
+    });
   }
 }

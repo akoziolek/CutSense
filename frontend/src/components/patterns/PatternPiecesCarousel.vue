@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { EmblaCarouselType } from 'embla-carousel'
 import {
   Carousel,
@@ -33,7 +33,7 @@ const props = defineProps<{
   pieces: PatternPiece[]
 }>()
 
-const activeShapeMap = ref<Record<number, number | null>>({})
+const activeImageShapeMap = ref<Record<number, number | null>>({})
 const emblaApi = ref<EmblaCarouselType | null>(null)
 const current = ref(0)
 
@@ -78,6 +78,17 @@ const slides = computed(() =>
   }),
 )
 
+watch(
+  slides,
+  (newSlides) => {
+    newSlides.forEach((slide) => {
+      if (slide.shapes.length > 0 && activeImageShapeMap.value[slide.id] === undefined) {
+        activeImageShapeMap.value[slide.id] = 0
+      }
+    })
+  },
+  { immediate: true }
+)
 
 const onInit = (api: EmblaCarouselType | undefined) => {
   if (!api) return
@@ -89,15 +100,15 @@ const onInit = (api: EmblaCarouselType | undefined) => {
 }
 
 const handleSelectShape = (imageId: number, shapeIdx: number) => {
-  if (activeShapeMap.value[imageId] === shapeIdx) {
-    activeShapeMap.value[imageId] = null
+  if (activeImageShapeMap.value[imageId] === shapeIdx) {
+    activeImageShapeMap.value[imageId] = null
   } else {
-    activeShapeMap.value[imageId] = shapeIdx
+    activeImageShapeMap.value[imageId] = shapeIdx
   }
 }
 
 const handleClearSelection = (imageId: number) => {
-  activeShapeMap.value[imageId] = null
+  activeImageShapeMap.value[imageId] = null
 }
 </script>
 
@@ -116,7 +127,7 @@ const handleClearSelection = (imageId: number) => {
             :alt="slide.alt"
             :shapes="slide.shapes"
             :all-shapes-edges="slide.allShapesEdges"
-            :active-shape-index="activeShapeMap[slide.id]"
+            :active-shape-index="activeImageShapeMap[slide.id]"
             @activate-shape="handleSelectShape(slide.id, $event)"
             @click-background="handleClearSelection(slide.id)"
           />

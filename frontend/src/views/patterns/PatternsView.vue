@@ -394,6 +394,7 @@ watch(
         >
           <Scissors class="size-10 md:size-12 text-muted-foreground" />
           <h2 class="text-lg font-bold font-inter">{{ t('patterns.noItems') }}</h2>
+          <!-- TODO - different description when user is logged -->
           <p class="max-w-xs text-xs text-muted-foreground">
             {{ t('patterns.emptyDescription') }}
           </p>

@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { Eye, EyeOff, Loader2, PanelLeftClose, PanelLeftOpen, Images } from 'lucide-vue-next'
 import type { PatternPhotoData } from '@/stores/addingPatternStore'
+import AppImage from '@/components/common/AppImage.vue'
 
 const props = defineProps<{
   previewUrls: string[]
@@ -85,10 +86,11 @@ const handlePhotoHeaderClick = (photoIdx: number) => {
             :title="$t('patterns.photoNumber', { number: photoIdx + 1 })"
             @click="handlePhotoHeaderClick(photoIdx)"
           >
-            <img
+            <AppImage
               :src="url"
               :alt="props.photos[photoIdx]?.name"
-              class="w-full h-full object-cover block rounded-[6px]"
+              :show-message="false"
+              img-class="object-cover rounded-[6px]"
             />
 
             <div
@@ -109,10 +111,11 @@ const handlePhotoHeaderClick = (photoIdx: number) => {
               <div
                 class="w-7 h-7 size-7 shrink-0 aspect-square rounded-md overflow-hidden bg-muted border border-border/40 shadow-2xs"
               >
-                <img
+                <AppImage
                   :src="url"
                   :alt="props.photos[photoIdx]?.name"
-                  class="w-full h-full object-cover aspect-square"
+                  :show-message="false"
+                  img-class="object-cover"
                 />
               </div>
 

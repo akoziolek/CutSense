@@ -103,6 +103,7 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE}
       SHAPES_ENGINE_URL: ${SHAPES_ENGINE_URL}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
     env_file:
       - ./backend/.env
     depends_on:
@@ -149,7 +150,8 @@ services:
     expose:
       - "8000"
     environment:
-      - PORT=${PORT_SHAPES_ENGINE}
+      PORT: ${PORT_SHAPES_ENGINE}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
     develop:
       watch:
         - action: sync

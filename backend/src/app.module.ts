@@ -9,6 +9,7 @@ import { FabricModule } from './modules/fabrics/fabrics.module.js';
 import { StorageModule } from './modules/storage/storage.module.js';
 import { PatternsModule } from './modules/patterns/pattern.module.js';
 import { OptimizationsModule } from './modules/optimizations/optimizations.module.js';
+import { StatisticsModule } from './modules/statistics/statistics.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { OptimizationsModule } from './modules/optimizations/optimizations.modul
     PatternsModule,
     StorageModule,
     OptimizationsModule,
+    StatisticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

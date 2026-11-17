@@ -94,6 +94,7 @@ const title = computed(() => {
       <StepFabricSource v-if="step === 1" @next="step = 2" @cancel="handleCancel" />
 
       <template v-else-if="step === 2">
+        <!-- TODO input in M? -->
         <StepCustomDimensions
           v-if="store.fabricSource === 'custom'"
           @next="step = 3"

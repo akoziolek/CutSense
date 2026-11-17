@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { Puzzle, RotateCcw } from 'lucide-vue-next'
-import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import ErrorState from '@/components/common/ErrorState.vue'
 import SelectableOptionCard from '@/components/common/SelectableOptionCard.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import { api, ApiError } from '@/api/client'
-import type { OptimizationAlgorithm, PreparedOptimizerInput } from '@/types/optimization'
+import type { OptimizationAlgorithm, OptimizationView } from '@/types/optimization'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 
 const emit = defineEmits<{
@@ -17,6 +17,7 @@ const emit = defineEmits<{
   (e: 'cancel'): void
 }>()
 
+const router = useRouter()
 const store = useOptimizationAddingStore()
 const { t } = useI18n()
 
@@ -35,7 +36,7 @@ const load = async () => {
       error.value = t('optimizations.noAlgorithms')
       return
     }
-    // single algorithm fir now
+    // single algorithm for now
     if (store.algorithmId === null && algorithms.value.length === 1) {
       store.selectAlgorithm(algorithms.value[0]!.id)
     }
@@ -60,11 +61,14 @@ const handleSubmit = async () => {
   submitError.value = ''
   isSubmitting.value = true
   try {
-    const prepared = await api<PreparedOptimizerInput>('/optimizations', {
+    const view = await api<OptimizationView>('/optimizations/run', {
       method: 'POST',
       body: JSON.stringify(payload),
     })
-    toast.success(t('optimizations.prepared', { count: prepared.pieces.length }))
+
+    store.markSubmitted()
+
+    await router.push({ name: 'OptimizationRun', params: { runId: view.runId! } })
   } catch (e) {
     submitError.value =
       e instanceof ApiError
@@ -80,7 +84,7 @@ const handleSubmit = async () => {
   <div class="space-y-6 pb-14">
     <div
       v-if="isLoading"
-      class="mx-auto grid w-full max-w-4xl grid-cols-1 gap-6 sm:grid-cols-3"
+      class="mx-auto grid w-full max-w-4xl grid-cols-1 gap-6 sm:grid-cols-3 justify-items-center"
       role="status"
     >
       <Skeleton v-for="n in 3" :key="n" class="h-56 w-full rounded-xl" />
@@ -97,8 +101,12 @@ const handleSubmit = async () => {
 
     <div
       v-else
-      class="mx-auto grid w-full grid-cols-1 gap-6"
-      :class="algorithms.length === 1 ? 'max-w-4xl' : 'max-w-4xl sm:grid-cols-3'"
+      class="mx-auto grid w-full grid-cols-1 gap-6 pb-14 sm:mt-14 justify-items-center"
+      :class="{
+        'max-w-xl': algorithms.length === 1,
+        'max-w-3xl sm:grid-cols-2': algorithms.length === 2,
+        'max-w-5xl sm:grid-cols-3': algorithms.length >= 3,
+      }"
     >
       <SelectableOptionCard
         v-for="algorithm in algorithms"
@@ -112,7 +120,7 @@ const handleSubmit = async () => {
       </SelectableOptionCard>
     </div>
 
-    <p v-if="submitError" class="text-sm font-semibold text-destructive" role="alert">
+    <p v-if="submitError" class="text-sm font-semibold text-destructive text-center" role="alert">
       {{ submitError }}
     </p>
 

@@ -5,7 +5,7 @@ import NavigationBar from '../common/NavigationBar.vue'
   <div class="relative w-full min-h-screen flex flex-col bg-background text-foreground">
     <div class="fixed top-0 left-0 right-0 z-50">
       <div
-        class="absolute inset-0 pointer-events-none bg-background/50 backdrop-blur-md [mask-image:linear-gradient(to_bottom,black_70%,transparent_100%)]"
+        class="absolute inset-0 pointer-events-none bg-background/50 backdrop-blur-md [mask-image:linear-gradient(to_bottom,black_15%,transparent_100%)]"
       />
 
       <NavigationBar class="relative z-10 w-full" />

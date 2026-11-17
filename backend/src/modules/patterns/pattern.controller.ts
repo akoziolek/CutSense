@@ -37,7 +37,10 @@ import { PatternResponseDto } from './dto/pattern-response.dto.js';
 import { PatternsService } from './patterns.service.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { SessionGuard } from '../../auth/guards/session.guard.js';
-import { CreatePatternDto } from './dto/create-pattern.dto.js';
+import {
+  CreatePatternDto,
+  CreatePatternUploadDto,
+} from './dto/create-pattern.dto.js';
 import { OptionalSessionGuard } from '../../auth/guards/optional-session.guard.js';
 import { OptionalUser } from '../../common/decorators/optional-user.decorator.js';
 import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
@@ -49,7 +52,10 @@ import { PatternListResponseDto } from './dto/pattern-list.dto.js';
 import { ListPatternsQueryDto } from './dto/list-patterns-query.dto.js';
 import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { SetFavouriteDto } from '../../common/dto/set-favourite.dto.js';
-import { BulkDeleteDto, BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
+import {
+  BulkDeleteDto,
+  BulkDeleteResponseDto,
+} from '../../common/dto/bulk-delete.dto.js';
 import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
 import { PatternSize, PatternVisibility } from './dto/pattern.enum.js';
 
@@ -57,8 +63,30 @@ import { PatternSize, PatternVisibility } from './dto/pattern.enum.js';
 @ApiTags('Patterns')
 export class PatternController {
   private readonly MAX_PATTERN_PHOTO_SIZE = 10 * 1024 * 1024;
-
   constructor(private readonly patternsService: PatternsService) {}
+
+  @Get()
+  @UseGuards(OptionalSessionGuard)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'List patterns',
+    description:
+      'Guests get public patterns only. A logged-in user gets public patterns plus their own private ones. Supports pagination, sorting, text search and filters (date added, favourites, tags, sizes).',
+  })
+  @ApiOkResponse({
+    description: 'A page of patterns was returned successfully.',
+    type: PatternListResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description:
+      'Invalid query parameters: page must be an integer >= 1, limit an integer between 1 and 50, sort one of the allowed values or filter values (dates, tag IDs, sizes).',
+  })
+  async getPatterns(
+    @Query() query: ListPatternsQueryDto,
+    @OptionalUser() user?: AuthUser,
+  ): Promise<PatternListResponseDto> {
+    return this.patternsService.getPatterns(query, user?.id);
+  }
 
   @Get('tags')
   @ApiOperation({
@@ -111,7 +139,7 @@ export class PatternController {
   @ApiUnauthorizedResponse({
     description: 'A valid session cookie is required.',
   })
-  async analyzeFabricBoundary(
+  async analyzePatternBoundary(
     @UploadedFile(
       new ParseFilePipe({
         validators: [
@@ -123,90 +151,6 @@ export class PatternController {
     picture: Express.Multer.File,
   ): Promise<AnalysisShapesDto> {
     return this.patternsService.analyzePatternBoundary(picture);
-  }
-
-  @Get()
-  @UseGuards(OptionalSessionGuard)
-  @ApiCookieAuth('session')
-  @ApiOperation({
-    summary: 'List patterns',
-    description:
-    'Guests get public patterns only. A logged-in user gets public patterns plus their own private ones. Supports pagination, sorting, text search and filters (date added, favourites, tags, sizes).'  })
-  @ApiOkResponse({
-    description: 'A page of patterns was returned successfully.',
-    type: PatternListResponseDto,
-  })
-  @ApiBadRequestResponse({
-    description:
-      'Invalid query parameters: page must be an integer >= 1, limit an integer between 1 and 50, sort one of the allowed values or filter values (dates, tag IDs, sizes).',
-  })
-  async getPatterns(
-    @Query() query: ListPatternsQueryDto,
-    @OptionalUser() user?: AuthUser,
-  ): Promise<PatternListResponseDto> {
-    return this.patternsService.getPatterns(query, user?.id);
-  }
-
-  @Patch(':id/favourite')
-  @UseGuards(SessionGuard)
-  @ApiCookieAuth('session')
-  @ApiOperation({
-    summary: 'Add or remove a pattern from favourites',
-    description: 'Sets the favourite flag of a pattern the current user can see (public, or their own). Idempotent.',
-  })
-  @ApiParam({ name: 'id', type: Number, example: 1 })
-  @ApiBody({ type: SetFavouriteDto })
-  @ApiOkResponse({ type: FavouriteStateDto })
-  @ApiBadRequestResponse({ description: 'Invalid ID or body.' })
-  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
-  @ApiNotFoundResponse({ description: 'The pattern does not exist or is private and owned by someone else.' })
-  async setFavourite(
-    @Param('id', ParseIntPipe) patternId: number,
-    @Body() dto: SetFavouriteDto,
-    @CurrentUser() user: { id: number },
-  ): Promise<FavouriteStateDto> {
-    return this.patternsService.setFavourite(patternId, dto.isFavourite, user.id);
-  }
-
-  @Patch(':id')
-  @UseGuards(SessionGuard)
-  @ApiCookieAuth('session')
-  @ApiOperation({
-    summary: 'Update an existing pattern',
-    description:
-      'Updates the supplied pattern fields and optionally replaces its tags. The pattern must belong to the current user.',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Unique identifier of the pattern',
-    type: Number,
-    example: 1,
-  })
-  @ApiBody({ type: EditPatternDto })
-  @ApiOkResponse({
-    description: 'The pattern has been successfully updated.',
-    type: PatternResponseDto,
-  })
-  @ApiBadRequestResponse({
-    description: 'Invalid payload or pattern ID.',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'A valid session cookie is required.',
-  })
-  @ApiNotFoundResponse({
-    description:
-      'The pattern does not exist or is not owned by the current user.',
-  })
-  async editPattern(
-    @Param('id', ParseIntPipe) patternId: number,
-    @Body() editPatternDto: EditPatternDto,
-    @CurrentUser() user: { id: number },
-  ): Promise<PatternResponseDto> {
-    return this.patternsService.updatePattern(
-      patternId,
-      editPatternDto,
-      user.id,
-    );
   }
 
   @Get(':id')
@@ -251,61 +195,26 @@ export class PatternController {
     }),
   )
   @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: [
-        'name',
-        'size',
-        'visibility',
-        'tags',
-        'images',
-        'pieces',
-        'photos',
-      ],
-      properties: {
-        name: { type: 'string', maxLength: 35 },
-        size: { type: 'string', enum: Object.values(PatternSize) },
-        description: { type: 'string', maxLength: 400 },
-        visibility: { type: 'string', enum: Object.values(PatternVisibility) },
-        tags: {
-          type: 'string',
-          description: 'JSON-encoded array of tag names.',
-        },
-        images: {
-          type: 'string',
-          description:
-            'JSON-encoded array of imageWidthMm and imageHeightMm values, in photo order.',
-        },
-        pieces: {
-          type: 'string',
-          description:
-            'JSON-encoded pieces; each includes imageIndex identifying its source photo.',
-        },
-        photos: {
-          type: 'array',
-          items: { type: 'string', format: 'binary' },
-          description:
-            'Pattern source photos (PNG, JPG, or WEBP; up to 20 photos, 10 MB each).',
-        },
-      },
-    },
-  })
+  @ApiBody({ type: CreatePatternUploadDto })
   @ApiOperation({
     summary: 'Create a pattern',
     description:
       'Uploads pattern source photos and creates the pattern with its pieces and tags for the current user.',
   })
-  @ApiCreatedResponse({ description: 'Returns the id of the new pattern.' })
+  @ApiCreatedResponse({
+    description: 'Returns the newly created pattern.',
+    type: PatternResponseDto,
+  })
   @ApiBadRequestResponse({ description: 'Validation failed or unknown tag' })
   @ApiUnauthorizedResponse({
     description: 'A valid session cookie is required',
   })
   async createPattern(
     @Body() dto: CreatePatternDto,
-    @UploadedFiles() photos: Express.Multer.File[],
+    @UploadedFiles()
+    photos: Express.Multer.File[],
     @CurrentUser() user: { id: number },
-  ): Promise<{ id: number }> {
+  ): Promise<PatternResponseDto> {
     const uploadedPhotos = photos ?? [];
     if (
       uploadedPhotos.some(
@@ -322,24 +231,77 @@ export class PatternController {
     return this.patternsService.createPattern(dto, uploadedPhotos, user.id);
   }
 
-  @Get('tags')
+  @Patch(':id')
+  @UseGuards(SessionGuard)
+  @ApiCookieAuth('session')
   @ApiOperation({
-    summary: 'Get available pattern tags',
+    summary: 'Update an existing pattern',
     description:
-      'Returns the IDs and names of all tags available for patterns.',
+      'Updates the supplied pattern fields and optionally replaces its tags. The pattern must belong to the current user.',
   })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique identifier of the pattern',
+    type: Number,
+    example: 1,
+  })
+  @ApiBody({ type: EditPatternDto })
   @ApiOkResponse({
-    description: 'The available pattern tags were returned successfully.',
-    type: PatternTagDto,
-    isArray: true,
+    description: 'The pattern has been successfully updated.',
+    type: PatternResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid payload or pattern ID.',
   })
   @ApiUnauthorizedResponse({
     description: 'A valid session cookie is required.',
   })
-  async getPatternTags(): Promise<PatternTagDto[]> {
-    return this.patternsService.getPatternTags();
+  @ApiNotFoundResponse({
+    description:
+      'The pattern does not exist or is not owned by the current user.',
+  })
+  async editPattern(
+    @Param('id', ParseIntPipe) patternId: number,
+    @Body() editPatternDto: EditPatternDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<PatternResponseDto> {
+    return this.patternsService.updatePattern(
+      patternId,
+      editPatternDto,
+      user.id,
+    );
   }
 
+  @Patch(':id/favourite')
+  @UseGuards(SessionGuard)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Add or remove a pattern from favourites',
+    description:
+      'Sets the favourite flag of a pattern the current user can see (public, or their own). Idempotent.',
+  })
+  @ApiParam({ name: 'id', type: Number, example: 1 })
+  @ApiBody({ type: SetFavouriteDto })
+  @ApiOkResponse({ type: FavouriteStateDto })
+  @ApiBadRequestResponse({ description: 'Invalid ID or body.' })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  @ApiNotFoundResponse({
+    description:
+      'The pattern does not exist or is private and owned by someone else.',
+  })
+  async setFavourite(
+    @Param('id', ParseIntPipe) patternId: number,
+    @Body() dto: SetFavouriteDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<FavouriteStateDto> {
+    return this.patternsService.setFavourite(
+      patternId,
+      dto.isFavourite,
+      user.id,
+    );
+  }
 
   @Delete(':id')
   @UseGuards(SessionGuard)
@@ -347,13 +309,28 @@ export class PatternController {
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Delete a pattern',
-    description: 'Permanently deletes a pattern owned by the current user, with its pieces and optimizations.',
+    description:
+      'Permanently deletes a pattern owned by the current user, with its pieces and optimizations.',
   })
-  @ApiParam({ name: 'id', description: 'Unique identifier of the pattern', type: Number, example: 1 })
-  @ApiNoContentResponse({ description: 'The pattern and its optimizations were deleted.' })
-  @ApiBadRequestResponse({ description: 'The pattern ID is not a valid integer.' })
-  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
-  @ApiNotFoundResponse({ description: 'The pattern does not exist or is not owned by the current user.' })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique identifier of the pattern',
+    type: Number,
+    example: 1,
+  })
+  @ApiNoContentResponse({
+    description: 'The pattern and its optimizations were deleted.',
+  })
+  @ApiBadRequestResponse({
+    description: 'The pattern ID is not a valid integer.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  @ApiNotFoundResponse({
+    description:
+      'The pattern does not exist or is not owned by the current user.',
+  })
   async deletePattern(
     @Param('id', ParseIntPipe) patternId: number,
     @CurrentUser() user: { id: number },
@@ -372,8 +349,12 @@ export class PatternController {
   })
   @ApiBody({ type: BulkDeleteDto })
   @ApiOkResponse({ type: BulkDeleteResponseDto })
-  @ApiBadRequestResponse({ description: 'ids must be 1–100 unique positive integers.' })
-  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
+  @ApiBadRequestResponse({
+    description: 'ids must be 1–100 unique positive integers.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
   async deletePatterns(
     @Body() dto: BulkDeleteDto,
     @CurrentUser() user: { id: number },

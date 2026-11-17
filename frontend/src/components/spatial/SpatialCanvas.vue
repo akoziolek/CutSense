@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, toRef } from 'vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
-
-const MIN_LABEL_SPACING_PX = 35
+import { useNonOverlappingLabels } from '@/composables/useSpatialLabels'
+import { toSvgPoints, clampPanOffset } from '@/utils/geometry'
 
 const props = withDefaults(
   defineProps<{
@@ -93,67 +93,41 @@ const cursorClass = computed(() => {
   return 'cursor-default'
 })
 
-const visibleLabelsSet = computed(() => {
-  const visible = new Set<string>()
-  if (!props.showLabels || props.activeShapeIndex === null) return visible
-  const quantizedZoom = Math.round(props.zoomLevel * 5) / 5
-
-  const w = imageDimensions.value.width * quantizedZoom
-  const h = imageDimensions.value.height * quantizedZoom
-
-  if (!w || !h) return visible
-
-  const shapeIdx = props.activeShapeIndex
-  if (props.hiddenShapes?.[shapeIdx]) return visible
-
-  const candidates = (props.allShapesEdges[shapeIdx] || []).map((edge) => ({
-    key: `${shapeIdx}-${edge.index}`,
-    isSelected: edge.index === props.selectedEdgeIndex,
-    len: Math.hypot((edge.p2.pctX - edge.p1.pctX) * w, (edge.p2.pctY - edge.p1.pctY) * h),
-    x: ((edge.p1.pctX + edge.p2.pctX) / 200) * w,
-    y: ((edge.p1.pctY + edge.p2.pctY) / 200) * h,
-  }))
-
-  candidates.sort((a, b) => Number(b.isSelected) - Number(a.isSelected) || b.len - a.len)
-
-  const drawn: { x: number; y: number }[] = []
-  for (const cand of candidates) {
-    const isFree = !drawn.some((p) => Math.hypot(p.x - cand.x, p.y - cand.y) < MIN_LABEL_SPACING_PX)
-
-    if (cand.isSelected || isFree) {
-      visible.add(cand.key)
-      drawn.push({ x: cand.x, y: cand.y })
-    }
-  }
-
-  return visible
+const { isLabelVisible } = useNonOverlappingLabels({
+  shapes: toRef(props, 'shapes'),
+  edges: toRef(props, 'allShapesEdges'),
+  hiddenShapes: toRef(props, 'hiddenShapes'),
+  activeShapeIndex: toRef(props, 'activeShapeIndex'),
+  selectedEdgeIndex: toRef(props, 'selectedEdgeIndex'),
+  onlyActiveShape: true,
+  quantizeZoom: true,
+  showLabels: toRef(props, 'showLabels'),
+  widthPx: computed(() => imageDimensions.value.width),
+  heightPx: computed(() => imageDimensions.value.height),
+  zoomLevel: toRef(props, 'zoomLevel'),
 })
-
-const isLabelVisible = (shapeIdx: number, edgeIdx: number): boolean => {
-  return visibleLabelsSet.value.has(`${shapeIdx}-${edgeIdx}`)
-}
 
 const handleWheel = (e: WheelEvent) => {
   e.preventDefault()
 
-  // pinch zoom
   if (e.ctrlKey) {
     const zoomDelta = e.deltaY < 0 ? 0.085 : -0.085
-    const newZoom = Math.min(Math.max(0.5, props.zoomLevel + zoomDelta), 3.5)
+    const newZoom = Math.min(Math.max(0.5, props.zoomLevel + zoomDelta), 5.5)
     emit('update:zoomLevel', Number(newZoom.toFixed(2)))
     return
   }
-  const maxOffset = 200 * (props.zoomLevel - 0.5)
-  const rawOffsetX = props.canvasOffset.x - e.deltaX
-  const rawOffsetY = props.canvasOffset.y - e.deltaY
 
-  const clampedX = Math.min(Math.max(rawOffsetX, -maxOffset), maxOffset)
-  const clampedY = Math.min(Math.max(rawOffsetY, -maxOffset), maxOffset)
+  const maxImgDimension =
+    Math.max(imageDimensions.value.width, imageDimensions.value.height) || 500
+  const maxOffset = (maxImgDimension / 2) * props.zoomLevel + 100
 
-  emit('update:canvasOffset', {
-    x: Number(clampedX.toFixed(1)),
-    y: Number(clampedY.toFixed(1)),
-  })
+  emit(
+    'update:canvasOffset',
+    clampPanOffset(
+      { x: props.canvasOffset.x - e.deltaX, y: props.canvasOffset.y - e.deltaY },
+      { x: maxOffset, y: maxOffset },
+    ),
+  )
 }
 
 const handleMouseDown = (e: MouseEvent) => {
@@ -275,19 +249,10 @@ defineExpose({
           preserveAspectRatio="none"
           class="absolute inset-0 w-full h-full z-30 pointer-events-none"
         >
-          <g
-            v-for="(shape, shapeIdx) in props.shapes"
-            :key="'shape-' + shapeIdx"
-            v-memo="[
-              shape,
-              shapeIdx === activeShapeIndex,
-              shapeIdx === hoveredShapeIndex,
-              selectedEdgeIndex,
-            ]"
-          >
+          <g v-for="(shape, shapeIdx) in props.shapes" :key="'shape-' + shapeIdx">
             <polygon
               v-if="shape.length >= 3"
-              :points="shape.map((p) => `${p.pctX},${p.pctY}`).join(' ')"
+              :points="toSvgPoints(shape)"
               :class="[
                 shapeIdx === activeShapeIndex
                   ? shapeIdx === hoveredShapeIndex
@@ -368,7 +333,7 @@ defineExpose({
             <!-- new shape -->
             <polyline
               v-if="props.drawingPoints.length > 1"
-              :points="props.drawingPoints.map((p) => `${p.pctX},${p.pctY}`).join(' ')"
+              :points="toSvgPoints(props.drawingPoints)"
               fill="none"
               class="stroke-violet-600 stroke-2"
               stroke-dasharray="4 4"
@@ -391,10 +356,7 @@ defineExpose({
         <!-- LAYER 3 OVERLAY - POINTS, LENGTHS -->
         <div class="absolute inset-0 w-full h-full z-40 pointer-events-none">
           <!-- visible point, reverse transform -->
-          <template
-            v-for="(shape, shapeIdx) in props.shapes"
-            :key="'points-group-' + shapeIdx"
-          >
+          <template v-for="(shape, shapeIdx) in props.shapes" :key="'points-group-' + shapeIdx">
             <div
               v-for="(pt, ptIdx) in shape"
               :key="'pt-' + shapeIdx + '-' + ptIdx"
@@ -409,6 +371,19 @@ defineExpose({
                     ? 'w-2 h-2 border-violet-600 bg-background hover:scale-125 z-40'
                     : 'w-1.5 h-1.5 border-violet-400/60 bg-muted hover:bg-violet-500 hover:scale-125 z-30',
               ]"
+              :style="{
+                left: `${pt.pctX}%`,
+                top: `${pt.pctY}%`,
+                transform:
+                  'translate(-50%, -50%) scale(var(--inverse-zoom)) rotate(var(--inverse-rotation))',
+              }"
+              @mousedown.stop.prevent="handlePointMouseDown(shapeIdx, ptIdx, $event)"
+              @click.stop.prevent
+            />
+            <div
+              v-for="(pt, ptIdx) in shape"
+              :key="'pt-hitbox-' + shapeIdx + '-' + ptIdx"
+              class="absolute rounded-full pointer-events-auto opacity-0 w-6 h-6 cursor-grab active:cursor-grabbing z-50"
               :style="{
                 left: `${pt.pctX}%`,
                 top: `${pt.pctY}%`,

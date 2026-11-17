@@ -70,7 +70,7 @@ watch(nickname, (val) => {
     abortController = new AbortController()
     try {
       const res = await api<{ available: boolean }>(
-        `/auth/check-nickname?nickname=${encodeURIComponent(clean)}`,
+        `/users/check-nickname?nickname=${encodeURIComponent(clean)}`,
         { signal: abortController.signal },
       )
 

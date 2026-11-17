@@ -278,6 +278,7 @@ export class FabricService {
         createdAt: true,
         imageWidthMm: true,
         imageHeightMm: true,
+        grainline: true,
       },
       extras: {
         boundaryGeoJson:
@@ -292,6 +293,25 @@ export class FabricService {
     }
 
     return FabricMapper.toGeometryDto(fabric);
+  }
+
+  async getOwnedFabricSummary(
+    fabricId: number,
+    currentUserId: number,
+  ): Promise<{ name: string; createdAt: string }> {
+    const fabric = await this.db.query.fabrics.findFirst({
+      where: and(eq(fabrics.id, fabricId), eq(fabrics.userId, currentUserId)),
+      columns: { name: true, createdAt: true },
+    });
+
+    if (!fabric) {
+      throw new ResourceNotFoundException('Fabric', fabricId);
+    }
+
+    return {
+      name: fabric.name,
+      createdAt: fabric.createdAt.toISOString(),
+    };
   }
 
   private getOrderBy(sort: FabricSortOption): SQL[] {

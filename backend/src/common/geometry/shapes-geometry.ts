@@ -39,25 +39,51 @@ export function rotateAndAnchor(points: Point[], degrees: number): Point[] {
 export interface Placement {
   rotationAngle: number;
   grainline: number;
+  fabricGrainline: number;
   isMirrored: boolean;
   isFlipped180: boolean;
   x: number;
   y: number;
 }
 
-export function placePiece(points: Point[], p: Placement): Point[] {
-  const turn =
-    (((p.grainline + p.rotationAngle + (p.isFlipped180 ? 180 : 0)) % 360) + 360) %
-    360;
-  const rad = (turn * Math.PI) / 180;
+function rotateClockwise(point: Point, degrees: number): Point {
+  const rad = (degrees * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
+  return {
+    x: point.x * cos + point.y * sin,
+    y: -point.x * sin + point.y * cos,
+  };
+}
 
-  return points.map(({ x, y }) => {
-    const mirroredY = p.isMirrored ? -y : y;
+export function placePiece(points: Point[], p: Placement): Point[] {
+  const alpha = (((p.grainline + p.rotationAngle) % 360) + 360) % 360;
+  const transformed = points.map((point) => rotateClockwise(point, alpha));
+
+  if (p.isMirrored) {
+    for (const point of transformed) point.x = -point.x;
+    transformed.reverse();
+  }
+
+  if (p.isFlipped180 && transformed.length > 0) {
+    const minX = Math.min(...transformed.map(({ x }) => x));
+    const maxX = Math.max(...transformed.map(({ x }) => x));
+    const minY = Math.min(...transformed.map(({ y }) => y));
+    const maxY = Math.max(...transformed.map(({ y }) => y));
+
+    for (const point of transformed) {
+      point.x = minX + maxX - point.x;
+      point.y = minY + maxY - point.y;
+    }
+  }
+
+  const inverseFabricGrainline =
+    (((360 - p.fabricGrainline) % 360) + 360) % 360;
+  return transformed.map((point) => {
+    const worldPoint = rotateClockwise(point, inverseFabricGrainline);
     return {
-      x: round3(x * cos + mirroredY * sin + p.x),
-      y: round3(-x * sin + mirroredY * cos + p.y),
+      x: round3(worldPoint.x + p.x),
+      y: round3(worldPoint.y + p.y),
     };
   });
 }

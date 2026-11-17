@@ -9,55 +9,33 @@ import type {
   EnginePoint,
   EngineResult,
 } from './optimizer-engine.types.js';
-
-export const UNITS = {
-  inputPerMm: 1,
-  positionPerMm: 1,
-  lengthMm: 1,
-  areaMm2: 1,
-};
+const toInt = (v: number) => Math.trunc(v);
 
 const pt = ([x, y]: OptimizerPointDto): EnginePoint => ({
-  x: Math.round(x * UNITS.inputPerMm),
-  y: Math.round(y * UNITS.inputPerMm),
-});
-
-const getLibraryFabricTransform = (boundary: OptimizerPointDto[]) => ({
-  minX: boundary.length > 0 ? Math.min(...boundary.map(([x]) => x)) : 0,
-  maxY: boundary.length > 0 ? Math.max(...boundary.map(([, y]) => y)) : 0,
+  x: toInt(x),
+  y: toInt(y),
 });
 
 export function toEngineInput(
   input: OptimizerInputDto,
   algorithmId: number,
 ): EngineInput {
-  const fabric: EngineFabric = (() => {
-    if (input.fabric.fabricId === undefined) {
-      return {
-        width: Math.round(input.fabric.widthMm * UNITS.inputPerMm),
-        length: Math.round(input.fabric.lengthMm * UNITS.inputPerMm),
-      };
-    }
+  const fabric: EngineFabric =
+    input.fabric.fabricId === undefined
+      ? {
+          width: toInt(input.fabric.widthMm),
+          length: toInt(input.fabric.lengthMm),
+        }
+      : {
+          boundary: input.fabric.boundary.map(pt),
+          grainline: input.fabric.grainline ?? 0,
+        };
 
-    // place at (0, 0)
-    const { minX, maxY } = getLibraryFabricTransform(input.fabric.boundary);
-    return {
-      boundary: input.fabric.boundary.map(([x, y]) => ({
-        x: Math.round((maxY - y) * UNITS.inputPerMm),
-        y: Math.round((x - minX) * UNITS.inputPerMm),
-      })),
-    };
-  })();
-
+  const seamAllowance = toInt(input.seamAllowanceMm);
+  const cuttingAllowance = toInt(input.cuttingAllowanceMm);
   const enginePieces: EnginePiece[] = [];
 
-  for (const p of input.pieces) {
-    const seamAllowance = Math.round(input.seamAllowanceMm * UNITS.inputPerMm);
-    const cuttingAllowance = Math.round(
-      input.cuttingAllowanceMm * UNITS.inputPerMm,
-    );
-    const points = p.boundary.map(pt);
-
+  for (const [index, p] of input.pieces.entries()) {
     const constraints = [];
 
     if (p.normalCount > 0) {
@@ -80,8 +58,8 @@ export function toEngineInput(
 
     if (constraints.length > 0) {
       enginePieces.push({
-        id: p.patternPieceId,
-        points,
+        id: index + 1,
+        points: p.boundary.map(pt),
         grainline: p.grainline,
         seamAllowance,
         cuttingAllowance,
@@ -93,19 +71,26 @@ export function toEngineInput(
   return { fabric, pieces: enginePieces, algorithmId };
 }
 
-export const fromEngineResult = (r: EngineResult): EngineResult => ({
-  ...r,
-  minLength: r.minLength * UNITS.lengthMm,
-  stats: {
-    ...r.stats,
-    usableScrapsArea: r.stats.usableScrapsArea * UNITS.areaMm2,
-    remainingFabricArea: r.stats.remainingFabricArea * UNITS.areaMm2,
-    wasteArea: r.stats.wasteArea * UNITS.areaMm2,
-    remainingFabricLength: r.stats.remainingFabricLength * UNITS.lengthMm,
-  },
-  positions: r.positions.map((p) => ({
-    ...p,
-    x: p.x / UNITS.positionPerMm,
-    y: p.y / UNITS.positionPerMm,
-  })),
-});
+export function fromEngineResult(
+  r: EngineResult,
+  pieces: OptimizerInputDto['pieces'],
+): EngineResult {
+  const patternPieceIdByEngineId = new Map(
+    pieces.map((piece, index) => [index + 1, piece.patternPieceId]),
+  );
+
+  return {
+    ...r,
+    positions: r.positions.map((p) => {
+      const patternPieceId = patternPieceIdByEngineId.get(p.id);
+      if (patternPieceId === undefined) {
+        throw new Error(`Optimizer returned unknown piece ID ${p.id}`);
+      }
+
+      return {
+        ...p,
+        id: patternPieceId,
+      };
+    }),
+  };
+}

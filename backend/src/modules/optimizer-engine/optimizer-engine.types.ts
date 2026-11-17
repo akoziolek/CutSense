@@ -20,7 +20,8 @@ export interface EnginePiece {
 }
 
 export type EngineFabric =
-  { width: number; length: number } | { boundary: EnginePoint[] };
+  | { width: number; length: number }
+  | { boundary: EnginePoint[]; grainline: number };
 
 export interface EngineInput {
   fabric: EngineFabric;

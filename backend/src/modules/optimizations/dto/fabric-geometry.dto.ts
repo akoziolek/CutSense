@@ -4,5 +4,6 @@ export class FabricGeometryDto {
   createdAt!: string;
   widthMm!: number;
   lengthMm!: number;
+  grainline!: number;
   boundary!: [number, number][];
 }

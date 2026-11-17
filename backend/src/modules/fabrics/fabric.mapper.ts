@@ -123,6 +123,7 @@ export class FabricMapper {
     createdAt: Date;
     imageWidthMm: number;
     imageHeightMm: number;
+    grainline: number;
     boundaryGeoJson: string;
   }): FabricGeometryDto {
     return {
@@ -131,6 +132,7 @@ export class FabricMapper {
       createdAt: fabric.createdAt.toISOString(),
       widthMm: fabric.imageWidthMm,
       lengthMm: fabric.imageHeightMm,
+      grainline: fabric.grainline,
       boundary: this.boundaryFromGeoJson(fabric.boundaryGeoJson).map(
         ({ x, y }): [number, number] => [x, y],
       ),

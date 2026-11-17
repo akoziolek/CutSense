@@ -8,7 +8,15 @@ import { formatCardDate } from '@/utils/formatCardDate'
 
 const MAX_NAME_LENGTH = 35
 
-const props = defineProps<{ open: boolean; loading?: boolean; error?: string }>()
+const props = defineProps<{
+  open: boolean
+  loading?: boolean
+  error?: string
+  initialName?: string
+  title?: string
+  description?: string
+  confirmLabel?: string
+}>()
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
   (e: 'save', name: string): void
@@ -21,7 +29,9 @@ const trimmed = computed(() => name.value.trim())
 watch(
   () => props.open,
   (open) => {
-    if (open) name.value = `Optimization ${formatCardDate(new Date().toISOString())}`
+    if (open) {
+      name.value = props.initialName ?? `Optimization ${formatCardDate(new Date().toISOString())}`
+    }
   },
 )
 
@@ -33,9 +43,9 @@ const submit = () => {
 <template>
   <BaseModal
     :open="open"
-    :title="t('optimizations.saveTitle', 'Save optimization')"
-    :description="t('optimizations.saveDescription', 'Give this result a name to find it later.')"
-    :confirm-label="t('optimizations.save', 'Save')"
+    :title="title ?? t('optimizations.saveTitle', 'Save optimization')"
+    :description="description ?? t('optimizations.saveDescription', 'Give this result a name to find it later.')"
+    :confirm-label="confirmLabel ?? t('optimizations.save', 'Save')"
     :cancel-label="t('common.actions.cancel', 'Cancel')"
     show-cancel
     :prevent-close="loading"
@@ -45,7 +55,7 @@ const submit = () => {
     @confirm="submit"
     @cancel="emit('update:open', false)"
   >
-    <div class="space-y-2">
+    <form class="space-y-2" @submit.prevent="submit">
       <Label for="optimization-name" class="text-sm font-semibold font-inter">
         {{ t('optimizations.nameLabel') }}
       </Label>
@@ -63,6 +73,6 @@ const submit = () => {
         </span>
       </div>
       <p v-if="error" class="text-sm font-semibold text-destructive" role="alert">{{ error }}</p>
-    </div>
+    </form>
   </BaseModal>
 </template>

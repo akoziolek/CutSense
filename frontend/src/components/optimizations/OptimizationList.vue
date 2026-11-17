@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Sparkles, Trash2, Upload } from 'lucide-vue-next'
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Pencil, Sparkles, Trash2, Upload } from 'lucide-vue-next'
 import ListToolbar from '@/components/common/ListToolbar.vue'
 import ListFilterPopover from '@/components/common/ListFilterPopover.vue'
 import FilterSection from '@/components/common/FilterSection.vue'
@@ -11,6 +11,7 @@ import ResourceList from '@/components/common/ResourceList.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
 import SelectableRow from '@/components/common/SelectableRow.vue'
 import BulkDeleteControls from '@/components/common/BulkDeleteControls.vue'
+import SaveOptimizationModal from '@/components/optimizations/SaveOptimizationModal.vue'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -166,6 +167,37 @@ const closeSuccess = () => {
   target.value = null
   options.value = null // counts in the filters changed
   void refetch()
+}
+
+const editTarget = ref<OptimizationListItem | null>(null)
+const editOpen = ref(false)
+const isRenaming = ref(false)
+const renameError = ref('')
+
+const requestEdit = (item: OptimizationListItem) => {
+  editTarget.value = item
+  renameError.value = ''
+  editOpen.value = true
+}
+
+const handleRename = async (name: string) => {
+  if (!editTarget.value || isRenaming.value) return
+  isRenaming.value = true
+  renameError.value = ''
+  try {
+    await api<{ id: number; name: string }>(`/optimizations/${editTarget.value.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    })
+    editOpen.value = false
+    editTarget.value = null
+    await refetch()
+  } catch (e) {
+    renameError.value =
+      e instanceof ApiError ? e.body.message : t('optimizations.updateFailed')
+  } finally {
+    isRenaming.value = false
+  }
 }
 </script>
 
@@ -324,6 +356,16 @@ const closeSuccess = () => {
                     variant="ghost"
                     size="icon"
                     class="h-8 w-8"
+                    :disabled="selectionMode"
+                    :aria-label="t('optimizations.list.edit', { name: item.name })"
+                    @click="requestEdit(item)"
+                  >
+                    <Pencil class="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="h-8 w-8"
                     disabled
                     :title="t('comingSoon')"
                     :aria-label="t('optimizations.list.export', { name: item.name })"
@@ -395,6 +437,17 @@ const closeSuccess = () => {
       :success-description="(count: number) => t('optimizations.list.bulkDeleted', { count })"
       @cancelled="stopSelecting"
       @finished="onBulkDeleted"
+    />
+
+    <SaveOptimizationModal
+      v-model:open="editOpen"
+      :initial-name="editTarget?.name"
+      :loading="isRenaming"
+      :error="renameError"
+      :title="t('optimizations.editTitle')"
+      :description="t('optimizations.editDescription')"
+      :confirm-label="t('common.actions.save')"
+      @save="handleRename"
     />
   </div>
 </template>

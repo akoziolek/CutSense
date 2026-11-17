@@ -283,6 +283,20 @@ export class OptimizationsService {
     if (!deleted) throw new ResourceNotFoundException('Optimization', id);
   }
 
+  async rename(
+    id: number,
+    name: string,
+    userId: number,
+  ): Promise<{ id: number; name: string }> {
+    const [updated] = await this.db
+      .update(optimizationResults)
+      .set({ name })
+      .where(and(eq(optimizationResults.id, id), eq(optimizationResults.userId, userId)))
+      .returning({ id: optimizationResults.id, name: optimizationResults.name });
+    if (!updated) throw new ResourceNotFoundException('Optimization', id);
+    return updated;
+  }
+
   async deleteOptimizations(ids: number[], userId: number): Promise<BulkDeleteResponseDto> {
     const deleted = await this.db
       .delete(optimizationResults)

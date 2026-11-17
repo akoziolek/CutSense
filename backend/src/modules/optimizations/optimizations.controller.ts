@@ -8,6 +8,7 @@ import {
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -53,6 +54,7 @@ enum PdfFormatParam {
 }
 import { OptimizationFilterOptionsDto } from './dto/optimization-filter-options.dto.js';
 import { BulkDeleteDto, BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
+import { RenameOptimizationDto } from './dto/rename-optimization.dto.js';
 
 @Controller('optimizations')
 @ApiTags('Optimizations')
@@ -300,6 +302,39 @@ export class OptimizationController {
     @CurrentUser() user: AuthUser,
   ): Promise<OptimizationViewDto> {
     return this.optimizationsService.getSaved(id, user.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(SessionGuard)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Rename a saved optimization',
+    description: 'Changes only the name of an optimization owned by the current user.',
+  })
+  @ApiParam({ 
+    name: 'id', 
+    type: Number, 
+    example: 1 })
+  @ApiBody({ type: RenameOptimizationDto })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: { id: { type: 'number' }, name: { type: 'string' } },
+    },
+  })
+  @ApiBadRequestResponse({ 
+    description: 'Invalid optimization name or ID.' })
+  @ApiUnauthorizedResponse({ 
+    description: 'A valid session cookie is required.' })
+  @ApiNotFoundResponse({
+    description: 'The optimization does not exist or is not owned by the current user.',
+  })
+  rename(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RenameOptimizationDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<{ id: number; name: string }> {
+    return this.optimizationsService.rename(id, dto.name, user.id);
   }
 
   @Post('bulk-delete')

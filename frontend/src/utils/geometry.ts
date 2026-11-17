@@ -59,7 +59,6 @@ export function clampPanOffset(
   }
 }
 
-
 export function offsetPolygonMm(
   mmPts: [number, number][],
   offsetMm: number,
@@ -112,4 +111,39 @@ export function buildRulerTicks(params: {
     }
   }
   return ticks
+}
+
+export const getPolygonCentroidPct = (pts: Point2D[]): Point2D => {
+  if (pts.length === 0) return { pctX: 0, pctY: 0 }
+  if (pts.length < 3) {
+    return {
+      pctX: pts.reduce((acc, p) => acc + p.pctX, 0) / pts.length,
+      pctY: pts.reduce((acc, p) => acc + p.pctY, 0) / pts.length,
+    }
+  }
+
+  let area2 = 0
+  let cx = 0
+  let cy = 0
+
+  for (let i = 0; i < pts.length; i++) {
+    const p1 = pts[i]!
+    const p2 = pts[(i + 1) % pts.length]!
+    const cross = p1.pctX * p2.pctY - p2.pctX * p1.pctY
+    area2 += cross
+    cx += (p1.pctX + p2.pctX) * cross
+    cy += (p1.pctY + p2.pctY) * cross
+  }
+
+  if (Math.abs(area2) < 1e-6) {
+    return {
+      pctX: pts.reduce((acc, p) => acc + p.pctX, 0) / pts.length,
+      pctY: pts.reduce((acc, p) => acc + p.pctY, 0) / pts.length,
+    }
+  }
+
+  return {
+    pctX: cx / (3 * area2),
+    pctY: cy / (3 * area2),
+  }
 }

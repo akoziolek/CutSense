@@ -431,7 +431,18 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "saveTitle": "Save optimization",
-    "saveDescription": "Enter a name to save this optimization to your account."
+    "saveDescription": "Enter a name to save this optimization to your account.",
+    "downloadPdf": "Download PDF",
+    "downloadPdfA4": "A4 sheet with scale",
+    "downloadPdfA4Description": "Summary report scaled to fit A4",
+    "downloadPdfActual": "Actual size (1:1)",
+    "downloadPdfActualDescription": "Full-scale vector layout for plotting",
+    "downloadPdfFailed": "Could not download the PDF file. Please try again.",
+    "showPieceLabels": "Show piece numbers",
+    "hidePieceLabels": "Hide piece numbers",
+    "legendPiece": "Pattern piece",
+    "legendMirrored": "Mirrored",
+    "legendRotated": "Rotation angle"
   },
   "landing": {
     "headline": "Every centimeter counts",

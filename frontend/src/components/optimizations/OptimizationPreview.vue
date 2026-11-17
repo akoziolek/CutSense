@@ -14,6 +14,7 @@ import {
   ImageOff,
   Eye,
   EyeOff,
+  Tag,
 } from 'lucide-vue-next'
 import type { Point2D } from '@/types/geometry'
 import { useNonOverlappingLabels } from '@/composables/useSpatialLabels'
@@ -26,10 +27,14 @@ import {
   type GeometryOriginMm,
   toFabricPercent,
 } from '@/utils/geometry'
+import { getPolygonCentroidPct } from '@/utils/geometry'
 
 export interface PlacedPieceViewItem {
   id: number
   patternPieceId?: number
+  pieceNumber?: number
+  isMirrored?: boolean
+  rotationAngle?: number
   points: [number, number][]
 }
 
@@ -69,6 +74,7 @@ const workspaceRef = ref<HTMLDivElement | null>(null)
 const showAllowances = ref(true)
 const showPhoto = ref(true)
 const showCoordinates = ref(false)
+const showPieceNumbers = ref(true)
 
 const selectedPieceId = ref<number | null>(null)
 const hoveredPieceId = ref<number | null>(null)
@@ -78,6 +84,8 @@ const cursorCrosshair = ref<{
   y: number
   mmX: number
   mmY: number
+  flipLeft: boolean
+  flipTop: boolean
 } | null>(null)
 
 const baseWidthPx = computed(() => (props.isExpanded ? 520 : 360))
@@ -104,6 +112,8 @@ const updateCoordinates = (clientX: number, clientY: number) => {
     mmY: Math.round(
       ((sheetMetrics.value.bottom - relY) / sheetMetrics.value.height) * props.canvasHeightMm,
     ),
+    flipLeft: relX > wRect.width - 150,
+    flipTop: relY > wRect.height - 48,
   }
 }
 
@@ -156,13 +166,26 @@ const toPctPoint = (point: [number, number]): Point2D =>
 
 const fabricShapePct = computed<Point2D[]>(() => props.fabricShape.map(toPctPoint))
 
+const formatPieceLabel = (piece: PlacedPieceViewItem): string => {
+  const num = piece.pieceNumber ?? piece.id
+  const parts = [`#${num}`]
+  if (piece.isMirrored) parts.push('M')
+  if (piece.rotationAngle && piece.rotationAngle !== 0) parts.push(`${piece.rotationAngle}°`)
+  return parts.join('·')
+}
+
 const piecesPct = computed(() =>
-  props.pieces.map((piece) => ({
-    id: piece.id,
-    patternPieceId: piece.patternPieceId,
-    mmPoints: piece.points,
-    pctPoints: piece.points.map(toPctPoint),
-  })),
+  props.pieces.map((piece) => {
+    const pctPoints = piece.points.map(toPctPoint)
+    return {
+      id: piece.id,
+      patternPieceId: piece.patternPieceId,
+      label: formatPieceLabel(piece),
+      mmPoints: piece.points,
+      pctPoints,
+      centerPct: getPolygonCentroidPct(pctPoints),
+    }
+  }),
 )
 
 const selectedPieces = computed(() =>
@@ -375,6 +398,23 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
         </Button>
 
         <Button
+          size="icon"
+          variant="ghost"
+          class="h-7 w-7 rounded-md transition-colors cursor-pointer"
+          :class="
+            showPieceNumbers
+              ? 'bg-brand-green-foreground/15 text-brand-green-foreground font-bold'
+              : 'hover:bg-brand-green-foreground/10 text-brand-green-foreground/70'
+          "
+          :title="
+            t(showPieceNumbers ? 'optimizations.hidePieceLabels' : 'optimizations.showPieceLabels')
+          "
+          @click="showPieceNumbers = !showPieceNumbers"
+        >
+          <Tag class="h-3.5 w-3.5" />
+        </Button>
+
+        <Button
           v-if="photoUrl"
           size="icon"
           variant="ghost"
@@ -499,66 +539,51 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
                 vector-effect="non-scaling-stroke"
               />
 
-              <svg
-                viewBox="0 0 100 100"
-                preserveAspectRatio="none"
-                class="absolute inset-0 h-full w-full pointer-events-none z-10 overflow-visible"
-              >
-                <polygon
-                  v-if="fabricShapePct.length > 2"
-                  :points="toSvgPoints(fabricShapePct)"
-                  class="fill-background/90 stroke-foreground/30 stroke-1"
-                  vector-effect="non-scaling-stroke"
-                />
-
-                <!-- Warstwa 1: Zewnętrzne zapasy (cutting + seam allowance) -->
-                <g v-if="showAllowances" class="pointer-events-none">
-                  <g v-for="piece in piecesPct" :key="'allow-' + piece.id">
-                    <polygon
-                      v-if="cuttingAllowanceMm > 0"
-                      :points="
-                        getOffsetPolygonPoints(piece.mmPoints, seamAllowanceMm + cuttingAllowanceMm)
-                      "
-                      class="fill-background/45 stroke-foreground/45 stroke-[0.9]"
-                      stroke-dasharray="4 3"
-                      stroke-linejoin="bevel"
-                      vector-effect="non-scaling-stroke"
-                    />
-
-                    <polygon
-                      v-if="seamAllowanceMm > 0"
-                      :points="getOffsetPolygonPoints(piece.mmPoints, seamAllowanceMm)"
-                      class="fill-muted/40 stroke-foreground/20 stroke-[0.8]"
-                      stroke-linejoin="bevel"
-                      vector-effect="non-scaling-stroke"
-                    />
-                  </g>
-                </g>
-
-                <!-- Warstwa 2: Właściwe wykroje (interaktywne, zawsze na wierzchu) -->
-                <g
-                  v-for="piece in piecesPct"
-                  :key="piece.id"
-                  class="cursor-pointer pointer-events-auto"
-                  @mouseenter="hoveredPieceId = piece.id"
-                  @mouseleave="hoveredPieceId = null"
-                  @click.stop="handlePieceClick(piece.id)"
-                >
+              <g v-if="showAllowances" class="pointer-events-none">
+                <g v-for="piece in piecesPct" :key="'allow-' + piece.id">
                   <polygon
-                    :points="toSvgPoints(piece.pctPoints)"
-                    class="transition-colors duration-150"
-                    :class="[
-                      selectedPieceId === piece.id
-                        ? 'fill-brand-green stroke-brand-green-foreground stroke-[1.75]'
-                        : isSamePatternGroup(piece)
-                          ? 'fill-brand-green/50 stroke-brand-green stroke-[1.5]'
-                          : 'fill-muted-foreground/20 stroke-foreground/55 stroke-1',
-                    ]"
-                    stroke-linejoin="round"
+                    v-if="cuttingAllowanceMm > 0"
+                    :points="
+                      getOffsetPolygonPoints(piece.mmPoints, seamAllowanceMm + cuttingAllowanceMm)
+                    "
+                    class="fill-background/45 stroke-foreground/45 stroke-[0.9]"
+                    stroke-dasharray="4 3"
+                    stroke-linejoin="bevel"
+                    vector-effect="non-scaling-stroke"
+                  />
+
+                  <polygon
+                    v-if="seamAllowanceMm > 0"
+                    :points="getOffsetPolygonPoints(piece.mmPoints, seamAllowanceMm)"
+                    class="fill-muted/40 stroke-foreground/20 stroke-[0.8]"
+                    stroke-linejoin="bevel"
                     vector-effect="non-scaling-stroke"
                   />
                 </g>
-              </svg>
+              </g>
+
+              <g
+                v-for="piece in piecesPct"
+                :key="piece.id"
+                class="cursor-pointer pointer-events-auto"
+                @mouseenter="hoveredPieceId = piece.id"
+                @mouseleave="hoveredPieceId = null"
+                @click.stop="handlePieceClick(piece.id)"
+              >
+                <polygon
+                  :points="toSvgPoints(piece.pctPoints)"
+                  class="transition-colors duration-150"
+                  :class="[
+                    selectedPieceId === piece.id
+                      ? 'fill-brand-green stroke-brand-green-foreground stroke-[1.75]'
+                      : isSamePatternGroup(piece)
+                        ? 'fill-brand-green/50 stroke-brand-green stroke-[1.5]'
+                        : 'fill-muted-foreground/20 stroke-foreground/55 stroke-1',
+                  ]"
+                  stroke-linejoin="round"
+                  vector-effect="non-scaling-stroke"
+                />
+              </g>
             </svg>
 
             <div class="absolute inset-0 w-full h-full pointer-events-none z-20">
@@ -581,6 +606,31 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
                   }"
                 />
               </template>
+            </div>
+
+            <div
+              v-if="showPieceNumbers"
+              class="absolute inset-0 w-full h-full pointer-events-none z-25"
+            >
+              <div
+                v-for="piece in piecesPct"
+                :key="'num-' + piece.id"
+                class="absolute font-mono font-semibold text-[9.5px] leading-none px-1.5 py-0.5 rounded-xs border shadow-2xs whitespace-nowrap transition-colors"
+                :class="
+                  selectedPieceId === piece.id
+                    ? 'bg-brand-green-foreground text-brand-green border-brand-green-foreground'
+                    : isSamePatternGroup(piece)
+                      ? 'bg-brand-green text-brand-green-foreground border-brand-green-foreground/40'
+                      : 'bg-background/85 text-foreground/90 border-border/70'
+                "
+                :style="{
+                  left: `${piece.centerPct.pctX}%`,
+                  top: `${piece.centerPct.pctY}%`,
+                  transform: `translate(-50%, -50%) scale(${1 / zoomLevel})`,
+                }"
+              >
+                {{ piece.label }}
+              </div>
             </div>
 
             <div
@@ -626,7 +676,11 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
 
         <div
           v-if="showCoordinates && cursorCrosshair"
-          class="absolute z-50 pointer-events-none -translate-x-1/2 -translate-y-full mb-3 rounded border border-border bg-popover text-popover-foreground px-2 py-0.5 shadow-md backdrop-blur-xs flex items-center gap-1.5 whitespace-nowrap"
+          class="absolute z-50 pointer-events-none rounded border border-border bg-popover text-popover-foreground px-2 py-0.5 shadow-md backdrop-blur-xs flex items-center gap-1.5 whitespace-nowrap"
+          :class="[
+            cursorCrosshair.flipLeft ? '-translate-x-full -ml-3.5' : 'ml-3.5',
+            cursorCrosshair.flipTop ? '-translate-y-full -mt-3.5' : 'mt-3.5',
+          ]"
           :style="{
             left: `${cursorCrosshair.x}px`,
             top: `${cursorCrosshair.y}px`,
@@ -637,6 +691,33 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
           <span class="font-mono text-[10px] tracking-tight">Y: {{ cursorCrosshair.mmY }} mm</span>
         </div>
       </div>
+    </div>
+
+    <div
+      class="border-t border-muted bg-muted/25 px-3 py-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground transition-opacity"
+      :class="showPieceNumbers ? 'opacity-100' : 'opacity-45'"
+    >
+      <span class="inline-flex items-center gap-1">
+        <code
+          class="font-mono font-semibold text-foreground bg-background border border-border/80 rounded-xs px-1 py-px text-[9px]"
+          >#N</code
+        >
+        <span>{{ t('optimizations.legendPiece') }}</span>
+      </span>
+      <span class="inline-flex items-center gap-1">
+        <code
+          class="font-mono font-semibold text-foreground bg-background border border-border/80 rounded-xs px-1 py-px text-[9px]"
+          >M</code
+        >
+        <span>{{ t('optimizations.legendMirrored') }}</span>
+      </span>
+      <span class="inline-flex items-center gap-1">
+        <code
+          class="font-mono font-semibold text-foreground bg-background border border-border/80 rounded-xs px-1 py-px text-[9px]"
+          >°</code
+        >
+        <span>{{ t('optimizations.legendRotated') }}</span>
+      </span>
     </div>
   </Card>
 </template>

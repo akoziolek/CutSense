@@ -430,7 +430,18 @@
     "zoomIn": "Powiększ",
     "zoomOut": "Pomniejsz",
     "saveTitle": "Zapisz optymalizację",
-    "saveDescription": "Wpisz nazwę, aby zapisać tę optymalizację na swoim koncie."
+    "saveDescription": "Wpisz nazwę, aby zapisać tę optymalizację na swoim koncie.",
+    "downloadPdf": "Pobierz PDF",
+    "downloadPdfA4": "Arkusz A4 ze skalą",
+    "downloadPdfA4Description": "Raport poglądowy dopasowany do strony A4",
+    "downloadPdfActual": "Format rzeczywisty (1:1)",
+    "downloadPdfActualDescription": "Pełnowymiarowy wykrój wektorowy na ploter",
+    "downloadPdfFailed": "Nie udało się pobrać pliku PDF. Spróbuj ponownie.",
+    "showPieceLabels": "Pokaż numery elementów",
+    "hidePieceLabels": "Ukryj numery elementów",
+    "legendPiece": "Element wykroju",
+    "legendMirrored": "Odbicie lustrzane",
+    "legendRotated": "Kąt obrotu"
   },
   "landing": {
     "headline": "Liczy się każdy cm",

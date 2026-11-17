@@ -152,12 +152,7 @@ const coordinateOriginMm = computed(
   () => props.coordinateOriginMm ?? getFabricOriginMm(props.fabricShape),
 )
 const toPctPoint = (point: [number, number]): Point2D =>
-  toFabricPercent(
-    point,
-    coordinateOriginMm.value,
-    props.canvasWidthMm,
-    props.canvasHeightMm,
-  )
+  toFabricPercent(point, coordinateOriginMm.value, props.canvasWidthMm, props.canvasHeightMm)
 
 const fabricShapePct = computed<Point2D[]>(() => props.fabricShape.map(toPctPoint))
 
@@ -353,7 +348,9 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
               ? 'bg-brand-green-foreground/15 text-brand-green-foreground font-bold'
               : 'hover:bg-brand-green-foreground/10 text-brand-green-foreground/70'
           "
-          :title="t(showAllowances ? 'optimizations.hideAllowances' : 'optimizations.showAllowances')"
+          :title="
+            t(showAllowances ? 'optimizations.hideAllowances' : 'optimizations.showAllowances')
+          "
           @click="showAllowances = !showAllowances"
         >
           <Layers class="h-3.5 w-3.5" />
@@ -502,46 +499,66 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
                 vector-effect="non-scaling-stroke"
               />
 
-              <g
-                v-for="piece in piecesPct"
-                :key="piece.id"
-                class="cursor-pointer pointer-events-auto"
-                @mouseenter="hoveredPieceId = piece.id"
-                @mouseleave="hoveredPieceId = null"
-                @click.stop="handlePieceClick(piece.id)"
+              <svg
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                class="absolute inset-0 h-full w-full pointer-events-none z-10 overflow-visible"
               >
                 <polygon
-                  v-if="showAllowances && cuttingAllowanceMm > 0"
-                  :points="
-                    getOffsetPolygonPoints(piece.mmPoints, seamAllowanceMm + cuttingAllowanceMm)
-                  "
-                  class="fill-background stroke-foreground/65 stroke-[1]"
-                  stroke-linejoin="round"
+                  v-if="fabricShapePct.length > 2"
+                  :points="toSvgPoints(fabricShapePct)"
+                  class="fill-background/90 stroke-foreground/30 stroke-1"
                   vector-effect="non-scaling-stroke"
                 />
 
-                <polygon
-                  v-if="showAllowances && seamAllowanceMm > 0"
-                  :points="getOffsetPolygonPoints(piece.mmPoints, seamAllowanceMm)"
-                  class="fill-muted stroke-foreground/20 stroke-[0.8]"
-                  stroke-linejoin="round"
-                  vector-effect="non-scaling-stroke"
-                />
+                <!-- Warstwa 1: Zewnętrzne zapasy (cutting + seam allowance) -->
+                <g v-if="showAllowances" class="pointer-events-none">
+                  <g v-for="piece in piecesPct" :key="'allow-' + piece.id">
+                    <polygon
+                      v-if="cuttingAllowanceMm > 0"
+                      :points="
+                        getOffsetPolygonPoints(piece.mmPoints, seamAllowanceMm + cuttingAllowanceMm)
+                      "
+                      class="fill-background/45 stroke-foreground/45 stroke-[0.9]"
+                      stroke-dasharray="4 3"
+                      stroke-linejoin="bevel"
+                      vector-effect="non-scaling-stroke"
+                    />
 
-                <polygon
-                  :points="toSvgPoints(piece.pctPoints)"
-                  class="transition-colors duration-150"
-                  :class="[
-                    selectedPieceId === piece.id
-                      ? 'fill-brand-green stroke-brand-green-foreground stroke-[1.75]'
-                      : isSamePatternGroup(piece)
-                        ? 'fill-brand-green/50 stroke-brand-green stroke-[1.5]'
-                        : 'fill-muted-foreground/20 stroke-foreground/45 stroke-1',
-                  ]"
-                  stroke-linejoin="round"
-                  vector-effect="non-scaling-stroke"
-                />
-              </g>
+                    <polygon
+                      v-if="seamAllowanceMm > 0"
+                      :points="getOffsetPolygonPoints(piece.mmPoints, seamAllowanceMm)"
+                      class="fill-muted/40 stroke-foreground/20 stroke-[0.8]"
+                      stroke-linejoin="bevel"
+                      vector-effect="non-scaling-stroke"
+                    />
+                  </g>
+                </g>
+
+                <!-- Warstwa 2: Właściwe wykroje (interaktywne, zawsze na wierzchu) -->
+                <g
+                  v-for="piece in piecesPct"
+                  :key="piece.id"
+                  class="cursor-pointer pointer-events-auto"
+                  @mouseenter="hoveredPieceId = piece.id"
+                  @mouseleave="hoveredPieceId = null"
+                  @click.stop="handlePieceClick(piece.id)"
+                >
+                  <polygon
+                    :points="toSvgPoints(piece.pctPoints)"
+                    class="transition-colors duration-150"
+                    :class="[
+                      selectedPieceId === piece.id
+                        ? 'fill-brand-green stroke-brand-green-foreground stroke-[1.75]'
+                        : isSamePatternGroup(piece)
+                          ? 'fill-brand-green/50 stroke-brand-green stroke-[1.5]'
+                          : 'fill-muted-foreground/20 stroke-foreground/55 stroke-1',
+                    ]"
+                    stroke-linejoin="round"
+                    vector-effect="non-scaling-stroke"
+                  />
+                </g>
+              </svg>
             </svg>
 
             <div class="absolute inset-0 w-full h-full pointer-events-none z-20">

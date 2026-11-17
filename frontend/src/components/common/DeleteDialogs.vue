@@ -25,6 +25,9 @@ const emit = defineEmits<{
     :open="confirmOpen"
     :title="title"
     :description="description"
+    :confirm-loading="isDeleting"
+    focus-confirm
+    @confirm="emit('confirm')"
     @update:open="(open: boolean) => { if (!open && !isDeleting) emit('cancel') }"
   >
     <p v-if="error" class="text-sm font-semibold text-destructive" role="alert">{{ error }}</p>
@@ -41,6 +44,7 @@ const emit = defineEmits<{
           {{ $t('common.actions.cancel') }}
         </Button>
         <Button
+          data-modal-confirm
           type="button"
           class="h-9 rounded-lg px-4 text-xs sm:text-sm font-semibold font-inter bg-zinc-950 text-white hover:bg-zinc-800 disabled:bg-zinc-300 disabled:text-white disabled:opacity-100 disabled:cursor-not-allowed"
           :disabled="isDeleting"

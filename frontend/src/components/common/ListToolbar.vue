@@ -22,6 +22,7 @@ const emit = defineEmits<{ (e: 'submit'): void; (e: 'clear'): void }>()
       <Input
         v-model="search"
         type="text"
+        data-wizard-keys-ignore
         autocomplete="off"
         :maxlength="maxlength"
         :placeholder="placeholder"

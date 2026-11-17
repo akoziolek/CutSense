@@ -55,7 +55,6 @@ const submit = () => {
           v-model="name"
           :maxlength="MAX_NAME_LENGTH"
           class="pr-14"
-          @keyup.enter="submit"
         />
         <span
           class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground"

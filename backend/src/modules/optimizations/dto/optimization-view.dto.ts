@@ -1,7 +1,26 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { NestingStats } from '../../optimizer-engine/optimizer-engine.types.js';
 import { OptimizerFabricInputDto } from './optimizer-input.dto.js';
 import type { ViewStats } from '../../optimizer-engine/optimizer-engine.types.js';
+
+export interface PatternSummaryDto {
+  id: number;
+  name: string;
+  size: string;
+  createdAt: string;
+}
+
+export interface FabricMetadataDto {
+  name: string;
+  createdAt: string;
+}
+
+export class OptimizationFabricViewDto extends OptimizerFabricInputDto {
+  @ApiPropertyOptional({ description: 'Name of the library fabric.' })
+  name?: string;
+
+  @ApiPropertyOptional({ description: 'Date the library fabric was added.' })
+  createdAt?: string;
+}
 
 export class PlacementDto {
   @ApiProperty({ description: 'Source pattern piece' })
@@ -46,8 +65,19 @@ export class OptimizationViewDto {
   @ApiProperty()
   algorithmName!: string;
 
-  @ApiProperty({ type: OptimizerFabricInputDto })
-  fabric!: OptimizerFabricInputDto;
+  @ApiProperty({ type: OptimizationFabricViewDto })
+  fabric!: OptimizationFabricViewDto;
+
+  @ApiPropertyOptional({
+    type: 'object',
+    properties: {
+      id: { type: 'number' },
+      name: { type: 'string' },
+      size: { type: 'string' },
+      createdAt: { type: 'string', format: 'date-time' },
+    },
+  })
+  pattern?: PatternSummaryDto;
 
   @ApiProperty()
   seamAllowanceMm!: number;
@@ -60,6 +90,9 @@ export class OptimizationViewDto {
 
   @ApiProperty({ description: 'Used fabric length in millimeters' })
   minLengthMm!: number;
+
+  @ApiProperty({ description: 'Optimizer execution time in milliseconds' })
+  executionTime!: number;
 
   @ApiProperty({ type: 'object', additionalProperties: { type: 'number' } })
   stats!: ViewStats;

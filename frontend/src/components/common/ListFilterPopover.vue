@@ -74,7 +74,7 @@ const apply = () => {
       <Button
         variant="outline"
         size="sm"
-        class="gap-2 hover:bg-brand-pink data-[state=open]:bg-brand-pink"
+        class="gap-2 py-4 hover:text-primary font-inter"
         :class="{ 'bg-brand-pink': active }"
         data-testid="filter-trigger"
       >

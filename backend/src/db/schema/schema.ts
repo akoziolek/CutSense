@@ -328,7 +328,7 @@ export const optimizationResults = pgTable(
     seamAllowance: integer('seam_allowance').notNull(),
     cuttingAllowance: integer('cutting_allowance').notNull(),
     minLengthMm: integer('min_length_mm').notNull(),
-    spentTime: smallint('spent_time').notNull(),
+    spentTime: integer('spent_time').notNull(),
     usableScrapsArea: bigint('usable_scraps_area', {
       mode: 'number',
     }).notNull(),

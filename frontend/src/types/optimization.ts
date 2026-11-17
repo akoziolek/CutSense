@@ -46,10 +46,8 @@ export interface CreateOptimizationPayload {
 export type OptimizerPoint = [number, number]
 
 export interface OptimizationStats {
-  usableScrapCount: number
   usableScrapsArea: number // m²
   usableScrapsPercentage: number
-  remainingFabricLength: number // mm
   remainingFabricArea: number // m²
   remainingFabricPercentage: number
   wasteArea: number // m²
@@ -74,14 +72,23 @@ export interface OptimizationView {
   algorithmName: string
   fabric: {
     fabricId?: number
+    name?: string
+    createdAt?: string
     widthMm: number
     lengthMm: number
     boundary: OptimizerPoint[]
+  }
+  pattern?: {
+    id: number
+    name: string
+    size: string
+    createdAt: string
   }
   seamAllowanceMm: number
   cuttingAllowanceMm: number
   wasSuccessful: boolean
   minLengthMm: number
+  executionTime: number // ms
   stats: OptimizationStats
   placements: OptimizationPlacement[]
 }

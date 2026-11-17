@@ -1,13 +1,14 @@
 export const algorithmSeeds = [
   {
-    name: 'Bottom-Left Decreasing',
+    name: 'Quick and Simple',
     description:
-      'Sorts pieces by area descending before placing pieces at the lowest, leftmost valid coordinate.',
+      'Places pieces starting from the largest. Ideal when you need a quick, basic check.',
   },
   {
-    name: 'Bottom-Left Fill with Rotation',
-    description: 'Scans bounding space for the lowest-leftmost hole...',
-  }
+    name: 'Deep and Thorough',
+    description:
+      'Checks every placement and rotation for fewer pieces, smartly estimates complex patterns.',
+  },
 ];
 
 export const patternTagNames = [

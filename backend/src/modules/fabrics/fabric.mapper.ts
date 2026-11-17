@@ -2,6 +2,7 @@ import { fabrics } from '../../db/schema/schema.js';
 import { FabricListItemDto } from './dto/fabric-list.dto.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
 import { PointDto } from './dto/create-fabric.dto.js';
+import { FabricGeometryDto } from '../optimizations/dto/fabric-geometry.dto.js';
 
 interface FabricWithTags {
   id: number;
@@ -82,7 +83,7 @@ export class FabricMapper {
         name: item.tag.name,
       })),
       shapes: shape.length > 0 ? [shape] : [],
-      grainline: fabric.grainline
+      grainline: fabric.grainline,
     });
   }
 
@@ -114,5 +115,27 @@ export class FabricMapper {
       areaMm2: fabric.areaMm2,
       createdAt: fabric.createdAt.toISOString(),
     });
+  }
+
+  static toGeometryDto(fabric: {
+    id: number;
+    name: string;
+    createdAt: Date;
+    imageWidthMm: number;
+    imageHeightMm: number;
+    grainline: number;
+    boundaryGeoJson: string;
+  }): FabricGeometryDto {
+    return {
+      id: fabric.id,
+      name: fabric.name,
+      createdAt: fabric.createdAt.toISOString(),
+      widthMm: fabric.imageWidthMm,
+      lengthMm: fabric.imageHeightMm,
+      grainline: fabric.grainline,
+      boundary: this.boundaryFromGeoJson(fabric.boundaryGeoJson).map(
+        ({ x, y }): [number, number] => [x, y],
+      ),
+    };
   }
 }

@@ -108,7 +108,7 @@ const handleSubmit = async () => {
 
     <div
       v-else
-      class="mx-auto grid w-full grid-cols-1 gap-6 pb-14 sm:mt-14 justify-items-center"
+      class="mx-auto grid w-full grid-cols-1 items-stretch gap-6 pb-14 sm:mt-14"
       :class="{
         'max-w-xl': algorithms.length === 1,
         'max-w-3xl sm:grid-cols-2': algorithms.length === 2,
@@ -118,6 +118,7 @@ const handleSubmit = async () => {
       <SelectableOptionCard
         v-for="algorithm in algorithms"
         :key="algorithm.id"
+        class="h-full w-full"
         :title="algorithm.name"
         :description="algorithm.description"
         :selected="store.algorithmId === algorithm.id"

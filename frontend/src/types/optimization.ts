@@ -1,3 +1,5 @@
+import type { FilterOption } from '@/utils/listFilters'
+
 export type FabricSource = 'custom' | 'library'
 
 export interface SelectedItem {
@@ -18,9 +20,26 @@ export interface OptimizationDefaults {
 
 export interface PatternPieceDefaults {
   id: number
+  patternImageId: number
   points: [number, number][]
   normalCount: number
   mirroredCount: number
+}
+
+export interface PatternImageDetails {
+  id: number
+  url: string
+  imageWidthMm: number
+  imageHeightMm: number
+  orderIndex: number
+}
+
+export interface PatternDetails {
+  id: number
+  name: string
+  size: string
+  pieces: PatternPieceDefaults[]
+  images: PatternImageDetails[]
 }
 
 export interface OptimizationPieceConfig {
@@ -46,11 +65,11 @@ export interface CreateOptimizationPayload {
 export type OptimizerPoint = [number, number]
 
 export interface OptimizationStats {
-  usableScrapsArea: number // m²
+  usableScrapsArea: number
   usableScrapsPercentage: number
-  remainingFabricArea: number // m²
+  remainingFabricArea: number
   remainingFabricPercentage: number
-  wasteArea: number // m²
+  wasteArea: number
   wastePercentage: number
 }
 
@@ -114,17 +133,6 @@ export interface OptimizationListResponse {
 
 export type OptimizationSortField = 'name' | 'date' | 'pattern' | 'fabric' | 'algorithm'
 export type OptimizationSort = `${OptimizationSortField}_${'asc' | 'desc'}`
-
-export interface OptimizationStats {
-  usableScrapsArea: number
-  usableScrapsPercentage: number
-  remainingFabricArea: number
-  remainingFabricPercentage: number
-  wasteArea: number
-  wastePercentage: number
-}
-
-import type { FilterOption } from '@/utils/listFilters'
 
 export interface OptimizationFilterOptions {
   patterns: FilterOption[]

@@ -1,10 +1,22 @@
 <script setup lang="ts">
-import { AlertTriangle } from 'lucide-vue-next'
+import { RouterLink, type RouteLocationRaw } from 'vue-router'
+import { AlertTriangle, ArrowLeft, RotateCcw } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
 
-defineProps<{
+const props = defineProps<{
   title?: string
   message: string
   code?: string
+  retryLabel?: string
+  retryButtonClass?: string
+  backLabel?: string
+  backButtonClass?: string
+  backTo?: RouteLocationRaw
+}>()
+
+const emit = defineEmits<{
+  (event: 'retry'): void
+  (event: 'back'): void
 }>()
 </script>
 
@@ -29,7 +41,42 @@ defineProps<{
       {{ message }}
     </p>
 
-    <div v-if="$slots.actions" class="flex flex-wrap items-center justify-center gap-3">
+    <div
+      v-if="props.retryLabel || props.backLabel || $slots.actions"
+      class="flex flex-wrap items-center justify-center gap-3"
+    >
+      <Button
+        v-if="props.retryLabel"
+        variant="outline"
+        class="rounded-lg gap-2"
+        :class="props.retryButtonClass"
+        @click="emit('retry')"
+      >
+        <RotateCcw class="w-4 h-4" />
+        <span>{{ props.retryLabel }}</span>
+      </Button>
+      <Button
+        v-if="props.backLabel && props.backTo !== undefined"
+        as-child
+        variant="default"
+        class="rounded-lg gap-2"
+        :class="props.backButtonClass"
+      >
+        <RouterLink :to="props.backTo">
+          <ArrowLeft class="w-4 h-4" />
+          <span>{{ props.backLabel }}</span>
+        </RouterLink>
+      </Button>
+      <Button
+        v-else-if="props.backLabel"
+        variant="default"
+        class="rounded-lg gap-2"
+        :class="props.backButtonClass"
+        @click="emit('back')"
+      >
+        <ArrowLeft class="w-4 h-4" />
+        <span>{{ props.backLabel }}</span>
+      </Button>
       <slot name="actions" />
     </div>
   </div>

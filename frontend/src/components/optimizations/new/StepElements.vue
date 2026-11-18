@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, RotateCcw } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import ErrorState from '@/components/common/ErrorState.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
@@ -17,7 +15,6 @@ import type {
 import type { Point2D } from '@/types/geometry'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { mmToCm } from '@/utils/optimizationConfig'
-import type { PieceImageSource } from '@/types/geometry'
 
 const emit = defineEmits<{
   (e: 'next'): void
@@ -132,18 +129,16 @@ onMounted(load)
       <Skeleton class="h-48 w-full rounded-md lg:w-80" />
     </div>
 
-    <ErrorState v-else-if="loadError" :title="$t('optimizations.unableToLoadPattern')" :message="loadError" :code="$t('common.errors.errorCode')">
-      <template #actions>
-        <Button variant="outline" class="rounded-lg gap-2" @click="load">
-          <RotateCcw class="w-4 h-4" />
-          <span>{{ $t('common.actions.tryAgain') }}</span>
-        </Button>
-        <Button variant="default" class="rounded-lg gap-2" @click="emit('cancel')">
-          <ArrowLeft class="w-4 h-4" />
-          <span>{{ $t('common.actions.back') }}</span>
-        </Button>
-      </template>
-    </ErrorState>
+    <ErrorState
+      v-else-if="loadError"
+      :title="$t('optimizations.unableToLoadPattern')"
+      :message="loadError"
+      :code="$t('common.errors.errorCode')"
+      :retry-label="$t('common.actions.tryAgain')"
+      :back-label="$t('common.actions.back')"
+      @retry="load"
+      @back="emit('cancel')"
+    />
 
     <div v-else class="flex flex-col items-start gap-6 lg:flex-row">
       <div class="w-full min-w-0 flex-1 space-y-4">

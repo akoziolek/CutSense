@@ -24,8 +24,6 @@ import {
   Layers,
   RulerDimensionLine,
   RotateCw,
-  RotateCcw,
-  ArrowLeft,
   Save,
   LogIn,
   Timer,
@@ -452,29 +450,13 @@ watch(
             :title="t(isNotFound ? 'optimizations.notFound' : 'optimizations.unableToLoad')"
             :message="isNotFound ? t('optimizations.notFoundMessage') : error"
             :code="t(isNotFound ? 'common.errors.notFoundCode' : 'common.errors.errorCode')"
-          >
-            <template #actions>
-              <Button
-                v-if="!isNotFound"
-                variant="outline"
-                class="gap-2 rounded-lg border-brand-green/40 text-foreground hover:bg-brand-green hover:text-brand-green-foreground"
-                @click="fetchOptimization()"
-              >
-                <RotateCcw class="w-4 h-4" />
-                <span>{{ t('common.actions.tryAgain') }}</span>
-              </Button>
-              <Button
-                as-child
-                variant="default"
-                class="gap-2 rounded-lg bg-brand-green text-brand-green-foreground hover:bg-brand-green/80"
-              >
-                <RouterLink :to="{ name: 'OptimizationNew' }">
-                  <ArrowLeft class="w-4 h-4" />
-                  <span>{{ t('optimizations.newOptimization') }}</span>
-                </RouterLink>
-              </Button>
-            </template>
-          </ErrorState>
+            :retry-label="isNotFound ? undefined : t('common.actions.tryAgain')"
+            retry-button-class="border-brand-green/40 text-foreground hover:bg-brand-green hover:text-brand-green-foreground"
+            :back-label="t('optimizations.newOptimization')"
+            back-button-class="bg-brand-green text-brand-green-foreground hover:bg-brand-green/80"
+            :back-to="{ name: 'OptimizationNew' }"
+            @retry="fetchOptimization()"
+          />
         </main>
 
         <main v-else-if="optimization" key="content">
@@ -483,16 +465,9 @@ watch(
             :title="t('optimizations.unsuccessful')"
             :message="t('optimizations.failedDescription')"
             :code="t('common.errors.errorCode')"
-          >
-            <template #actions>
-              <Button as-child variant="default" class="rounded-lg gap-2">
-                <RouterLink :to="{ name: 'OptimizationNew' }">
-                  <ArrowLeft class="w-4 h-4" />
-                  <span>{{ t('optimizations.newOptimization') }}</span>
-                </RouterLink>
-              </Button>
-            </template>
-          </ErrorState>
+            :back-label="t('optimizations.newOptimization')"
+            :back-to="{ name: 'OptimizationNew' }"
+          />
 
           <div v-else class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-start">
             <div

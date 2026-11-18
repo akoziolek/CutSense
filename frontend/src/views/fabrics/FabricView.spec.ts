@@ -55,9 +55,10 @@ const DetailsCardStub = defineComponent({
 })
 
 const ErrorStateStub = defineComponent({
-  props: { title: String, message: String },
-  setup(props, { slots }) {
-    return () => h('section', [h('h2', props.title), h('p', props.message), slots.actions?.()])
+  props: { title: String, message: String, retryLabel: String, backLabel: String, backTo: String },
+  emits: ['retry'],
+  setup(props) {
+    return () => h('section', [h('h2', props.title), h('p', props.message)])
   },
 })
 
@@ -215,9 +216,11 @@ describe('FabricView', () => {
 
     expect(wrapper.text()).toContain('Unable to load fabric')
     expect(wrapper.text()).toContain('Fabric not found')
-    expect(wrapper.find('a[href="/fabrics"]').exists()).toBe(true)
+    const errorState = wrapper.findComponent(ErrorStateStub)
+    expect(errorState.props('backTo')).toBe('/fabrics')
+    expect(errorState.props('retryLabel')).toBe('Try again')
 
-    await wrapper.get('button').trigger('click')
+    errorState.vm.$emit('retry')
     await flushPromises()
 
     expect(apiMock).toHaveBeenCalledTimes(2)

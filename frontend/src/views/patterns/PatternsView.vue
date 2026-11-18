@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, RotateCcw, Scissors, Search, SearchX, X } from 'lucide-vue-next'
+import { Scissors, Search, SearchX, X } from 'lucide-vue-next'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
@@ -354,20 +354,15 @@ watch(
 
         <!-- error -->
         <div v-else-if="error" key="error">
-          <ErrorState :title="t('patterns.unableToLoadMany')" :message="error" :code="t('common.errors.errorCode')">
-            <template #actions>
-              <Button variant="outline" class="rounded-lg gap-2" @click="fetchPatterns()">
-                <RotateCcw class="w-4 h-4" />
-                <span>{{ t('common.actions.tryAgain') }}</span>
-              </Button>
-              <Button as-child variant="default" class="rounded-lg gap-2">
-                <RouterLink to="/">
-                  <ArrowLeft class="w-4 h-4" />
-                  <span>{{ t('common.actions.backToHome') }}</span>
-                </RouterLink>
-              </Button>
-            </template>
-          </ErrorState>
+          <ErrorState
+            :title="t('patterns.unableToLoadMany')"
+            :message="error"
+            :code="t('common.errors.errorCode')"
+            :retry-label="t('common.actions.tryAgain')"
+            :back-label="t('common.actions.backToHome')"
+            back-to="/"
+            @retry="fetchPatterns()"
+          />
         </div>
 
         <!-- search or filters match nothing -->

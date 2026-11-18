@@ -1,14 +1,36 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength, IsDateString, ArrayMaxSize, IsArray, IsInt, IsPositive  } from 'class-validator';
 import { BaseListQueryDto } from '../../../common/dto/base-list-query.dto.js';
+import { applyDecorators } from '@nestjs/common';
+
 
 export enum OptimizationSortOption {
   NAME_ASC = 'name_asc',
   NAME_DESC = 'name_desc',
   DATE_DESC = 'date_desc',
   DATE_ASC = 'date_asc',
+  PATTERN_ASC = 'pattern_asc',
+  PATTERN_DESC = 'pattern_desc',
+  FABRIC_ASC = 'fabric_asc',
+  FABRIC_DESC = 'fabric_desc',
+  ALGORITHM_ASC = 'algorithm_asc',
+  ALGORITHM_DESC = 'algorithm_desc',
 }
+
+const IdList = () =>
+  applyDecorators(
+    IsOptional(),
+    Transform(({ value }) => {
+      if (value === undefined) return value;
+      const raw: unknown[] = Array.isArray(value) ? value : String(value).split(',');
+      return [...new Set(raw.map(Number))];
+    }),
+    IsArray(),
+    ArrayMaxSize(50),
+    IsInt({ each: true }),
+    IsPositive({ each: true }),
+  );
 
 export class ListOptimizationsQueryDto extends BaseListQueryDto {
   @ApiPropertyOptional({
@@ -31,4 +53,26 @@ export class ListOptimizationsQueryDto extends BaseListQueryDto {
   @IsOptional()
   @IsEnum(OptimizationSortOption)
   sort: OptimizationSortOption = OptimizationSortOption.DATE_DESC;
+
+  @ApiPropertyOptional({ example: '2026-03-01T00:00:00.000Z' })
+  @IsOptional()
+  @IsDateString()
+  createdFrom?: string;
+
+  @ApiPropertyOptional({ example: '2026-03-31T23:59:59.999Z' })
+  @IsOptional()
+  @IsDateString()
+  createdTo?: string;
+
+  @ApiPropertyOptional({ type: [Number], description: 'Only these patterns. Comma-separated or repeated.', example: '1,2' })
+  @IdList()
+  patternIds?: number[];
+
+  @ApiPropertyOptional({ type: [Number], description: 'Only these library fabrics.', example: '3' })
+  @IdList()
+  fabricIds?: number[];
+
+  @ApiPropertyOptional({ type: [Number], description: 'Only these algorithms.', example: '1,2' })
+  @IdList()
+  algorithmIds?: number[];
 }

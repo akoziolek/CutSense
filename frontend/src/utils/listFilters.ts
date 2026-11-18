@@ -42,5 +42,11 @@ export const baseToApiParams = (f: BaseFilters): Record<string, string> => {
   return params
 }
 
+export interface FilterOption {
+  id: number
+  name: string
+  count?: number
+}
+
 export const countActive = (query: Record<string, string | undefined>) =>
   Object.values(query).filter((v) => v !== undefined).length

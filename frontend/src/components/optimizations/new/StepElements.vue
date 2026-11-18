@@ -17,6 +17,7 @@ import type {
 import type { Point2D } from '@/types/geometry'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { mmToCm } from '@/utils/optimizationConfig'
+import type { PieceImageSource } from '@/types/geometry'
 
 const emit = defineEmits<{
   (e: 'next'): void

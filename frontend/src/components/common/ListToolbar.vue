@@ -8,6 +8,7 @@ defineProps<{
   ariaLabel: string
   sortOptions: { value: S; label: string }[]
   maxlength?: number
+  showSort?: boolean
 }>()
 const search = defineModel<string>('search', { required: true })
 const sort = defineModel<S>('sort', { required: true })
@@ -21,6 +22,7 @@ const emit = defineEmits<{ (e: 'submit'): void; (e: 'clear'): void }>()
       <Input
         v-model="search"
         type="text"
+        data-wizard-keys-ignore
         autocomplete="off"
         :maxlength="maxlength"
         :placeholder="placeholder"
@@ -40,6 +42,6 @@ const emit = defineEmits<{ (e: 'submit'): void; (e: 'clear'): void }>()
     </div>
 
     <slot name="filter" />
-    <SortMenu v-model="sort" :options="sortOptions" />
+    <SortMenu v-if="showSort" v-model="sort" :options="sortOptions" />
   </div>
 </template>

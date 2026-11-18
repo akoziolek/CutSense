@@ -87,6 +87,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
     };
 
     response.status(statusCode).json(payload);
+
+    if (!(exception instanceof HttpException)) {
+      this.logger.error(
+        `${request.method} ${request.url}`,
+        exception instanceof Error ? exception.stack : String(exception),
+      );
+    }
   }
 
   private mapHttpStatusToCode(status: number): ErrorCode {

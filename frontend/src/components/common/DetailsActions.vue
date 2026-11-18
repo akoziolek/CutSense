@@ -11,13 +11,17 @@ import { ref } from 'vue'
 import { type RouteLocationRaw } from 'vue-router'
 
 interface Props {
-  editTo: RouteLocationRaw
+  editTo?: RouteLocationRaw
+  editLabel?: string
 }
 
 defineProps<Props>()
 
 const isMenuOpen = ref(false)
-const emit = defineEmits<{ (e: 'delete'): void }>()
+const emit = defineEmits<{
+  (e: 'edit'): void
+  (e: 'delete'): void
+}>()
 </script>
 
 <template>
@@ -36,16 +40,26 @@ const emit = defineEmits<{ (e: 'delete'): void }>()
     <DropdownMenuContent
       :align="'end'"
       :side-offset="12"
-      class="hidden lg:block w-38 border-2 p-0 overflow-hidden"
+      class="w-38 border-2 p-0 overflow-hidden"
     >
       <DropdownMenuItem
+        v-if="editTo"
         as-child
         class="cursor-pointer rounded-none px-4 py-2.5 focus:bg-brand-green focus:text-brand-green-foreground"
       >
         <RouterLink :to="editTo">
           <Pencil class="w-4 h-4 mr-2" />
-          {{ $t('common.actions.edit') }}
+          {{ editLabel ?? $t('common.actions.edit') }}
         </RouterLink>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem
+        v-else
+        class="cursor-pointer rounded-none px-4 py-2.5 flex items-center focus:bg-brand-green focus:text-brand-green-foreground"
+        @select="emit('edit')"
+      >
+        <Pencil class="w-4 h-4 mr-2" />
+        {{ editLabel ?? $t('common.actions.edit') }}
       </DropdownMenuItem>
 
       <DropdownMenuItem

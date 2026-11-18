@@ -7,6 +7,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { ref, type ComponentPublicInstance } from 'vue'
 
 // TODO - after PR use only this modal
 interface Props {
@@ -21,6 +22,7 @@ interface Props {
   confirmLoading?: boolean
   fullWidthButton?: boolean
   preventClose?: boolean
+  focusConfirm?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -35,11 +37,12 @@ const props = withDefaults(defineProps<Props>(), {
   confirmLoading: false,
   fullWidthButton: false,
   preventClose: false,
+  focusConfirm: false,
 })
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
-  (e: 'confirm', event: MouseEvent): void
+  (e: 'confirm', event: MouseEvent | KeyboardEvent): void
   (e: 'cancel', event: MouseEvent): void
 }>()
 
@@ -50,6 +53,34 @@ const handlePointerDownOutside = (event: Event) => {
 const handleEscapeKeyDown = (event: Event) => {
   if (props.preventClose) event.preventDefault()
 }
+
+const handleEnterKeyDown = (e: KeyboardEvent) => {
+  if (e.defaultPrevented || e.repeat || e.isComposing) return
+  if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
+  if (!props.showConfirm || props.confirmDisabled || props.confirmLoading) return
+
+  const target = e.target instanceof HTMLElement ? e.target : null
+  if (
+    target?.closest(
+      'textarea, select, button, a, [role="button"], [contenteditable="true"], [aria-haspopup]',
+    )
+  )
+    return
+
+  e.preventDefault()
+  emit('confirm', e)
+}
+
+const confirmButton = ref<ComponentPublicInstance | null>(null)
+
+const handleOpenAutoFocus = (event: Event) => {
+  if (!props.focusConfirm) return
+  const container = event.target instanceof HTMLElement ? event.target : null
+  const el = container?.querySelector<HTMLButtonElement>('[data-modal-confirm]')
+  if (!el || el.disabled) return
+  event.preventDefault()
+  el.focus()
+}
 </script>
 
 <template>
@@ -57,6 +88,8 @@ const handleEscapeKeyDown = (event: Event) => {
     <DialogContent
       @pointer-down-outside="handlePointerDownOutside"
       @escape-key-down="handleEscapeKeyDown"
+      @open-auto-focus="handleOpenAutoFocus"
+      @keydown.enter="handleEnterKeyDown"
       class="p-7 sm:p-8 rounded-xl bg-popover text-foreground shadow-2xl [&>button]:hidden"
     >
       <DialogHeader
@@ -105,6 +138,7 @@ const handleEscapeKeyDown = (event: Event) => {
 
         <Button
           v-if="showConfirm"
+          data-modal-confirm
           type="button"
           :disabled="confirmDisabled || confirmLoading"
           :class="[

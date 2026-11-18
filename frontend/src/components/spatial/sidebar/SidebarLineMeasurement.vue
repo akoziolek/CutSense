@@ -91,6 +91,7 @@ const handleLineEnter = (e: KeyboardEvent) => {
             step="0.1"
             min="0.1"
             v-model="customLineCm"
+            data-wizard-keys-ignore
             @change="handleLineSubmit"
             @keyup.enter="handleLineEnter"
             :placeholder="$t('spatial.lineLengthPlaceholder')"

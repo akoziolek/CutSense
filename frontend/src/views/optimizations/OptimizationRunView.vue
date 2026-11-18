@@ -8,6 +8,8 @@ import type { OptimizationView } from '@/types/optimization'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DetailsCard, { type MetaItem } from '@/components/common/DetailsCard.vue'
+import DetailsActions from '@/components/common/DetailsActions.vue'
+import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
 import StatCard from '@/components/optimizations/StatCard.vue'
 import OptimizationPreview, {
   type PlacedPieceViewItem,
@@ -35,6 +37,7 @@ import {
 } from 'lucide-vue-next'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { login, useAuth } from '@/composables/useAuth'
+import { useDeleteResource } from '@/composables/useDeleteResource'
 import { getGeometryBoundsMm } from '@/utils/geometry'
 import {
   DropdownMenu,
@@ -63,6 +66,24 @@ const isCanvasExpanded = ref(false)
 const isSaveOpen = ref(false)
 const isSaving = ref(false)
 const saveError = ref('')
+const isEditOpen = ref(false)
+const isRenaming = ref(false)
+const renameError = ref('')
+
+const {
+  confirmOpen,
+  successOpen,
+  isDeleting,
+  error: deleteError,
+  request: requestDelete,
+  confirm: confirmDelete,
+  closeSuccess,
+} = useDeleteResource({
+  basePath: '/optimizations',
+  noun: 'optimization',
+  redirectTo: '/optimizations',
+  getId: () => String(optimization.value?.id ?? ''),
+})
 
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -254,6 +275,34 @@ const handleSave = async (name: string) => {
   }
 }
 
+const openEdit = () => {
+  renameError.value = ''
+  isEditOpen.value = true
+}
+
+const handleRename = async (name: string) => {
+  if (!optimization.value?.id || isRenaming.value) return
+  isRenaming.value = true
+  renameError.value = ''
+  try {
+    const updated = await api<{ id: number; name: string }>(
+      `/optimizations/${optimization.value.id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ name }),
+      },
+    )
+    optimization.value.name = updated.name
+    isEditOpen.value = false
+    toast.success(t('optimizations.updatedToast'))
+  } catch (e) {
+    renameError.value =
+      e instanceof ApiError ? e.body.message : t('optimizations.updateFailed')
+  } finally {
+    isRenaming.value = false
+  }
+}
+
 watch(
   [isSavedRoute, resourceId],
   ([, id], _, onCleanup) => {
@@ -352,6 +401,13 @@ watch(
                 <span>{{ t('optimizations.signInToSave') }}</span>
               </Button>
             </template>
+
+            <DetailsActions
+              v-if="optimization.isSaved"
+              :edit-label="t('actions.edit')"
+              @edit="openEdit"
+              @delete="requestDelete"
+            />
           </div>
         </template>
       </PageHeader>
@@ -570,6 +626,29 @@ watch(
       :loading="isSaving"
       :error="saveError"
       @save="handleSave"
+    />
+    <SaveOptimizationModal
+      v-model:open="isEditOpen"
+      :initial-name="optimization?.name"
+      :loading="isRenaming"
+      :error="renameError"
+      :title="t('optimizations.editTitle')"
+      :description="t('optimizations.editDescription')"
+      :confirm-label="t('common.actions.save')"
+      @save="handleRename"
+    />
+    <DeleteDialogs
+      :confirm-open="confirmOpen"
+      :success-open="successOpen"
+      :is-deleting="isDeleting"
+      :error="deleteError"
+      :title="t('optimizations.list.deleteTitle', { name: optimization?.name ?? t('optimizations.list.thisOptimization') })"
+      :description="t('optimizations.list.deleteDescription')"
+      :success-title="t('optimizations.list.deleted')"
+      :success-description="t('optimizations.list.deletedDescription')"
+      @confirm="confirmDelete"
+      @cancel="confirmOpen = false"
+      @close-success="closeSuccess"
     />
   </GridLayout>
 </template>

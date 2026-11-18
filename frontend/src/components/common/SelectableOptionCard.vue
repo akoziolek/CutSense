@@ -13,16 +13,16 @@ const emit = defineEmits<{ (e: 'select'): void }>()
 <template>
   <button
     type="button"
-    class="group block w-full cursor-pointer rounded-xl text-left focus-visible:outline-none"
+    class="group flex h-full w-full cursor-pointer rounded-xl text-left focus-visible:outline-none"
     :aria-pressed="selected ?? false"
     @click="emit('select')"
   >
     <Card
-      class="items-center gap-3 border-1 px-6 sm:py-20 text-center transition-all duration-200 group-hover:shadow-lg! hover:bg-card/80 group-focus-visible:ring-2 group-focus-visible:ring-ring"
+      class="h-full w-full flex-1 items-center justify-center gap-3 border px-6 py-10 sm:py-20 text-center transition-all duration-200 group-hover:shadow-lg! hover:bg-card/80 group-focus-visible:ring-2 group-focus-visible:ring-ring"
       :class="selected ? 'border-muted-foreground shadow-lg' : 'border-muted'"
     >
       <div
-        class="flex size-20 items-center justify-center rounded-full transition-colors"
+        class="flex size-20 shrink-0 items-center justify-center rounded-full transition-colors"
         :class="selected ? 'bg-brand-green text-brand-green-foreground' : 'bg-muted'"
       >
         <slot name="icon" />

@@ -155,7 +155,6 @@ const handleSave = () => {
 
         <Input
           v-model="nickname"
-          @keyup.enter="handleSave"
           type="text"
           :placeholder="t('auth.nicknamePlaceholder')"
           :class="[

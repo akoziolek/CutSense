@@ -475,6 +475,7 @@ onMounted(() => {
         :cancel-label="$t('common.actions.cancel')"
         :next-label="$t('common.actions.next')"
         :disabled="pxPerMm <= 0 || points.length === 0"
+        :keyboard="drawingPoints.length === 0"
         @cancel="emit('cancel')"
         @next="emit('next')"
       />

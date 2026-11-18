@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { Puzzle, RotateCcw } from 'lucide-vue-next'
+import { ArrowDownWideNarrow, RotateCw, Sparkles, RotateCcw } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import ErrorState from '@/components/common/ErrorState.vue'
@@ -26,6 +26,13 @@ const isLoading = ref(true)
 const error = ref('')
 const isSubmitting = ref(false)
 const submitError = ref('')
+
+const getAlgorithmIcon = (algorithm: OptimizationAlgorithm): Component => {
+  const key = algorithm.name.toLowerCase()
+  if (key.includes('rotation')) return RotateCw
+  if (key.includes('decreasing')) return ArrowDownWideNarrow
+  return Sparkles
+}
 
 const load = async () => {
   isLoading.value = true
@@ -101,7 +108,7 @@ const handleSubmit = async () => {
 
     <div
       v-else
-      class="mx-auto grid w-full grid-cols-1 gap-6 pb-14 sm:mt-14 justify-items-center"
+      class="mx-auto grid w-full grid-cols-1 items-stretch gap-6 pb-14 sm:mt-14"
       :class="{
         'max-w-xl': algorithms.length === 1,
         'max-w-3xl sm:grid-cols-2': algorithms.length === 2,
@@ -111,12 +118,15 @@ const handleSubmit = async () => {
       <SelectableOptionCard
         v-for="algorithm in algorithms"
         :key="algorithm.id"
+        class="h-full w-full"
         :title="algorithm.name"
         :description="algorithm.description"
         :selected="store.algorithmId === algorithm.id"
         @select="store.selectAlgorithm(algorithm.id)"
       >
-        <template #icon><Puzzle class="size-8" /></template>
+        <template #icon>
+          <component :is="getAlgorithmIcon(algorithm)" class="size-8" />
+        </template>
       </SelectableOptionCard>
     </div>
 

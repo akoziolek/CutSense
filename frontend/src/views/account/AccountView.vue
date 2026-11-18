@@ -3,6 +3,8 @@ import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/common/PageHeader.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import { useAuth } from '@/composables/useAuth'
+import Button from '@/components/ui/button/Button.vue'
+import { Pencil } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const { state: auth } = useAuth()
@@ -12,7 +14,21 @@ const { state: auth } = useAuth()
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-8">
       <div class="space-y-1.5">
-        <PageHeader :title="t('account.details')" />
+        <PageHeader :title="t('account.details')">
+          <template #actions>
+            <Button
+              as-child
+              variant="ghost"
+              size="sm"
+              class="border-2 whitespace-nowrap hover:bg-brand-grey! hover:text-foreground"
+            >
+              <RouterLink to="/account/edit">
+                <Pencil class="w-4 h-4 shrink-0" />
+                {{ t('common.actions.edit') }}
+              </RouterLink>
+            </Button>
+          </template>
+        </PageHeader>
         <p class="text-sm text-muted-foreground ml-4">
           {{ t('account.detailsDescription') }}
         </p>

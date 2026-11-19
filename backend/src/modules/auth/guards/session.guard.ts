@@ -1,7 +1,7 @@
-import { CanActivate, ExecutionContext, Injectable} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
-import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';
+import { AuthenticationRequiredException } from '../../../common/exceptions/authentication-required.exception.js';
 
 @Injectable()
 export class SessionGuard implements CanActivate {

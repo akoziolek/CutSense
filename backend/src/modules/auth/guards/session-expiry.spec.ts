@@ -1,8 +1,8 @@
 import type { ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';
-import type { UsersService } from '../../modules/users/users.service.js';
+import { AuthenticationRequiredException } from '../../../common/exceptions/authentication-required.exception.js';
+import type { UsersService } from '../../users/users.service.js';
 import { AuthService } from '../auth.service.js';
 import { SessionGuard } from './session.guard.js';
 
@@ -31,7 +31,9 @@ describe('Session and tokens expiration', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     at(0);
     service = new AuthService(
-      { findByGoogleId: vi.fn().mockResolvedValue(null) } as unknown as UsersService,
+      {
+        findByGoogleId: vi.fn().mockResolvedValue(null),
+      } as unknown as UsersService,
       jwt,
     );
   });
@@ -64,17 +66,19 @@ describe('Session and tokens expiration', () => {
     it('registration with expired token does not save anything', async () => {
       const create = vi.fn();
       const svc = new AuthService(
-        { findByGoogleId: vi.fn().mockResolvedValue(null),
-          create } as unknown as UsersService,
+        {
+          findByGoogleId: vi.fn().mockResolvedValue(null),
+          create,
+        } as unknown as UsersService,
         jwt,
       );
       const result = await svc.handleGoogleCallback(profile);
       if (result.status !== 'new') throw new Error('expected a new user');
 
       at(16 * MINUTE);
-      await expect(svc.register(result.registrationToken, 'Ala_Test')).rejects.toBeInstanceOf(
-        AuthenticationRequiredException,
-      );
+      await expect(
+        svc.register(result.registrationToken, 'Ala_Test'),
+      ).rejects.toBeInstanceOf(AuthenticationRequiredException);
       expect(create).not.toHaveBeenCalled();
     });
   });

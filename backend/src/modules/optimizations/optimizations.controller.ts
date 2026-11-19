@@ -28,8 +28,8 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { OptionalSessionGuard } from '../../auth/guards/optional-session.guard.js';
-import { SessionGuard } from '../../auth/guards/session.guard.js';
+import { OptionalSessionGuard } from '../auth/guards/optional-session.guard.js';
+import { SessionGuard } from '../auth/guards/session.guard.js';
 import { OptionalUser } from '../../common/decorators/optional-user.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
@@ -53,7 +53,10 @@ enum PdfFormatParam {
   ACTUAL = 'actual',
 }
 import { OptimizationFilterOptionsDto } from './dto/optimization-filter-options.dto.js';
-import { BulkDeleteDto, BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
+import {
+  BulkDeleteDto,
+  BulkDeleteResponseDto,
+} from '../../common/dto/bulk-delete.dto.js';
 import { RenameOptimizationDto } from './dto/rename-optimization.dto.js';
 
 @Controller('optimizations')
@@ -260,11 +263,16 @@ export class OptimizationController {
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Get options for the list filters',
-    description: 'Patterns used in the user\'s optimizations, the user\'s fabrics and the available algorithms, each with a count.',
+    description:
+      "Patterns used in the user's optimizations, the user's fabrics and the available algorithms, each with a count.",
   })
   @ApiOkResponse({ type: OptimizationFilterOptionsDto })
-  @ApiUnauthorizedResponse({ description: 'A valid session cookie is required.' })
-  getFilterOptions(@CurrentUser() user: AuthUser): Promise<OptimizationFilterOptionsDto> {
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  getFilterOptions(
+    @CurrentUser() user: AuthUser,
+  ): Promise<OptimizationFilterOptionsDto> {
     return this.optimizationsService.getFilterOptions(user.id);
   }
 
@@ -309,12 +317,14 @@ export class OptimizationController {
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Rename a saved optimization',
-    description: 'Changes only the name of an optimization owned by the current user.',
+    description:
+      'Changes only the name of an optimization owned by the current user.',
   })
-  @ApiParam({ 
-    name: 'id', 
-    type: Number, 
-    example: 1 })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    example: 1,
+  })
   @ApiBody({ type: RenameOptimizationDto })
   @ApiOkResponse({
     schema: {
@@ -322,12 +332,15 @@ export class OptimizationController {
       properties: { id: { type: 'number' }, name: { type: 'string' } },
     },
   })
-  @ApiBadRequestResponse({ 
-    description: 'Invalid optimization name or ID.' })
-  @ApiUnauthorizedResponse({ 
-    description: 'A valid session cookie is required.' })
+  @ApiBadRequestResponse({
+    description: 'Invalid optimization name or ID.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
   @ApiNotFoundResponse({
-    description: 'The optimization does not exist or is not owned by the current user.',
+    description:
+      'The optimization does not exist or is not owned by the current user.',
   })
   rename(
     @Param('id', ParseIntPipe) id: number,
@@ -348,12 +361,12 @@ export class OptimizationController {
   })
   @ApiBody({ type: BulkDeleteDto })
   @ApiOkResponse({ type: BulkDeleteResponseDto })
-  @ApiBadRequestResponse({ 
-    description: 
-      'ids must be 1–100 unique positive integers.' })
-  @ApiUnauthorizedResponse({ 
-    description: 
-      'A valid session cookie is required.' })
+  @ApiBadRequestResponse({
+    description: 'ids must be 1–100 unique positive integers.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
   deleteOptimizations(
     @Body() dto: BulkDeleteDto,
     @CurrentUser() user: AuthUser,
@@ -365,19 +378,28 @@ export class OptimizationController {
   @UseGuards(SessionGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiCookieAuth('session')
-  @ApiOperation({ 
-    summary: 'Delete a saved optimization' })
-  @ApiParam({ 
-    name: 'id', 
-    type: Number, 
-    example: 1 })
-  @ApiNoContentResponse({ 
-    description: 'The optimization was deleted.' })
-  @ApiUnauthorizedResponse({ 
-    description: 'A valid session cookie is required.' })
-  @ApiNotFoundResponse({ 
-    description: 'The optimization does not exist or is not owned by the current user.' })
-  delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser): Promise<void> {
+  @ApiOperation({
+    summary: 'Delete a saved optimization',
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    example: 1,
+  })
+  @ApiNoContentResponse({
+    description: 'The optimization was deleted.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid session cookie is required.',
+  })
+  @ApiNotFoundResponse({
+    description:
+      'The optimization does not exist or is not owned by the current user.',
+  })
+  delete(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthUser,
+  ): Promise<void> {
     return this.optimizationsService.delete(id, user.id);
   }
 }

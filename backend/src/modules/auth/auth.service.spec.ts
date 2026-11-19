@@ -1,9 +1,9 @@
 import { JwtService } from '@nestjs/jwt';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { UsersService } from '../modules/users/users.service.js';
+import type { UsersService } from '../users/users.service.js';
 import { AuthService } from './auth.service.js';
-import { AuthenticationRequiredException } from '../common/exceptions/authentication-required.exception.js';
-import { ResourceConflictException } from '../common/exceptions/resource-conflict.exception.js';
+import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';
+import { ResourceConflictException } from '../../common/exceptions/resource-conflict.exception.js';
 
 const profile = {
   googleId: 'g1',

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../modules/users/users.service.js';
+import { UsersService } from '../users/users.service.js';
 import { GoogleProfile } from './strategies/google.strategy.js';
-import { AuthenticationRequiredException } from '../common/exceptions/authentication-required.exception.js';
-import { ResourceConflictException } from '../common/exceptions/resource-conflict.exception.js';
+import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';
+import { ResourceConflictException } from '../../common/exceptions/resource-conflict.exception.js';
 
 export type GoogleCallbackResult =
   | { status: 'existing'; sessionToken: string }

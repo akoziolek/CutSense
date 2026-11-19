@@ -1,6 +1,6 @@
 import { Controller, Get, Patch, Query, UseGuards, Body } from '@nestjs/common';
 import { UsersService } from './users.service.js';
-import { SessionGuard } from '../../auth/guards/session.guard.js';
+import { SessionGuard } from '../auth/guards/session.guard.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
 import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';

@@ -36,12 +36,12 @@ import {
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
 import { PatternsService } from './patterns.service.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
-import { SessionGuard } from '../../auth/guards/session.guard.js';
+import { SessionGuard } from '../auth/guards/session.guard.js';
 import {
   CreatePatternDto,
   CreatePatternUploadDto,
 } from './dto/create-pattern.dto.js';
-import { OptionalSessionGuard } from '../../auth/guards/optional-session.guard.js';
+import { OptionalSessionGuard } from '../auth/guards/optional-session.guard.js';
 import { OptionalUser } from '../../common/decorators/optional-user.decorator.js';
 import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
 import { PatternTagDto } from './dto/pattern-tag.dto.js';

@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
 import { UsersService } from './users.service.js';
 import { UsersController } from './users.controller.js';
-import { SessionGuard } from '../../auth/guards/session.guard.js';
+import { SessionGuard } from '../auth/guards/session.guard.js';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-
 
 @Module({
   imports: [

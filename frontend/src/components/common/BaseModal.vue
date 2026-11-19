@@ -7,7 +7,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { ref, type ComponentPublicInstance } from 'vue'
 
 // TODO - after PR use only this modal
 interface Props {
@@ -70,8 +69,6 @@ const handleEnterKeyDown = (e: KeyboardEvent) => {
   e.preventDefault()
   emit('confirm', e)
 }
-
-const confirmButton = ref<ComponentPublicInstance | null>(null)
 
 const handleOpenAutoFocus = (event: Event) => {
   if (!props.focusConfirm) return

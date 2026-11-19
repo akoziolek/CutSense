@@ -2,7 +2,7 @@ import { fabrics } from '../../db/schema/schema.js';
 import { FabricListItemDto } from './dto/fabric-list.dto.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
 import { PointDto } from './dto/create-fabric.dto.js';
-import { FabricGeometryDto } from '../optimizations/dto/fabric-geometry.dto.js';
+import { FabricGeometryDto } from './dto/fabric-geometry.dto.js';
 
 interface FabricWithTags {
   id: number;

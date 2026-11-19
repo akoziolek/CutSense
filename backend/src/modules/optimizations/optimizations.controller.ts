@@ -11,7 +11,6 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
   ParseEnumPipe,
   Res,
   StreamableFile,
@@ -28,9 +27,11 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { OptionalSessionGuard } from '../auth/guards/optional-session.guard.js';
-import { SessionGuard } from '../auth/guards/session.guard.js';
 import { OptionalUser } from '../../common/decorators/optional-user.decorator.js';
+import {
+  OptionalAuth,
+  Public,
+} from '../../common/decorators/auth.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
 import { OptimizationsService } from './optimizations.service.js';
@@ -68,6 +69,7 @@ export class OptimizationController {
   ) {}
 
   @Get('algorithms')
+  @Public()
   @ApiOperation({
     summary: 'List available nesting algorithms',
     description:
@@ -79,6 +81,7 @@ export class OptimizationController {
   }
 
   @Get('defaults')
+  @Public()
   @ApiOperation({
     summary: 'Get default optimization parameters',
     description:
@@ -91,7 +94,7 @@ export class OptimizationController {
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  @UseGuards(OptionalSessionGuard)
+  @OptionalAuth()
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Prepare an optimization configuration',
@@ -117,7 +120,7 @@ export class OptimizationController {
 
   @Post('run')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(OptionalSessionGuard)
+  @OptionalAuth()
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Run an optimization',
@@ -139,7 +142,7 @@ export class OptimizationController {
   }
 
   @Get('runs/:runId')
-  @UseGuards(OptionalSessionGuard)
+  @OptionalAuth()
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Get a run that has not been saved yet (or was just saved)',
@@ -158,7 +161,6 @@ export class OptimizationController {
 
   @Post('runs/:runId/save')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionGuard)
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Save a successful run',
@@ -188,7 +190,6 @@ export class OptimizationController {
   }
 
   @Get()
-  @UseGuards(SessionGuard)
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'List saved optimizations of the current user',
@@ -226,7 +227,7 @@ export class OptimizationController {
   }
 
   @Get('runs/:runId/pdf')
-  @UseGuards(OptionalSessionGuard)
+  @OptionalAuth()
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Download optimization run layout as PDF (A4 or 1:1 actual size)',
@@ -242,7 +243,6 @@ export class OptimizationController {
   }
 
   @Get(':id/pdf')
-  @UseGuards(SessionGuard)
   @ApiCookieAuth('session')
   @ApiOperation({
     summary:
@@ -259,7 +259,6 @@ export class OptimizationController {
   }
 
   @Get('filter-options')
-  @UseGuards(SessionGuard)
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Get options for the list filters',
@@ -278,7 +277,6 @@ export class OptimizationController {
 
   // must stay after 'algorithms' and 'defaults'
   @Get(':id')
-  @UseGuards(SessionGuard)
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Get optimization result by ID for visualization',
@@ -313,7 +311,6 @@ export class OptimizationController {
   }
 
   @Patch(':id')
-  @UseGuards(SessionGuard)
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Rename a saved optimization',
@@ -352,7 +349,6 @@ export class OptimizationController {
 
   @Post('bulk-delete')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionGuard)
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Delete several optimizations',
@@ -375,7 +371,6 @@ export class OptimizationController {
   }
 
   @Delete(':id')
-  @UseGuards(SessionGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiCookieAuth('session')
   @ApiOperation({

@@ -1,4 +1,5 @@
 import type { ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthenticationRequiredException } from '../../../common/exceptions/authentication-required.exception.js';
@@ -14,7 +15,7 @@ const profile = { googleId: '123456789', email: 'a@b.pl', name: 'Ala' };
 
 describe('Session and tokens expiration', () => {
   const jwt = new JwtService({ secret: 'test-secret' });
-  const guard = new SessionGuard(jwt);
+  const guard = new SessionGuard(jwt, new Reflector());
   const start = new Date('2026-01-01T12:00:00Z').getTime();
   let service: AuthService;
 
@@ -23,6 +24,8 @@ describe('Session and tokens expiration', () => {
       switchToHttp: () => ({
         getRequest: () => ({ cookies: { session } }),
       }),
+      getHandler: () => () => {},
+      getClass: () => class {},
     }) as unknown as ExecutionContext;
 
   const at = (offsetMs: number) => vi.setSystemTime(new Date(start + offsetMs));

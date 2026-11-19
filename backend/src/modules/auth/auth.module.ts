@@ -6,8 +6,6 @@ import { UsersModule } from '../users/users.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { GoogleStrategy } from './strategies/google.strategy.js';
-import { SessionGuard } from './guards/session.guard.js';
-import { OptionalSessionGuard } from './guards/optional-session.guard.js';
 
 @Module({
   imports: [
@@ -22,7 +20,7 @@ import { OptionalSessionGuard } from './guards/optional-session.guard.js';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, GoogleStrategy, SessionGuard, OptionalSessionGuard],
-  exports: [JwtModule, SessionGuard, OptionalSessionGuard],
+  providers: [AuthService, GoogleStrategy],
+  exports: [JwtModule],
 })
 export class AuthModule {}

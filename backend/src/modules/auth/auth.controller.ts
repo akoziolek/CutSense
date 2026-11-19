@@ -15,6 +15,7 @@ import { AuthService } from './auth.service.js';
 import { GoogleAuthGuard } from './guards/google-auth.guard.js';
 import { GoogleProfile } from './strategies/google.strategy.js';
 import { RegisterDto } from './dto/register.dto.js';
+import { Public } from '../../common/decorators/auth.decorator.js';
 
 const SESSION_MAX_AGE = 7 * 24 * 3600 * 1000;
 const REGISTRATION_MAX_AGE = 15 * 60 * 1000;
@@ -33,6 +34,7 @@ const cookieOpts = (maxAge: number): CookieOptions => ({
 });
 
 @Controller('auth')
+@Public()
 export class AuthController {
   constructor(
     private readonly auth: AuthService,

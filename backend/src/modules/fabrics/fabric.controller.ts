@@ -5,7 +5,6 @@ import {
   ParseIntPipe,
   Post,
   Body,
-  UseGuards,
   UploadedFile,
   UseInterceptors,
   ParseFilePipe,
@@ -36,7 +35,6 @@ import {
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
 import { FabricService } from './fabrics.service.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
-import { SessionGuard } from '../auth/guards/session.guard.js';
 import {
   CreateFabricDto,
   CreateFabricUploadDto,
@@ -55,7 +53,6 @@ import {
 
 @Controller('fabrics')
 @ApiTags('Fabrics')
-@UseGuards(SessionGuard)
 @ApiCookieAuth('session')
 export class FabricController {
   constructor(private readonly fabricService: FabricService) {}

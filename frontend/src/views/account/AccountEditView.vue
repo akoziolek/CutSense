@@ -73,7 +73,7 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
-    await api(`/users/${auth.user?.id}`, {
+    await api(`/users/me`, {
       method: 'PATCH',
       body: JSON.stringify({ nickname: cleanNickname }),
     })

@@ -6,6 +6,8 @@ import { users } from '../../db/schema/schema.js';
 import { ResourceConflictException } from '../../common/exceptions/resource-conflict.exception.js';
 import { UserProfileDto } from './dto/user-profile.dto.js';
 import { UsersMapper } from './users.mapper.js';
+import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
+import { UpdateUserDto } from './dto/update-user.dto.js';
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -51,6 +53,27 @@ export class UsersService {
     try {
       const [user] = await this.db.insert(users).values(data).returning();
       return user;
+    } catch (e) {
+      this.handleUniqueConstraintError(e);
+    }
+  }
+
+  async updateUser(
+    dto: UpdateUserDto,
+    userId: number,
+  ): Promise<UserProfileDto> {
+    try {
+      const [updatedUser] = await this.db
+        .update(users)
+        .set({ nickname: dto.nickname })
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!updatedUser) {
+        throw new ResourceNotFoundException('User not found', userId);
+      }
+
+      return UsersMapper.toProfileDto(updatedUser);
     } catch (e) {
       this.handleUniqueConstraintError(e);
     }

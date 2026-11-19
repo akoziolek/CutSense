@@ -57,7 +57,6 @@ import {
   BulkDeleteResponseDto,
 } from '../../common/dto/bulk-delete.dto.js';
 import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
-import { PatternSize, PatternVisibility } from './dto/pattern.enum.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')

@@ -2,8 +2,7 @@
 import { onMounted, ref, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { ArrowDownWideNarrow, RotateCw, Sparkles, RotateCcw } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
+import { ArrowDownWideNarrow, RotateCw, Sparkles } from 'lucide-vue-next'
 import { Skeleton } from '@/components/ui/skeleton'
 import ErrorState from '@/components/common/ErrorState.vue'
 import SelectableOptionCard from '@/components/common/SelectableOptionCard.vue'
@@ -97,14 +96,14 @@ const handleSubmit = async () => {
       <Skeleton v-for="n in 3" :key="n" class="h-56 w-full rounded-xl" />
     </div>
 
-    <ErrorState v-else-if="error" :title="$t('optimizations.unableToLoadAlgorithms')" :message="error" :code="$t('common.errors.errorCode')">
-      <template #actions>
-        <Button variant="outline" class="rounded-lg gap-2" @click="load">
-          <RotateCcw class="w-4 h-4" />
-          <span>{{ $t('common.actions.tryAgain') }}</span>
-        </Button>
-      </template>
-    </ErrorState>
+    <ErrorState
+      v-else-if="error"
+      :title="$t('optimizations.unableToLoadAlgorithms')"
+      :message="error"
+      :code="$t('common.errors.errorCode')"
+      :retry-label="$t('common.actions.tryAgain')"
+      @retry="load"
+    />
 
     <div
       v-else

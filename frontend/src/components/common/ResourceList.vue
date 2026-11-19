@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
-import { ArrowLeft, RotateCcw, SearchX } from 'lucide-vue-next'
+import { SearchX } from 'lucide-vue-next'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -45,20 +44,15 @@ const gridClass = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
 
     <!-- error -->
     <div v-else-if="error" key="error">
-      <ErrorState :title="`Unable to load ${noun}`" :message="error" code="Error">
-        <template #actions>
-          <Button variant="outline" class="rounded-lg gap-2" @click="emit('retry')">
-            <RotateCcw class="w-4 h-4" />
-            <span>Try again</span>
-          </Button>
-          <Button as-child variant="default" class="rounded-lg gap-2">
-            <RouterLink to="/">
-              <ArrowLeft class="w-4 h-4" />
-              <span>Back to home</span>
-            </RouterLink>
-          </Button>
-        </template>
-      </ErrorState>
+      <ErrorState
+        :title="`Unable to load ${noun}`"
+        :message="error"
+        code="Error"
+        retry-label="Try again"
+        back-label="Back to home"
+        back-to="/"
+        @retry="emit('retry')"
+      />
     </div>
 
     <!-- search or filters match nothing -->

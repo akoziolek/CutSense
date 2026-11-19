@@ -10,8 +10,6 @@ import { api, ApiError } from '@/api/client'
 import FabricForm, { type FabricFormPayload } from '@/components/fabrics/FabricForm.vue'
 import type { FabricResponse } from '@/types/fabric'
 import ErrorState from '@/components/common/ErrorState.vue'
-import { RotateCcw, ArrowLeft } from 'lucide-vue-next'
-import Button from '@/components/ui/button/Button.vue'
 import { useFormDraft } from '@/composables/useFormDraft'
 
 const route = useRoute()
@@ -151,20 +149,15 @@ watch(
         leave-to-class="opacity-0"
       >
         <main v-if="error" key="error">
-          <ErrorState :title="t('fabrics.unableToLoad')" :message="error" :code="t('common.errors.errorCode')">
-            <template #actions>
-              <Button variant="outline" class="rounded-lg gap-2" @click="fetchFabric(fabricId)">
-                <RotateCcw class="w-4 h-4" />
-                <span>{{ t('common.actions.tryAgain') }}</span>
-              </Button>
-              <Button as-child variant="default" class="rounded-lg gap-2">
-                <RouterLink to="/fabrics">
-                  <ArrowLeft class="w-4 h-4" />
-                  <span>{{ t('common.actions.backToFabrics') }}</span>
-                </RouterLink>
-              </Button>
-            </template>
-          </ErrorState>
+          <ErrorState
+            :title="t('fabrics.unableToLoad')"
+            :message="error"
+            :code="t('common.errors.errorCode')"
+            :retry-label="t('common.actions.tryAgain')"
+            :back-label="t('common.actions.backToFabrics')"
+            back-to="/fabrics"
+            @retry="fetchFabric(fabricId)"
+          />
         </main>
 
         <main v-else key="content">

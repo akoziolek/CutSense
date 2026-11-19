@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RouterLink } from 'vue-router'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ImagePreview from '@/components/common/ImagePreview.vue'
 import DetailsCard, { type MetaItem } from '@/components/common/DetailsCard.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
-import { CalendarDays, RulerDimensionLine, ArrowLeft, RotateCcw } from 'lucide-vue-next'
+import { CalendarDays, RulerDimensionLine } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import DetailsActions from '@/components/common/DetailsActions.vue'
 import type { FabricResponse } from '@/types/fabric'
@@ -205,20 +203,15 @@ watch(
         </main>
 
         <main v-else-if="error" key="error">
-          <ErrorState :title="t('fabrics.unableToLoad')" :message="error" :code="t('common.errors.errorCode')">
-            <template #actions>
-              <Button variant="outline" class="rounded-lg gap-2" @click="fetchFabric(props.id)">
-                <RotateCcw class="w-4 h-4" />
-                <span>{{ t('common.actions.tryAgain') }}</span>
-              </Button>
-              <Button as-child variant="default" class="rounded-lg gap-2">
-                <RouterLink to="/fabrics">
-                  <ArrowLeft class="w-4 h-4" />
-                  <span>{{ t('common.actions.backToFabrics') }}</span>
-                </RouterLink>
-              </Button>
-            </template>
-          </ErrorState>
+          <ErrorState
+            :title="t('fabrics.unableToLoad')"
+            :message="error"
+            :code="t('common.errors.errorCode')"
+            :retry-label="t('common.actions.tryAgain')"
+            :back-label="t('common.actions.backToFabrics')"
+            back-to="/fabrics"
+            @retry="fetchFabric(props.id)"
+          />
         </main>
 
         <main

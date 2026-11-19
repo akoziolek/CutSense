@@ -1,21 +1,17 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RouterLink } from 'vue-router'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DetailsCard, { type MetaItem } from '@/components/common/DetailsCard.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
 import {
   CalendarDays,
   RulerDimensionLine,
   Scissors,
   Lock,
   Globe,
-  ArrowLeft,
-  RotateCcw,
   ChevronDown,
 } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
@@ -316,25 +312,11 @@ watch(
             :title="t(isNotFound ? 'patterns.notFound' : 'patterns.unableToLoad')"
             :message="isNotFound ? t('patterns.notFoundMessage') : error"
             :code="t(isNotFound ? 'common.errors.notFoundCode' : 'common.errors.errorCode')"
-          >
-            <template #actions>
-              <Button
-                v-if="!isNotFound"
-                variant="outline"
-                class="rounded-lg gap-2"
-                @click="fetchPattern(props.id)"
-              >
-                <RotateCcw class="w-4 h-4" />
-                <span>{{ t('common.actions.tryAgain') }}</span>
-              </Button>
-              <Button as-child variant="default" class="rounded-lg gap-2">
-                <RouterLink to="/patterns">
-                  <ArrowLeft class="w-4 h-4" />
-                  <span>{{ t('common.actions.backToPatterns') }}</span>
-                </RouterLink>
-              </Button>
-            </template>
-          </ErrorState>
+            :retry-label="isNotFound ? undefined : t('common.actions.tryAgain')"
+            :back-label="t('common.actions.backToPatterns')"
+            back-to="/patterns"
+            @retry="fetchPattern(props.id)"
+          />
         </main>
 
         <main

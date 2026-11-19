@@ -6,7 +6,6 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import FloatingButton from '@/components/common/FloatingButton.vue'
 import OptimizationList from '@/components/optimizations/OptimizationList.vue'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { login, useAuth } from '@/composables/useAuth'
 import { useI18n } from 'vue-i18n'
 

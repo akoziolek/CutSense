@@ -10,8 +10,6 @@ import { api, ApiError } from '@/api/client'
 import PatternForm, { type PatternFormPayload } from '@/components/patterns/PatternForm.vue'
 import { PatternSize, PatternVisibility, type NameTag } from '@/types/patterns'
 import ErrorState from '@/components/common/ErrorState.vue'
-import { RotateCcw, ArrowLeft } from 'lucide-vue-next'
-import Button from '@/components/ui/button/Button.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useFormDraft } from '@/composables/useFormDraft'
 
@@ -182,20 +180,15 @@ watch(
         leave-to-class="opacity-0"
       >
         <main v-if="error" key="error">
-          <ErrorState :title="t('patterns.unableToLoad')" :message="error" :code="t('common.errors.errorCode')">
-            <template #actions>
-              <Button variant="outline" class="rounded-lg gap-2" @click="fetchPattern(patternId)">
-                <RotateCcw class="w-4 h-4" />
-                <span>{{ t('common.actions.tryAgain') }}</span>
-              </Button>
-              <Button as-child variant="default" class="rounded-lg gap-2">
-                <RouterLink to="/patterns">
-                  <ArrowLeft class="w-4 h-4" />
-                  <span>{{ t('common.actions.backToPatterns') }}</span>
-                </RouterLink>
-              </Button>
-            </template>
-          </ErrorState>
+          <ErrorState
+            :title="t('patterns.unableToLoad')"
+            :message="error"
+            :code="t('common.errors.errorCode')"
+            :retry-label="t('common.actions.tryAgain')"
+            :back-label="t('common.actions.backToPatterns')"
+            back-to="/patterns"
+            @retry="fetchPattern(patternId)"
+          />
         </main>
 
         <main v-else key="content">

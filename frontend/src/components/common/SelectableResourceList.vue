@@ -7,7 +7,8 @@ import ListToolbar from '@/components/common/ListToolbar.vue'
 import ListPagination from '@/components/common/ListPagination.vue'
 import ResourceCard from '@/components/common/ResourceCard.vue'
 import ResourceList from '@/components/common/ResourceList.vue'
-import { useListQuery, type SortOption } from '@/composables/useListQuery'
+import { useListQuery } from '@/composables/useListQuery'
+import type { SortOption } from '@/types/common'
 import { usePagedList } from '@/composables/usePagedList'
 
 interface PagedResponse {

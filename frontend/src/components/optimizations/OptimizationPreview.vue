@@ -17,6 +17,8 @@ import {
   Tag,
 } from 'lucide-vue-next'
 import type { Point2D } from '@/types/geometry'
+import type { GeometryOriginMm } from '@/types/geometry'
+import type { PlacedPieceViewItem } from '@/types/optimization'
 import { useNonOverlappingLabels } from '@/composables/useSpatialLabels'
 import { useCanvasViewport } from '@/composables/useCanvasViewport'
 import {
@@ -24,19 +26,9 @@ import {
   offsetPolygonMm,
   buildRulerTicks,
   getFabricOriginMm,
-  type GeometryOriginMm,
   toFabricPercent,
 } from '@/utils/geometry'
 import { getPolygonCentroidPct } from '@/utils/geometry'
-
-export interface PlacedPieceViewItem {
-  id: number
-  patternPieceId?: number
-  pieceNumber?: number
-  isMirrored?: boolean
-  rotationAngle?: number
-  points: [number, number][]
-}
 
 // TODO - display picture, allow moving shapes?
 const props = withDefaults(

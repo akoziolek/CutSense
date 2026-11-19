@@ -16,7 +16,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/api/client'
-import type { FabricListResponse, FabricSort, NameTag } from '@/types/fabric'
+import type { FabricFilters, FabricListResponse, FabricSort } from '@/types/fabric'
+import type { NameTag } from '@/types/common'
 import { formatCardDate } from '@/utils/formatCardDate'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 import { SearchX } from 'lucide-vue-next'
@@ -27,7 +28,6 @@ import {
   filtersToApiParams,
   filtersToQuery,
   areaRangeError,
-  type FabricFilters,
 } from '@/utils/fabricFilters'
 import { useSelection } from '@/composables/useSelection'
 import BulkDeleteControls from '@/components/common/BulkDeleteControls.vue'

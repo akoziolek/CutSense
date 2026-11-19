@@ -10,27 +10,11 @@ import {
 } from '@/components/ui/carousel'
 import ImagePreview from '@/components/common/ImagePreview.vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
-
-export interface PatternPiece {
-  id: number
-  patternImageId: number
-  grainline: number
-  points: [number, number][]
-  normalCount: number
-  mirroredCount: number
-}
-
-export interface PatternImage {
-  id: number
-  url: string
-  imageWidthMm: number
-  imageHeightMm: number
-  orderIndex: number
-}
+import type { PatternCarouselPiece, PatternImage } from '@/types/pattern'
 
 const props = defineProps<{
   images: PatternImage[]
-  pieces: PatternPiece[]
+  pieces: PatternCarouselPiece[]
 }>()
 
 const activeImageShapeMap = ref<Record<number, number | null>>({})

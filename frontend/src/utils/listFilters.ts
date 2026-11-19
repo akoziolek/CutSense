@@ -1,11 +1,5 @@
 import type { LocationQuery } from 'vue-router'
-
-export interface BaseFilters {
-  createdFrom: string // YYYY-MM-DD or ''
-  createdTo: string
-  favouriteOnly: boolean
-  tagIds: number[]
-}
+import type { BaseFilters } from '@/types/common'
 
 export const emptyBaseFilters = (): BaseFilters => ({
   createdFrom: '', createdTo: '', favouriteOnly: false, tagIds: [],
@@ -40,12 +34,6 @@ export const baseToApiParams = (f: BaseFilters): Record<string, string> => {
   if (f.favouriteOnly) params.favourite = 'true'
   if (f.tagIds.length) params.tagIds = f.tagIds.join(',')
   return params
-}
-
-export interface FilterOption {
-  id: number
-  name: string
-  count?: number
 }
 
 export const countActive = (query: Record<string, string | undefined>) =>

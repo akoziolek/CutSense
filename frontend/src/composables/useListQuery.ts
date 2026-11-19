@@ -1,10 +1,6 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-
-export interface SortOption<S extends string> {
-  value: S
-  label: string
-}
+import type { SortOption } from '@/types/common'
 
 export function useListQuery<S extends string>(config: {
   defaultSort: S

@@ -27,19 +27,14 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CheckIcon } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
+import type { FabricFormPayload } from '@/types/fabric'
 import FormFloatingActions from '../forms/FormFloatingActions.vue'
 import Skeleton from '../ui/skeleton/Skeleton.vue'
-import type { NameTag } from '@/types/fabric'
+import type { NameTag } from '@/types/common'
 
 const MAX_NAME_LENGTH = 35
 const MAX_DESC_LENGTH = 400
 const { t } = useI18n()
-
-export interface FabricFormPayload {
-  name: string
-  description?: string
-  tags: NameTag[]
-}
 
 const emit = defineEmits<{
   (e: 'submit', payload: FabricFormPayload): void

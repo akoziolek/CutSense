@@ -1,8 +1,8 @@
-import type { FabricConfig } from '@/stores/addingFabricStore'
+import type { FabricConfig } from '@/types/fabric'
 import type { FabricBoundaryPoint } from '@/types/fabric'
 import type { Point2D } from '@/types/geometry'
 
-export interface PostgisPoint {
+interface PostgisPoint {
   x: number
   y: number
 }

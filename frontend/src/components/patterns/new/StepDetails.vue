@@ -2,7 +2,13 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, ApiError } from '@/api/client'
-import PatternForm, { type PatternFormPayload } from '@/components/patterns/PatternForm.vue'
+import PatternForm from '@/components/patterns/PatternForm.vue'
+import {
+  PATTERN_SIZE,
+  PATTERN_VISIBILITY,
+  type PatternDetails,
+  type PatternFormPayload,
+} from '@/types/pattern'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
 import { useI18n } from 'vue-i18n'
 
@@ -16,14 +22,19 @@ const isSubmitting = ref(false)
 const submitError = ref('')
 const { t } = useI18n()
 
+const isPatternSize = (value: string | undefined): value is PATTERN_SIZE =>
+  value !== undefined && Object.values(PATTERN_SIZE).some((size) => size === value)
+const isPatternVisibility = (value: string | undefined): value is PATTERN_VISIBILITY =>
+  value !== undefined && Object.values(PATTERN_VISIBILITY).some((visibility) => visibility === value)
+
 const saveDetails = async (payload: Partial<PatternFormPayload>) => {
-  const details: Parameters<typeof patternStore.updateDetails>[0] = {
+  const details: Partial<PatternDetails> = {
     name: payload.name,
-    size: payload.size,
     description: payload.description ?? '',
     tags: payload.tags,
   }
-  if (payload.visibility === 'PRIVATE' || payload.visibility === 'PUBLIC') {
+  if (isPatternSize(payload.size)) details.size = payload.size
+  if (isPatternVisibility(payload.visibility)) {
     details.visibility = payload.visibility
   }
 
@@ -38,7 +49,11 @@ const handleSubmit = async (payload: PatternFormPayload) => {
   if (isSubmitting.value) return
   submitError.value = ''
 
-  if (payload.visibility !== 'PRIVATE' && payload.visibility !== 'PUBLIC') {
+  if (!isPatternSize(payload.size)) {
+    submitError.value = t('patterns.submitSizeError')
+    return
+  }
+  if (!isPatternVisibility(payload.visibility)) {
     submitError.value = t('patterns.submitVisibilityError')
     return
   }

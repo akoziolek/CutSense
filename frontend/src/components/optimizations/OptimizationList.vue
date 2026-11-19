@@ -17,7 +17,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api, ApiError } from '@/api/client'
-import { useListQuery, type SortOption } from '@/composables/useListQuery'
+import { useListQuery } from '@/composables/useListQuery'
+import type { SortOption } from '@/types/common'
 import { usePagedList } from '@/composables/usePagedList'
 import { useSelection } from '@/composables/useSelection'
 import { formatCardDate } from '@/utils/formatCardDate'
@@ -27,10 +28,10 @@ import {
   filtersFromQuery,
   filtersToApiParams,
   filtersToQuery,
-  type OptimizationFilters,
 } from '@/utils/optimizationFilters'
 import type {
   OptimizationFilterOptions,
+  OptimizationFilters,
   OptimizationListItem,
   OptimizationListResponse,
   OptimizationSort,

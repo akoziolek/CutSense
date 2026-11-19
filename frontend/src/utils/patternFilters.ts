@@ -1,18 +1,13 @@
 import type { LocationQuery } from 'vue-router'
-import { PATTERN_SIZES, type PatternSize } from '@/types/pattern'
+import { PATTERN_SIZE } from '@/types/pattern'
 import {
   baseFromQuery,
   baseToApiParams,
   baseToQuery,
   countActive,
   emptyBaseFilters,
-  type BaseFilters,
 } from './listFilters'
-
-export interface PatternFilters extends BaseFilters {
-  sizes: PatternSize[]
-  communityOnly: boolean
-}
+import type { PatternFilters } from '@/types/pattern'
 
 export const emptyFilters = (): PatternFilters => ({
   ...emptyBaseFilters(),
@@ -20,10 +15,10 @@ export const emptyFilters = (): PatternFilters => ({
   communityOnly: false,
 })
 
-const asSizes = (v: unknown): PatternSize[] => {
+const asSizes = (v: unknown): PATTERN_SIZE[] => {
   if (typeof v !== 'string') return []
   const wanted = new Set(v.split(','))
-  return PATTERN_SIZES.filter((s) => wanted.has(s))
+  return Object.values(PATTERN_SIZE).filter((s) => wanted.has(s))
 }
 
 export const filtersFromQuery = (query: LocationQuery): PatternFilters => ({

@@ -1,13 +1,12 @@
 import type { LocationQuery } from 'vue-router'
 import {
-  baseFromQuery, baseToApiParams, baseToQuery, countActive, emptyBaseFilters, type BaseFilters,
+  baseFromQuery,
+  baseToApiParams,
+  baseToQuery,
+  countActive,
+  emptyBaseFilters,
 } from './listFilters'
-
-export interface OptimizationFilters extends BaseFilters {
-  patternIds: number[]
-  fabricIds: number[]
-  algorithmIds: number[]
-}
+import type { OptimizationFilters } from '@/types/optimization'
 
 const asIds = (v: unknown): number[] =>
   typeof v !== 'string'
@@ -17,7 +16,10 @@ const asIds = (v: unknown): number[] =>
 const join = (ids: number[]) => (ids.length ? ids.join(',') : undefined)
 
 export const emptyFilters = (): OptimizationFilters => ({
-  ...emptyBaseFilters(), patternIds: [], fabricIds: [], algorithmIds: [],
+  ...emptyBaseFilters(),
+  patternIds: [],
+  fabricIds: [],
+  algorithmIds: [],
 })
 
 export const filtersFromQuery = (query: LocationQuery): OptimizationFilters => ({

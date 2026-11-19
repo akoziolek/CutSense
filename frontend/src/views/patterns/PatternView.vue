@@ -3,7 +3,8 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
-import DetailsCard, { type MetaItem } from '@/components/common/DetailsCard.vue'
+import DetailsCard from '@/components/common/DetailsCard.vue'
+import type { MetaItem } from '@/types/details'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -15,10 +16,9 @@ import {
   ChevronDown,
 } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
-import PatternPiecesCarousel, {
-  type PatternPiece,
-} from '@/components/patterns/PatternPiecesCarousel.vue'
-import type { NameTag } from '@/types/fabric'
+import PatternPiecesCarousel from '@/components/patterns/PatternPiecesCarousel.vue'
+import type { PatternCarouselPiece, PatternImage } from '@/types/pattern'
+import type { NameTag } from '@/types/common'
 import DetailsActions from '@/components/common/DetailsActions.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
@@ -26,11 +26,7 @@ import FavouriteButton from '@/components/common/FavouriteButton.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
 import { useDeleteResource } from '@/composables/useDeleteResource'
 import PatternPieceCard from '@/components/patterns/PatternPieceCard.vue'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 
@@ -48,14 +44,8 @@ interface Pattern {
   tags: NameTag[]
   createdAt: string
   author: { id: number; nickname: string }
-  pieces: PatternPiece[]
-  images: {
-    id: number
-    url: string
-    imageWidthMm: number
-    imageHeightMm: number
-    orderIndex: number
-  }[]
+  pieces: PatternCarouselPiece[]
+  images: PatternImage[]
   isFavourite: boolean
 }
 
@@ -341,7 +331,9 @@ watch(
               <CollapsibleTrigger
                 class="group flex cursor-pointer items-center gap-2 rounded-md text-lg font-bold font-inter text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <ChevronDown class="size-5 transition-transform group-data-[state=closed]:-rotate-90" />
+                <ChevronDown
+                  class="size-5 transition-transform group-data-[state=closed]:-rotate-90"
+                />
                 <span>Pattern pieces ({{ pattern.pieces.length }})</span>
               </CollapsibleTrigger>
               <div class="flex flex-wrap items-center gap-x-5 gap-y-2">

@@ -7,8 +7,10 @@ import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api, ApiError } from '@/api/client'
-import PatternForm, { type PatternFormPayload } from '@/components/patterns/PatternForm.vue'
-import { PatternSize, PatternVisibility, type NameTag } from '@/types/patterns'
+import PatternForm from '@/components/patterns/PatternForm.vue'
+import type { PatternFormPayload } from '@/types/pattern'
+import { PATTERN_SIZE, PATTERN_VISIBILITY } from '@/types/pattern'
+import type { NameTag } from '@/types/common'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useFormDraft } from '@/composables/useFormDraft'
@@ -17,10 +19,10 @@ interface Pattern {
   id: number
   userId?: number
   name: string
-  size: PatternSize | string
+  size: PATTERN_SIZE | string
   description?: string
   tags: NameTag[]
-  visibility: PatternVisibility | string
+  visibility: PATTERN_VISIBILITY | string
 }
 
 const route = useRoute()
@@ -77,8 +79,7 @@ const fetchPattern = async (id: number, activeSignal = { active: true }) => {
       const isOwner = result.userId && currentUserId ? result.userId === currentUserId : false
 
       if (!isOwner) {
-        if (result.visibility === PatternVisibility.PUBLIC)
-          error.value = t('patterns.noEditAccess')
+        if (result.visibility === PATTERN_VISIBILITY.PUBLIC) error.value = t('patterns.noEditAccess')
         else error.value = t('patterns.loadFailed')
         return
       }
@@ -91,7 +92,7 @@ const fetchPattern = async (id: number, activeSignal = { active: true }) => {
         size: result.size,
         description: result.description ?? '',
         tags: result.tags ?? [],
-        visibility: result.visibility ?? PatternVisibility.PRIVATE,
+        visibility: result.visibility ?? PATTERN_VISIBILITY.PRIVATE,
       }
     }
   } catch (e) {
@@ -99,8 +100,7 @@ const fetchPattern = async (id: number, activeSignal = { active: true }) => {
       if (e instanceof ApiError && e.status === 403) {
         error.value = t('patterns.loadFailed')
       } else {
-        error.value =
-          e instanceof ApiError ? e.body.message : t('patterns.loadFailed')
+        error.value = e instanceof ApiError ? e.body.message : t('patterns.loadFailed')
       }
     }
   } finally {
@@ -143,8 +143,7 @@ const handleSubmit = async (payload: PatternFormPayload) => {
     confirmExit()
   } catch (e) {
     console.error('Failed to update pattern:', e)
-    submitError.value =
-      e instanceof ApiError ? e.body.message : t('patterns.updateFailed')
+    submitError.value = e instanceof ApiError ? e.body.message : t('patterns.updateFailed')
   } finally {
     isSubmitting.value = false
   }

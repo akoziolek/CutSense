@@ -4,7 +4,8 @@ import { useRouter } from 'vue-router'
 import { api, ApiError } from '@/api/client'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
 import { toPostgisBoundary } from '@/utils/fabricBoundary'
-import FabricForm, { type FabricFormPayload } from '@/components/fabrics/FabricForm.vue'
+import FabricForm from '@/components/fabrics/FabricForm.vue'
+import type { FabricFormPayload } from '@/types/fabric'
 import { useI18n } from 'vue-i18n'
 
 const emit = defineEmits<{

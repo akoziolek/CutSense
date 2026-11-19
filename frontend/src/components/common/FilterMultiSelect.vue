@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Check, ChevronDown, Search, X } from 'lucide-vue-next'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import type { FilterOption } from '@/utils/listFilters'
+import type { FilterOption } from '@/types/common'
 
 const props = defineProps<{
   options: FilterOption[]

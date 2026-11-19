@@ -17,14 +17,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/api/client'
-import {
-  PATTERN_SIZES,
-  type PatternListItem,
-  type PatternListResponse,
-  type PatternSize,
-  type PatternSort,
+import type {
+  PatternListItem,
+  PatternFilters,
+  PatternListResponse,
+  PatternSort,
 } from '@/types/pattern'
-import type { NameTag } from '@/types/fabric'
+import { PATTERN_SIZE } from '@/types/pattern'
+import type { NameTag } from '@/types/common'
 import { formatCardDate } from '@/utils/formatCardDate'
 import {
   countActiveFilters,
@@ -32,7 +32,6 @@ import {
   filtersFromQuery,
   filtersToApiParams,
   filtersToQuery,
-  type PatternFilters,
 } from '@/utils/patternFilters'
 import { useAuth } from '@/composables/useAuth'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
@@ -87,11 +86,11 @@ const hasActiveFilters = computed(() => countActiveFilters(filters.value) > 0)
 const applyFilters = (next: PatternFilters) =>
   router.push({ query: { ...route.query, ...filtersToQuery(next), page: undefined } })
 
-const toggleSize = (draft: PatternFilters, size: PatternSize) => {
+const toggleSize = (draft: PatternFilters, size: PATTERN_SIZE) => {
   const next = new Set(draft.sizes)
   if (next.has(size)) next.delete(size)
   else next.add(size)
-  draft.sizes = PATTERN_SIZES.filter((s) => next.has(s))
+  draft.sizes = Object.values(PATTERN_SIZE).filter((s) => next.has(s))
 }
 
 const availableTags = ref<NameTag[]>([])
@@ -106,8 +105,7 @@ const loadTags = async () => {
     availableTags.value = await api<NameTag[]>('/patterns/tags')
     tagsLoaded.value = true
   } catch (e) {
-    tagsError.value =
-      e instanceof ApiError ? e.body.message : t('common.errors.tagsLoadFailed')
+    tagsError.value = e instanceof ApiError ? e.body.message : t('common.errors.tagsLoadFailed')
   } finally {
     tagsLoading.value = false
   }
@@ -220,8 +218,7 @@ const fetchPatterns = async (activeSignal = { active: true }) => {
     data.value = result
   } catch (e) {
     if (activeSignal.active) {
-      error.value =
-        e instanceof ApiError ? e.body.message : t('patterns.loadFailed')
+      error.value = e instanceof ApiError ? e.body.message : t('patterns.loadFailed')
     }
   } finally {
     if (activeSignal.active) {
@@ -307,7 +304,7 @@ watch(
             <FilterSection :title="t('common.filters.size')" :default-open="true">
               <div class="flex flex-wrap gap-1.5">
                 <button
-                  v-for="size in PATTERN_SIZES"
+                  v-for="size in PATTERN_SIZE"
                   :key="size"
                   type="button"
                   class="cursor-pointer rounded-md border px-2.5 py-1 text-xs hover:bg-brand-green hover:text-brand-green-foreground"
@@ -366,7 +363,7 @@ watch(
         </div>
 
         <!-- search or filters match nothing -->
-         <div
+        <div
           v-else-if="data && data.total === 0 && hasActiveCriteria"
           key="no-match"
           class="flex flex-col items-center justify-center gap-2 py-20 text-center"

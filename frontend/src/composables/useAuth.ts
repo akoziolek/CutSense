@@ -1,12 +1,7 @@
 import { reactive, readonly } from 'vue'
 import { api, ApiError, googleLoginUrl, UNAUTHORIZED_EVENT } from '../api/client'
+import type { CurrentUser } from '@/types/auth'
 import { clearReturnTo, rememberReturnTo } from '../utils/returnTo'
-
-export interface CurrentUser {
-  id: number
-  nickname: string | null
-  email: string
-}
 
 const state = reactive<{ user: CurrentUser | null; loaded: boolean }>({
   user: null,

@@ -7,10 +7,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import type { NameTag } from '@/types/fabric'
+import type { NameTag } from '@/types/common'
+import type { BaseFilters } from '@/types/common'
 import FilterSection from '@/components/common/FilterSection.vue'
 import FilterMultiSelect from '@/components/common/FilterMultiSelect.vue'
-import { type BaseFilters } from '@/utils/listFilters'
 
 const props = withDefaults(
   defineProps<{

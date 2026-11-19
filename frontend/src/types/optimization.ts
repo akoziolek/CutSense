@@ -1,15 +1,17 @@
-import type { FilterOption } from '@/utils/listFilters'
+import type { BaseFilters, FilterOption, NamedItem, PaginatedResponse } from './common'
+import type { PatternImage, PatternPieceDefinition } from './pattern'
+
+export interface OptimizationFilters extends BaseFilters {
+  patternIds: number[]
+  fabricIds: number[]
+  algorithmIds: number[]
+}
 
 export type FabricSource = 'custom' | 'library'
 
-export interface SelectedItem {
-  id: number
-  name: string
-}
+export type SelectedItem = NamedItem
 
-export interface OptimizationAlgorithm {
-  id: number
-  name: string
+export interface OptimizationAlgorithm extends NamedItem {
   description?: string
 }
 
@@ -18,28 +20,14 @@ export interface OptimizationDefaults {
   cuttingAllowanceMm: number
 }
 
-export interface PatternPieceDefaults {
-  id: number
-  patternImageId: number
-  points: [number, number][]
-  normalCount: number
-  mirroredCount: number
-}
-
-export interface PatternImageDetails {
-  id: number
-  url: string
-  imageWidthMm: number
-  imageHeightMm: number
-  orderIndex: number
-}
+export type PatternPieceDefaults = PatternPieceDefinition
 
 export interface PatternDetails {
   id: number
   name: string
   size: string
   pieces: PatternPieceDefaults[]
-  images: PatternImageDetails[]
+  images: PatternImage[]
 }
 
 export interface OptimizationPieceConfig {
@@ -83,6 +71,15 @@ export interface OptimizationPlacement {
   polygon: [number, number][]
 }
 
+export interface PlacedPieceViewItem {
+  id: number
+  patternPieceId?: number
+  pieceNumber?: number
+  isMirrored?: boolean
+  rotationAngle?: number
+  points: [number, number][]
+}
+
 export interface OptimizationView {
   runId?: string
   id?: number
@@ -112,9 +109,7 @@ export interface OptimizationView {
   placements: OptimizationPlacement[]
 }
 
-export interface OptimizationListItem {
-  id: number
-  name: string
+export interface OptimizationListItem extends NamedItem {
   createdAt: string
   patternId: number
   patternName: string
@@ -123,13 +118,7 @@ export interface OptimizationListItem {
   minLengthMm: number
 }
 
-export interface OptimizationListResponse {
-  items: OptimizationListItem[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
-}
+export type OptimizationListResponse = PaginatedResponse<OptimizationListItem>
 
 export type OptimizationSortField = 'name' | 'date' | 'pattern' | 'fabric' | 'algorithm'
 export type OptimizationSort = `${OptimizationSortField}_${'asc' | 'desc'}`

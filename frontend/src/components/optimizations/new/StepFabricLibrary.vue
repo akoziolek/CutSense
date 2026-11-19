@@ -9,9 +9,10 @@ import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import FilterSection from '@/components/common/FilterSection.vue'
 import ListFilterPopover from '@/components/common/ListFilterPopover.vue'
 import SelectableResourceList from '@/components/common/SelectableResourceList.vue'
-import type { SortOption } from '@/composables/useListQuery'
+import type { SortOption } from '@/types/common'
 import { api, ApiError } from '@/api/client'
-import type { FabricListItem, FabricSort, NameTag } from '@/types/fabric'
+import type { FabricFilters, FabricListItem, FabricSort } from '@/types/fabric'
+import type { NameTag } from '@/types/common'
 import { formatCardDate } from '@/utils/formatCardDate'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { useRoute, useRouter } from 'vue-router'
@@ -22,7 +23,6 @@ import {
   filtersFromQuery,
   filtersToApiParams,
   filtersToQuery,
-  type FabricFilters,
 } from '@/utils/fabricFilters'
 
 const emit = defineEmits<{
@@ -130,7 +130,8 @@ const getImage = (fabric: FabricListItem) => fabric.pictureUrl
                     />
                     <span
                       class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground"
-                    >m²</span>
+                      >m²</span
+                    >
                   </div>
                 </label>
                 <label class="space-y-1 text-xs">
@@ -146,7 +147,8 @@ const getImage = (fabric: FabricListItem) => fabric.pictureUrl
                     />
                     <span
                       class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground"
-                    >m²</span>
+                      >m²</span
+                    >
                   </div>
                 </label>
               </div>
@@ -161,7 +163,9 @@ const getImage = (fabric: FabricListItem) => fabric.pictureUrl
           {{ $t('optimizations.noFabricsDescription') }}
         </p>
         <Button as-child size="sm" class="mt-2 rounded-lg">
-          <RouterLink :to="{ name: 'AddFabric' }">{{ $t('optimizations.addFirstFabric') }}</RouterLink>
+          <RouterLink :to="{ name: 'AddFabric' }">{{
+            $t('optimizations.addFirstFabric')
+          }}</RouterLink>
         </Button>
       </template>
     </SelectableResourceList>

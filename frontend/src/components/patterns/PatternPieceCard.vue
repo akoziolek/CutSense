@@ -4,11 +4,11 @@ import { ArrowUp, Copy, FlipHorizontal2 } from 'lucide-vue-next'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import PatternPiecePreview from '@/components/patterns/PatternPiecePreview.vue'
-import type { PatternPiece } from '@/components/patterns/PatternPiecesCarousel.vue'
+import type { PatternCarouselPiece } from '@/types/pattern'
 import type { PieceImageSource, Point2D } from '@/types/geometry'
 
 const props = defineProps<{
-  piece: PatternPiece
+  piece: PatternCarouselPiece
   label: string
   image?: PieceImageSource
   showDimensions?: boolean

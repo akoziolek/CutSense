@@ -1,16 +1,5 @@
-import type { Point2D } from '@/types/geometry'
+import type { GeometryBoundsMm, GeometryOriginMm, Point2D } from '@/types/geometry'
 import { Clipper, JoinType, EndType, type Path64, type Point64 } from 'clipper2-ts'
-
-export interface GeometryOriginMm {
-  minX: number
-  minY: number
-}
-
-export interface GeometryBoundsMm {
-  originMm: GeometryOriginMm
-  widthMm: number
-  heightMm: number
-}
 
 export const toSvgPoints = (points: Point2D[]): string =>
   points.map((p) => `${p.pctX},${p.pctY}`).join(' ')

@@ -4,8 +4,8 @@ import { sql } from 'drizzle-orm';
 import {
   StoragePaths,
   StorageService,
-} from '../../../modules/storage/storage.service.js';
-import * as schema from '../../schema/schema.js';
+} from '../../modules/storage/storage.service.js';
+import * as schema from '../../db/schema/schema.js';
 import {
   fabricTemplates,
   SEED_FABRIC_BOUNDARIES,

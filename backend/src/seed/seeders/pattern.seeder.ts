@@ -4,8 +4,8 @@ import { eq, sql } from 'drizzle-orm';
 import {
   StoragePaths,
   StorageService,
-} from '../../../modules/storage/storage.service.js';
-import * as schema from '../../schema/schema.js';
+} from '../../modules/storage/storage.service.js';
+import * as schema from '../../db/schema/schema.js';
 import {
   patternTemplates,
   SEED_PATTERN_PIECES_BY_SHEET,

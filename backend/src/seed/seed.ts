@@ -2,9 +2,9 @@ import 'dotenv/config';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { NestFactory } from '@nestjs/core';
-import { StorageService } from '../../modules/storage/storage.service.js';
-import { DRIZZLE } from '../drizzle.provider.js';
-import * as schema from '../schema/schema.js';
+import { StorageService } from '../modules/storage/storage.service.js';
+import { DRIZZLE } from '../db/drizzle.provider.js';
+import * as schema from '../db/schema/schema.js';
 import { SeedModule } from './seed.module.js';
 
 import { seedDictionaries } from './seeders/dictionary.seeder.js';

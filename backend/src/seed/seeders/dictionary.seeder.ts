@@ -1,4 +1,4 @@
-import * as schema from '../../schema/schema.js';
+import * as schema from '../../db/schema/schema.js';
 import {
   algorithmSeeds,
   fabricTagNames,

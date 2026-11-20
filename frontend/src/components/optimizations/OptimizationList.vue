@@ -2,7 +2,17 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Pencil, Sparkles, Trash2, Upload } from 'lucide-vue-next'
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Sparkles,
+  Trash2,
+  Upload,
+} from 'lucide-vue-next'
 import ListToolbar from '@/components/common/ListToolbar.vue'
 import ListFilterPopover from '@/components/common/ListFilterPopover.vue'
 import FilterSection from '@/components/common/FilterSection.vue'
@@ -15,7 +25,14 @@ import SaveOptimizationModal from '@/components/optimizations/SaveOptimizationMo
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { api, ApiError } from '@/api/client'
 import { useListQuery } from '@/composables/useListQuery'
 import type { SortOption } from '@/types/common'
@@ -28,7 +45,7 @@ import {
   filtersFromQuery,
   filtersToApiParams,
   filtersToQuery,
-} from '@/utils/optimizationFilters'
+} from '@/utils/filters/optimizationFilters'
 import type {
   OptimizationFilterOptions,
   OptimizationFilters,
@@ -60,8 +77,17 @@ const SORT_OPTIONS: SortOption<OptimizationSort>[] = COLUMNS.flatMap(({ field })
 )
 
 const {
-  page, sort, search, searchMax, sortModel, goToPage, applyQuery,
-  searchInput, flushSearch, clearSearch, resetCriteria,
+  page,
+  sort,
+  search,
+  searchMax,
+  sortModel,
+  goToPage,
+  applyQuery,
+  searchInput,
+  flushSearch,
+  clearSearch,
+  resetCriteria,
 } = useListQuery<OptimizationSort>({ defaultSort: 'date_desc', sortOptions: SORT_OPTIONS })
 
 // ---------- sorting by column headers ----------
@@ -70,8 +96,12 @@ const activeDir = computed(() => sort.value.split('_')[1] as 'asc' | 'desc')
 const toggleSort = (field: OptimizationSortField) => {
   const dir =
     activeField.value === field
-      ? activeDir.value === 'asc' ? 'desc' : 'asc'
-      : field === 'date' ? 'desc' : 'asc'
+      ? activeDir.value === 'asc'
+        ? 'desc'
+        : 'asc'
+      : field === 'date'
+        ? 'desc'
+        : 'asc'
   sortModel.value = `${field}_${dir}` as OptimizationSort
 }
 
@@ -194,8 +224,7 @@ const handleRename = async (name: string) => {
     editTarget.value = null
     await refetch()
   } catch (e) {
-    renameError.value =
-      e instanceof ApiError ? e.body.message : t('optimizations.updateFailed')
+    renameError.value = e instanceof ApiError ? e.body.message : t('optimizations.updateFailed')
   } finally {
     isRenaming.value = false
   }
@@ -257,7 +286,9 @@ const handleRename = async (name: string) => {
               :title="sectionTitle(t('optimizations.list.algorithm'), draft.algorithmIds.length)"
               :default-open="false"
             >
-              <p v-if="optionsError" class="text-xs text-destructive" role="alert">{{ optionsError }}</p>
+              <p v-if="optionsError" class="text-xs text-destructive" role="alert">
+                {{ optionsError }}
+              </p>
               <div class="space-y-2">
                 <div
                   v-for="algorithm in options?.algorithms ?? []"
@@ -267,9 +298,14 @@ const handleRename = async (name: string) => {
                   <Checkbox
                     :id="`filter-algorithm-${algorithm.id}`"
                     :model-value="draft.algorithmIds.includes(algorithm.id)"
-                    @update:model-value="draft.algorithmIds = toggleId(draft.algorithmIds, algorithm.id)"
+                    @update:model-value="
+                      draft.algorithmIds = toggleId(draft.algorithmIds, algorithm.id)
+                    "
                   />
-                  <Label :for="`filter-algorithm-${algorithm.id}`" class="cursor-pointer text-xs font-normal">
+                  <Label
+                    :for="`filter-algorithm-${algorithm.id}`"
+                    class="cursor-pointer text-xs font-normal"
+                  >
                     {{ algorithm.name }}
                   </Label>
                 </div>
@@ -391,7 +427,10 @@ const handleRename = async (name: string) => {
       </div>
 
       <template #footer>
-        <div v-if="data && data.totalPages > 1" class="flex items-center justify-center gap-6 text-sm">
+        <div
+          v-if="data && data.totalPages > 1"
+          class="flex items-center justify-center gap-6 text-sm"
+        >
           <Button
             variant="ghost"
             size="icon"
@@ -420,7 +459,11 @@ const handleRename = async (name: string) => {
       :success-open="successOpen"
       :is-deleting="isDeleting"
       :error="deleteError"
-      :title="t('optimizations.list.deleteTitle', { name: target?.name ?? t('optimizations.list.thisOptimization') })"
+      :title="
+        t('optimizations.list.deleteTitle', {
+          name: target?.name ?? t('optimizations.list.thisOptimization'),
+        })
+      "
       :description="t('optimizations.list.deleteDescription')"
       :success-title="t('optimizations.list.deleted')"
       :success-description="t('optimizations.list.deletedDescription')"

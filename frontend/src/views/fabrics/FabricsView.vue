@@ -28,7 +28,7 @@ import {
   filtersToApiParams,
   filtersToQuery,
   areaRangeError,
-} from '@/utils/fabricFilters'
+} from '@/utils/filters/fabricFilters'
 import { useSelection } from '@/composables/useSelection'
 import BulkDeleteControls from '@/components/common/BulkDeleteControls.vue'
 

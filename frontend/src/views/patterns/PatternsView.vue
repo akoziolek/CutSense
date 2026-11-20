@@ -32,7 +32,7 @@ import {
   filtersFromQuery,
   filtersToApiParams,
   filtersToQuery,
-} from '@/utils/patternFilters'
+} from '@/utils/filters/patternFilters'
 import { useAuth } from '@/composables/useAuth'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 import { useSelection } from '@/composables/useSelection'

@@ -23,7 +23,7 @@ import {
   filtersFromQuery,
   filtersToApiParams,
   filtersToQuery,
-} from '@/utils/fabricFilters'
+} from '@/utils/filters/fabricFilters'
 
 const emit = defineEmits<{
   (e: 'next'): void

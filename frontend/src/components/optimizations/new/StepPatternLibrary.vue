@@ -26,7 +26,7 @@ import {
   filtersFromQuery,
   filtersToApiParams,
   filtersToQuery,
-} from '@/utils/patternFilters'
+} from '@/utils/filters/patternFilters'
 import { useAuth } from '@/composables/useAuth'
 
 const emit = defineEmits<{

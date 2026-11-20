@@ -26,7 +26,7 @@ import {
   filtersToQuery,
 } from '@/utils/filters/patternFilters'
 import { useAuth } from '@/stores/authStore'
-import { useResourceTags } from '@/composables/useResourceTags'
+import { useResourceTags } from '@/composables/resources/useResourceTags'
 
 const emit = defineEmits<{
   (e: 'next'): void

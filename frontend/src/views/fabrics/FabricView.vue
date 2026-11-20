@@ -14,10 +14,10 @@ import DetailsActions from '@/components/common/DetailsActions.vue'
 import type { FabricResponse } from '@/types/fabric'
 import type { PolygonEdge } from '@/types/geometry'
 import { getPolygonEdges, toImagePercentBoundary } from '@/utils/geometry'
-import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
+import { useFavouriteToggle } from '@/composables/resources/useFavouriteToggle'
 import FavouriteButton from '@/components/common/FavouriteButton.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
-import { useDeleteResource } from '@/composables/useDeleteResource'
+import { useDeleteResource } from '@/composables/resources/useDeleteResource'
 
 const props = defineProps<{ id: string }>()
 const { t } = useI18n()
@@ -55,11 +55,7 @@ const normalizedShapes = computed(() => {
   const currentFabric = fabric.value
   const imageWidthMm = currentFabric?.imageWidthMm
   const imageHeightMm = currentFabric?.imageHeightMm
-  if (
-    !currentFabric ||
-    imageWidthMm === undefined ||
-    imageHeightMm === undefined
-  ) {
+  if (!currentFabric || imageWidthMm === undefined || imageHeightMm === undefined) {
     return []
   }
 
@@ -72,11 +68,7 @@ const normalizedPoints = computed(() => normalizedShapes.value[0] ?? [])
 
 const edges = computed<PolygonEdge[]>(() => {
   const pts = normalizedPoints.value
-  return getPolygonEdges(
-    pts,
-    fabric.value?.imageWidthMm ?? 0,
-    fabric.value?.imageHeightMm ?? 0,
-  )
+  return getPolygonEdges(pts, fabric.value?.imageWidthMm ?? 0, fabric.value?.imageHeightMm ?? 0)
 })
 
 const metaItems = computed<MetaItem[]>(() =>
@@ -114,8 +106,7 @@ const fetchFabric = async (id: string, activeSignal = { active: true }) => {
     if (activeSignal.active) fabric.value = result
   } catch (e) {
     if (activeSignal.active) {
-      error.value =
-        e instanceof ApiError ? e.body.message : t('fabrics.loadFailed')
+      error.value = e instanceof ApiError ? e.body.message : t('fabrics.loadFailed')
     }
   } finally {
     if (activeSignal.active) {
@@ -154,9 +145,9 @@ watch(
               :disabled="pending.has(fabric.id)"
               @toggle="toggleFavourite(fabric)"
             />
-            <DetailsActions 
-              :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" 
-              @delete="requestDelete"  
+            <DetailsActions
+              :edit-to="{ name: 'FabricEdit', params: { id: props.id } }"
+              @delete="requestDelete"
             />
           </div>
         </template>

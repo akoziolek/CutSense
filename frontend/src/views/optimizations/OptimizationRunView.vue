@@ -35,7 +35,7 @@ import {
 } from 'lucide-vue-next'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { login, useAuth } from '@/stores/authStore'
-import { useDeleteResource } from '@/composables/useDeleteResource'
+import { useDeleteResource } from '@/composables/resources/useDeleteResource'
 import { getGeometryBoundsMm } from '@/utils/geometry'
 import {
   DropdownMenu,

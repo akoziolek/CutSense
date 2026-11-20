@@ -30,7 +30,7 @@ import type { FabricFormPayload } from '@/types/fabric'
 import FormFloatingActions from '../forms/FormFloatingActions.vue'
 import Skeleton from '../ui/skeleton/Skeleton.vue'
 import type { NameTag } from '@/types/common'
-import { useResourceTags } from '@/composables/useResourceTags.ts'
+import { useResourceTags } from '@/composables/resources/useResourceTags.ts'
 
 const MAX_NAME_LENGTH = 35
 const MAX_DESC_LENGTH = 400

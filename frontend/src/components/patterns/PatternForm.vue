@@ -41,7 +41,7 @@ import SelectGroup from '../ui/select/SelectGroup.vue'
 import SelectLabel from '../ui/select/SelectLabel.vue'
 import RadioGroup from '../ui/radio-group/RadioGroup.vue'
 import RadioGroupItem from '../ui/radio-group/RadioGroupItem.vue'
-import { useResourceTags } from '@/composables/useResourceTags.ts'
+import { useResourceTags } from '@/composables/resources/useResourceTags.ts'
 
 const SIZES = Object.values(PATTERN_SIZE)
 const MAX_NAME_LENGTH = 35
@@ -83,9 +83,11 @@ const description = ref(props.description)
 const visibility = ref(props.visibility)
 
 const selectedTagNames = ref<string[]>(props.tags ? props.tags.map((tag) => tag.name) : [])
-const { tags: availableTags, error: tagLoadError, loadTags: loadAvailableTags } =
-  useResourceTags('/patterns/tags', 'patterns.tagLoadError')
-
+const {
+  tags: availableTags,
+  error: tagLoadError,
+  loadTags: loadAvailableTags,
+} = useResourceTags('/patterns/tags', 'patterns.tagLoadError')
 
 const knownTagsMap = computed(() => {
   const map = new Map<string, NameTag>()

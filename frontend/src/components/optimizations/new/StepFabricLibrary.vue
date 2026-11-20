@@ -22,7 +22,7 @@ import {
   filtersToApiParams,
   filtersToQuery,
 } from '@/utils/filters/fabricFilters'
-import { useResourceTags } from '@/composables/useResourceTags'
+import { useResourceTags } from '@/composables/resources/useResourceTags'
 
 const emit = defineEmits<{
   (e: 'next'): void

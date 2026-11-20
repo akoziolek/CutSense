@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
-import { useSpatialWorkspace } from '@/composables/useSpatialWorkspace'
+import { useSpatialWorkspace } from '@/composables/spatial/useSpatialWorkspace'
 import SpatialWorkspace from '@/components/spatial/SpatialWorkspace.vue'
 import PatternConfigSidebar from '@/components/patterns/new/PatternConfigSidebar.vue'
 import PatternPhotosSidebar from '@/components/patterns/new/PatternPhotosSidebar.vue'

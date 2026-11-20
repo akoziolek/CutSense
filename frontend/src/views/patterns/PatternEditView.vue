@@ -3,7 +3,7 @@ import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
 import { useRoute } from 'vue-router'
-import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
+import { useUnsavedChangesGuard } from '@/composables/forms/useUnsavedChangesGuard'
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api, ApiError } from '@/api/client'
@@ -13,7 +13,7 @@ import { PATTERN_SIZE, PATTERN_VISIBILITY } from '@/types/pattern'
 import type { NameTag } from '@/types/common'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { useAuth } from '@/stores/authStore'
-import { useFormDraft } from '@/composables/useFormDraft'
+import { useFormDraft } from '@/composables/forms/useFormDraft'
 
 interface Pattern {
   id: number

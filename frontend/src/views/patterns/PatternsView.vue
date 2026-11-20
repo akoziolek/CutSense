@@ -34,8 +34,8 @@ import {
   filtersToQuery,
 } from '@/utils/filters/patternFilters'
 import { useAuth } from '@/stores/authStore'
-import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
-import { useSelection } from '@/composables/useSelection'
+import { useFavouriteToggle } from '@/composables/resources/useFavouriteToggle'
+import { useSelection } from '@/composables/lists/useSelection'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: PatternSort = 'name_asc'

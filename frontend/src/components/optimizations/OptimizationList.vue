@@ -34,10 +34,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { api, ApiError } from '@/api/client'
-import { useListQuery } from '@/composables/useListQuery'
+import { useListQuery } from '@/composables/lists/useListQuery'
 import type { SortOption } from '@/types/common'
-import { usePagedList } from '@/composables/usePagedList'
-import { useSelection } from '@/composables/useSelection'
+import { usePagedList } from '@/composables/lists/usePagedList'
+import { useSelection } from '@/composables/lists/useSelection'
 import { formatCardDate } from '@/utils/formatCardDate'
 import {
   countActiveFilters,

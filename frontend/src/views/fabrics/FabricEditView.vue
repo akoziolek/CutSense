@@ -3,7 +3,7 @@ import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
 import { useRoute } from 'vue-router'
-import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
+import { useUnsavedChangesGuard } from '@/composables/forms/useUnsavedChangesGuard'
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api, ApiError } from '@/api/client'
@@ -11,7 +11,7 @@ import FabricForm from '@/components/fabrics/FabricForm.vue'
 import type { FabricFormPayload } from '@/types/fabric'
 import type { FabricResponse } from '@/types/fabric'
 import ErrorState from '@/components/common/ErrorState.vue'
-import { useFormDraft } from '@/composables/useFormDraft'
+import { useFormDraft } from '@/composables/forms/useFormDraft'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -72,8 +72,7 @@ const fetchFabric = async (id: number, activeSignal = { active: true }) => {
     }
   } catch (e) {
     if (activeSignal.active) {
-      error.value =
-        e instanceof ApiError ? e.body.message : t('fabrics.loadFailed')
+      error.value = e instanceof ApiError ? e.body.message : t('fabrics.loadFailed')
     }
   } finally {
     if (activeSignal.active) {
@@ -113,8 +112,7 @@ const handleSubmit = async (payload: FabricFormPayload) => {
     confirmExit()
   } catch (e) {
     console.error('Failed to update fabric:', e)
-    submitError.value =
-      e instanceof ApiError ? e.body.message : t('fabrics.updateFailed')
+    submitError.value = e instanceof ApiError ? e.body.message : t('fabrics.updateFailed')
   } finally {
     isSubmitting.value = false
   }

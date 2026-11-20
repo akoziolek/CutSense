@@ -7,8 +7,8 @@ import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
 import NicknameInput from '@/components/auth/NicknameInput.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import { useAuth } from '@/stores/authStore'
-import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
-import { useFormDraft } from '@/composables/useFormDraft'
+import { useUnsavedChangesGuard } from '@/composables/forms/useUnsavedChangesGuard'
+import { useFormDraft } from '@/composables/forms/useFormDraft'
 import { api, ApiError } from '@/api/client'
 
 interface AccountDraft {

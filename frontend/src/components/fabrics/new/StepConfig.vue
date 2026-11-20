@@ -2,7 +2,7 @@
 import { onMounted, ref, watch, nextTick } from 'vue'
 import { toast } from 'vue-sonner'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
-import { useSpatialWorkspace } from '@/composables/useSpatialWorkspace'
+import { useSpatialWorkspace } from '@/composables/spatial/useSpatialWorkspace'
 import FabricConfigSidebar from '@/components/fabrics/new/FabricConfigSidebar.vue'
 import SpatialWorkspace from '@/components/spatial/SpatialWorkspace.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'

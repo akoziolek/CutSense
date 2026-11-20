@@ -18,7 +18,7 @@ import {
 } from 'lucide-vue-next'
 import type { GeometryOriginMm, Point2D } from '@/types/geometry'
 import type { PlacedPieceViewItem } from '@/types/optimization'
-import { useNonOverlappingLabels } from '@/composables/useSpatialLabels'
+import { useNonOverlappingLabels } from '@/composables/spatial/useSpatialLabels'
 import { useCanvasViewport } from '@/composables/useCanvasViewport'
 import {
   toSvgPoints,
@@ -292,10 +292,7 @@ const labelItems = computed(() => {
         midX: (p1Pct.pctX + p2Pct.pctX) / 2,
         midY: (p1Pct.pctY + p2Pct.pctY) / 2,
         distanceMm: Number(
-          getCartesianDistance(
-            { x: p1Mm[0], y: p1Mm[1] },
-            { x: p2Mm[0], y: p2Mm[1] },
-          ).toFixed(1),
+          getCartesianDistance({ x: p1Mm[0], y: p1Mm[1] }, { x: p2Mm[0], y: p2Mm[1] }).toFixed(1),
         ),
       }
     })

@@ -19,7 +19,7 @@ import { api, ApiError } from '@/api/client'
 import type { FabricFilters, FabricListResponse, FabricSort } from '@/types/fabric'
 import type { NameTag } from '@/types/common'
 import { formatCardDate } from '@/utils/formatCardDate'
-import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
+import { useFavouriteToggle } from '@/composables/resources/useFavouriteToggle'
 import { SearchX } from 'lucide-vue-next'
 import {
   countActiveFilters,
@@ -29,7 +29,7 @@ import {
   filtersToQuery,
   areaRangeError,
 } from '@/utils/filters/fabricFilters'
-import { useSelection } from '@/composables/useSelection'
+import { useSelection } from '@/composables/lists/useSelection'
 import BulkDeleteControls from '@/components/common/BulkDeleteControls.vue'
 
 const PAGE_SIZE = 12

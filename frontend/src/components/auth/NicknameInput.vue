@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { CheckCircle2, AlertCircle, Sparkles, Circle, Loader2 } from 'lucide-vue-next'
 import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator'
-import { api } from '@/api/client'
 import { useI18n } from 'vue-i18n'
 import { Input } from '@/components/ui/input'
+import { useNicknameCheck } from '@/composables/auth/useNicknameCheck'
 
 const props = withDefaults(
   defineProps<{
@@ -32,12 +32,12 @@ const { t } = useI18n()
 const NICKNAME_REGEX = /^[a-zA-Z0-9_.-]{3,20}$/
 
 const nickname = ref(props.modelValue)
-const isChecking = ref(false)
-const isAvailable = ref(false)
-const availabilityError = ref('')
-
-let debounceTimer: ReturnType<typeof setTimeout> | null = null
-let abortController: AbortController | null = null
+const {
+  isChecking,
+  isAvailable,
+  availabilityError,
+  check: runAvailabilityCheck,
+} = useNicknameCheck(NICKNAME_REGEX)
 
 const formatError = computed(() => {
   const value = nickname.value.trim()
@@ -76,65 +76,19 @@ watch(
   { immediate: true },
 )
 
-const runAvailabilityCheck = (val: string) => {
-  const clean = val.trim()
-
-  if (debounceTimer) clearTimeout(debounceTimer)
-  if (abortController) abortController.abort()
-
-  availabilityError.value = ''
-  isAvailable.value = false
-
-  if (!clean || !NICKNAME_REGEX.test(clean) || clean === props.currentNickname?.trim()) {
-    isChecking.value = false
-    return
-  }
-
-  isChecking.value = true
-
-  debounceTimer = setTimeout(async () => {
-    abortController = new AbortController()
-    try {
-      const res = await api<{ available: boolean }>(
-        `/users/check-nickname?nickname=${encodeURIComponent(clean)}`,
-        { signal: abortController.signal },
-      )
-
-      if (res.available) {
-        isAvailable.value = true
-      } else {
-        availabilityError.value = t('auth.nicknameTaken')
-      }
-    } catch (e: unknown) {
-      if (e instanceof Error && e.name === 'AbortError') {
-        return
-      }
-      availabilityError.value = t('auth.nicknameCheckFailed')
-    } finally {
-      isChecking.value = false
-    }
-  }, 350)
-}
-
 watch(nickname, (val) => {
   emit('update:modelValue', val)
   emit('typing')
-  runAvailabilityCheck(val)
+  runAvailabilityCheck(val, props.currentNickname)
 })
 
 watch(
   () => props.currentNickname,
-  () => {
-    runAvailabilityCheck(nickname.value)
+  (current) => {
+    runAvailabilityCheck(nickname.value, current)
   },
   { immediate: true },
 )
-
-
-onBeforeUnmount(() => {
-  if (debounceTimer) clearTimeout(debounceTimer)
-  if (abortController) abortController.abort()
-})
 
 const generateRandomNickname = () => {
   if (props.disabled) return

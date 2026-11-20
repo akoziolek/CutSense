@@ -49,11 +49,16 @@ export function toFabricPercent(
 }
 
 export function toImagePercent(
-  pointMm: [number, number],
+  pointMm: PointMm,
   imageWidthMm: number,
   imageHeightMm: number,
 ): Point2D {
-  return toPercentPoint(pointMm, { minX: 0, minY: 0 }, imageWidthMm, imageHeightMm)
+  return toPercentPoint(
+    [pointMm.x, pointMm.y],
+    { minX: 0, minY: 0 },
+    imageWidthMm,
+    imageHeightMm,
+  )
 }
 
 export function toImagePixels(
@@ -102,5 +107,5 @@ export function toImagePercentBoundary(
     return []
   }
 
-  return points.map(({ x, y }) => toImagePercent([x, y], imageWidthMm, imageHeightMm))
+  return points.map((point) => toImagePercent(point, imageWidthMm, imageHeightMm))
 }

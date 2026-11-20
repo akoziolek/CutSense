@@ -113,7 +113,7 @@ const normalizedLayout = computed(() => {
   const boundary = opt.fabric.boundary ?? []
   const fabricBoundary: [number, number][] =
     boundary.length >= 3
-      ? boundary
+      ? boundary.map(({ x, y }) => [x, y])
       : [
           [0, 0],
           [opt.fabric.widthMm, 0],
@@ -140,7 +140,7 @@ const normalizedLayout = computed(() => {
         pieceNumber: pieceTypeNumberById.get(placement.patternPieceId) ?? index + 1,
         isMirrored: placement.isMirrored,
         rotationAngle: totalRotation,
-        points: placement.polygon,
+        points: placement.polygon.map(({ x, y }): [number, number] => [x, y]),
       },
     ]
   })

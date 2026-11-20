@@ -1,4 +1,5 @@
 import type { BaseFilters, FilterOption, NamedItem, PaginatedResponse } from './common'
+import type { PointMm } from './geometry'
 import type { PatternImage, PatternPieceDefinition } from './pattern'
 
 export interface OptimizationFilters extends BaseFilters {
@@ -50,7 +51,7 @@ export interface CreateOptimizationPayload {
   pieces: Omit<OptimizationPieceConfig, 'key'>[]
 }
 
-export type OptimizerPoint = [number, number]
+export type OptimizerPoint = PointMm
 
 export interface OptimizationStats {
   usableScrapsArea: number
@@ -68,7 +69,7 @@ export interface OptimizationPlacement {
   isFlipped180: boolean
   x: number
   y: number
-  polygon: [number, number][]
+  polygon: PointMm[]
 }
 
 export interface PlacedPieceViewItem {

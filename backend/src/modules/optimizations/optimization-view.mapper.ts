@@ -3,6 +3,7 @@ import type {
   OptimizerInputDto,
   OptimizerPointDto,
 } from './dto/optimizer-input.dto.js';
+import { withoutClosingPoint } from '../../common/geometry/shapes-geometry.js';
 import type {
   OptimizationViewDto,
   FabricMetadataDto,
@@ -32,15 +33,37 @@ export type ViewExtra = Partial<
   isSaved: boolean;
 };
 
+function isPointTuple(point: unknown): point is [number, number] {
+  return (
+    Array.isArray(point) &&
+    point.length === 2 &&
+    typeof point[0] === 'number' &&
+    typeof point[1] === 'number'
+  );
+}
+
+function isPointObject(point: unknown): point is OptimizerPointDto {
+  if (typeof point !== 'object' || point === null) return false;
+  return (
+    'x' in point &&
+    typeof point.x === 'number' &&
+    'y' in point &&
+    typeof point.y === 'number'
+  );
+}
+
 export class OptimizationViewMapper {
-  static toOptimizerPoints(points: [number, number][]): OptimizerPointDto[] {
-    const boundary = points.map(([x, y]) => [x, y] as OptimizerPointDto);
-    const first = boundary[0];
-    const last = boundary.at(-1);
-    if (first && last && first[0] === last[0] && first[1] === last[1]) {
-      boundary.pop();
-    }
-    return boundary;
+  static toOptimizerPoints(points: unknown[]): OptimizerPointDto[] {
+    const normalized = points.map((point) => {
+      if (isPointObject(point)) return { x: point.x, y: point.y };
+      if (isPointTuple(point)) return { x: point[0], y: point[1] };
+      throw new Error('Optimization boundary contains an invalid point.');
+    });
+
+    return withoutClosingPoint(
+      normalized,
+      (first, last) => first.x === last.x && first.y === last.y,
+    );
   }
 
   static rectangularBoundary(
@@ -48,10 +71,10 @@ export class OptimizationViewMapper {
     lengthMm: number,
   ): OptimizerPointDto[] {
     return [
-      [0, 0],
-      [widthMm, 0],
-      [widthMm, lengthMm],
-      [0, lengthMm],
+      { x: 0, y: 0 },
+      { x: widthMm, y: 0 },
+      { x: widthMm, y: lengthMm },
+      { x: 0, y: lengthMm },
     ];
   }
 
@@ -73,7 +96,7 @@ export class OptimizationViewMapper {
     widthMm: number;
     lengthMm: number;
     grainline: number;
-    boundary: [number, number][];
+    boundary: OptimizerPointDto[];
   }): OptimizerFabricInputDto {
     const pts = this.toOptimizerPoints(raw.boundary);
     if (pts.length === 0) {
@@ -110,7 +133,10 @@ export class OptimizationViewMapper {
   ): ViewSource {
     return {
       algorithmName: input.algorithmName,
-      fabric: input.fabric,
+      fabric: {
+        ...input.fabric,
+        boundary: this.toOptimizerPoints(input.fabric.boundary),
+      },
       fabricMetadata,
       pattern,
       seamAllowanceMm: input.seamAllowanceMm,
@@ -118,7 +144,10 @@ export class OptimizationViewMapper {
       geometry: new Map(
         input.pieces.map((p) => [
           p.patternPieceId,
-          { boundary: p.boundary, grainline: p.grainline },
+          {
+            boundary: this.toOptimizerPoints(p.boundary),
+            grainline: p.grainline,
+          },
         ]),
       ),
       result,
@@ -154,16 +183,13 @@ export class OptimizationViewMapper {
     y: number,
     fabricGrainline = 0,
   ): PlacementDto {
-    const polygon = placePiece(
-      piece.boundary.map(([px, py]) => ({ x: px, y: py })),
-      {
-        ...pos,
-        grainline: piece.grainline,
-        fabricGrainline,
-        x,
-        y,
-      },
-    ).map(({ x: px, y: py }): [number, number] => [px, py]);
+    const polygon = placePiece(piece.boundary, {
+      ...pos,
+      grainline: piece.grainline,
+      fabricGrainline,
+      x,
+      y,
+    });
 
     return {
       patternPieceId: pos.id,

@@ -5,7 +5,6 @@ import {
   IsArray,
   IsInt,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   Max,
@@ -16,25 +15,12 @@ import {
   IsPositive,
 } from 'class-validator';
 import { PatternVisibility, PatternSize } from './pattern.enum.js';
+import { PointDto } from '../../../common/geometry/point.dto.js';
 import {
   TransformJson,
   TransformJsonToInstance,
 } from '../../../common/decorators/transform-json.decorator.js';
 import { ApiProperty } from '@nestjs/swagger';
-
-const COORD_LIMIT = 10_000_000; // mm
-
-export class PointDto {
-  @IsNumber({ allowNaN: false, allowInfinity: false })
-  @Min(-COORD_LIMIT)
-  @Max(COORD_LIMIT)
-  x!: number;
-
-  @IsNumber({ allowNaN: false, allowInfinity: false })
-  @Min(-COORD_LIMIT)
-  @Max(COORD_LIMIT)
-  y!: number;
-}
 
 export class PieceInputDto {
   @IsInt()
@@ -43,8 +29,8 @@ export class PieceInputDto {
   imageIndex!: number;
 
   @IsArray()
-  @ArrayMinSize(3)
   @ArrayMaxSize(2000)
+  @ArrayMinSize(3)
   @ValidateNested({ each: true })
   @Type(() => PointDto)
   points!: PointDto[];

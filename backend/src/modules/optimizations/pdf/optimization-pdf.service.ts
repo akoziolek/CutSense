@@ -6,6 +6,7 @@ import {
   computeBounds,
   getFabricPolygon,
   offsetPolygon,
+  toTuplePolygon,
 } from './pdf-geometry.util.js';
 import {
   type ClipBox,
@@ -48,7 +49,7 @@ export class OptimizationPdfService {
     const fabricPts = getFabricPolygon(view);
     const bounds = computeBounds([
       fabricPts,
-      ...view.placements.map((p) => p.polygon),
+      ...view.placements.map((p) => toTuplePolygon(p.polygon)),
     ]);
     const isLandscape = bounds.width > bounds.height * 1.15;
 
@@ -75,8 +76,8 @@ export class OptimizationPdfService {
       .filter((p) => p.polygon.length >= 3)
       .map((p) =>
         totalAllowance > 0
-          ? offsetPolygon(p.polygon, totalAllowance)
-          : p.polygon,
+          ? offsetPolygon(toTuplePolygon(p.polygon), totalAllowance)
+          : toTuplePolygon(p.polygon),
       );
 
     const tileBounds = computeBounds(
@@ -94,7 +95,7 @@ export class OptimizationPdfService {
     const fabricPts = getFabricPolygon(view);
     const fullBounds = computeBounds([
       fabricPts,
-      ...view.placements.map((p) => p.polygon),
+      ...view.placements.map((p) => toTuplePolygon(p.polygon)),
     ]);
     const summaryIsLandscape = fullBounds.width > fullBounds.height * 1.15;
 

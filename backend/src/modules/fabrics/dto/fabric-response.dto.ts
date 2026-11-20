@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { FabricTagDto } from './fabric-tags.dto.js';
-import { PointDto } from './create-fabric.dto.js';
+import { PointDto } from '../../../common/geometry/point.dto.js';
 
 export class FabricResponseDto {
   @ApiProperty({ description: 'Unique identifier of the fabric', example: 1 })
@@ -41,10 +41,9 @@ export class FabricResponseDto {
   })
   grainline!: number;
 
-  // TODO chooose one convention for sending points PointDto[][] or [number, number][]
   @ApiProperty({
     description:
-      'Fabric boundaries as calibrated Cartesian point lists in millimeters, ordered counter-clockwise. A fabric currently has one shape.',
+      'Open fabric boundary rings as {x, y} points in millimeters, positive Y upward. A fabric currently has one shape.',
     type: 'array',
     items: {
       type: 'array',

@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { OptimizerFabricInputDto } from './optimizer-input.dto.js';
 import type { ViewStats } from '../../optimizer-engine/optimizer-engine.types.js';
+import { PointDto } from '../../../common/geometry/point.dto.js';
 
 export interface PatternSummaryDto {
   id: number;
@@ -42,11 +43,11 @@ export class PlacementDto {
   y!: number;
 
   @ApiProperty({
-    description: 'Final polygon in fabric coordinates (mm), ready to draw. The Y axis points up.',
-    type: 'array',
-    items: { type: 'array', items: { type: 'number' } },
+    description:
+      'Open final polygon in fabric coordinates as {x, y} points in millimeters, positive Y upward.',
+    type: [PointDto],
   })
-  polygon!: [number, number][];
+  polygon!: PointDto[];
 }
 
 export class OptimizationViewDto {

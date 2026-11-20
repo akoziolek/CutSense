@@ -1,4 +1,4 @@
-import type { Point2D } from './geometry'
+import type { Point2D, PointMm } from './geometry'
 import type { BaseFilters, NameTag, NamedItem, PaginatedResponse } from './common'
 
 export interface PatternFilters extends BaseFilters {
@@ -25,7 +25,7 @@ export interface PatternImage {
 export interface PatternPieceDefinition {
   id: number
   patternImageId: number
-  points: [number, number][]
+  points: PointMm[]
   normalCount: number
   mirroredCount: number
 }

@@ -19,7 +19,7 @@ import {
 import type { GeometryOriginMm, Point2D } from '@/types/geometry'
 import type { PlacedPieceViewItem } from '@/types/optimization'
 import { useNonOverlappingLabels } from '@/composables/spatial/useSpatialLabels'
-import { useCanvasViewport } from '@/composables/useCanvasViewport'
+import { useCanvasViewport } from '@/composables/spatial/useCanvasViewport'
 import {
   toSvgPoints,
   offsetPolygonMm,

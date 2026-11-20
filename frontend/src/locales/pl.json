@@ -418,6 +418,7 @@
     "notFoundMessage": "Żądana optymalizacja nie istnieje lub wygasła.",
     "numberOfPieces": "Liczba elementów",
     "ofTotalFabric": "całkowitej tkaniny",
+    "optimize": "Optymalizuj",
     "patternLibrary": "Biblioteka wykrojów",
     "patternLoadFailed": "Nie udało się wczytać wykroju. Spróbuj ponownie.",
     "pieceLabel": "Element nr {number}{copy}",

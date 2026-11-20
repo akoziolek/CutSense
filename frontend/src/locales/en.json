@@ -419,6 +419,7 @@
     "notFoundMessage": "The requested optimization does not exist or has expired.",
     "numberOfPieces": "Number of pieces",
     "ofTotalFabric": "of the total fabric",
+    "optimize": "Optimize",
     "patternLibrary": "Pattern library",
     "patternLoadFailed": "Could not load the pattern. Please try again.",
     "pieceLabel": "Piece #{number}{copy}",

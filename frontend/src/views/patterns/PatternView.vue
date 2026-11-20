@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DetailsCard, { type MetaItem } from '@/components/common/DetailsCard.vue'
@@ -17,11 +17,13 @@ import {
   ArrowLeft,
   RotateCcw,
   ChevronDown,
+  Puzzle
 } from 'lucide-vue-next'
 import { api, ApiError } from '@/api/client'
 import PatternPiecesCarousel, {
   type PatternPiece,
 } from '@/components/patterns/PatternPiecesCarousel.vue'
+import PatternRating from '@/components/patterns/PatternRating.vue'
 import type { NameTag } from '@/types/fabric'
 import DetailsActions from '@/components/common/DetailsActions.vue'
 import { useAuth } from '@/composables/useAuth'
@@ -37,6 +39,8 @@ import {
 } from '@/components/ui/collapsible'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import type { PatternRatingState } from '@/components/patterns/PatternRating.vue'
+import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 
 interface Pattern {
   id: number
@@ -61,6 +65,7 @@ interface Pattern {
     orderIndex: number
   }[]
   isFavourite: boolean
+  userRating: number | null
 }
 
 const POLL_DELAYS_MS = [1000, 2000, 4000, 8000, 15000]
@@ -97,6 +102,20 @@ const { toggle: toggleFavourite, pending } = useFavouriteToggle('/patterns')
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 const { state: auth } = useAuth()
+
+const router = useRouter()
+const optimizationStore = useOptimizationAddingStore()
+
+const onRated = (state: PatternRatingState) => {
+  if (pattern.value) Object.assign(pattern.value, state)
+}
+
+const optimize = () => {
+  if (!pattern.value) return
+  optimizationStore.reset()
+  optimizationStore.selectPattern({ id: pattern.value.id, name: pattern.value.name })
+  void router.push({ name: 'OptimizationNew' })
+}
 
 const clearSkeletonTimer = () => {
   if (skeletonTimer) {
@@ -262,9 +281,32 @@ watch(
 <template>
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
-      <PageHeader :title="pattern?.name ?? (isFetching ? '' : t('patterns.details'))">
+      <PageHeader
+        :title="pattern?.name ?? (isFetching ? '' : 'Pattern details')"
+        :full-width="true"
+      >
+        <template v-if="pattern && pattern.visibility === 'PUBLIC'" #title-extra>
+          <PatternRating
+            :pattern-id="pattern.id"
+            :user-rating="pattern.userRating"
+            :star-count="pattern.starCount"
+            :star-average="pattern.starAverage"
+            :is-logged-in="!!auth.user"
+            :is-owner="isOwner"
+            @rated="onRated"
+          />
+        </template>
+
         <template #actions>
           <div class="flex items-center gap-2">
+            <Button
+              v-if="pattern"
+              class="h-9 gap-2 rounded-lg bg-brand-pink font-bold text-brand-pink-foreground hover:bg-brand-pink/80"
+              @click="optimize"
+            >
+              <Puzzle class="size-4" />
+              {{ t('optimizations.optimize') }}
+            </Button>
             <FavouriteButton
               v-if="pattern && auth.user"
               :is-favourite="pattern.isFavourite"
@@ -279,6 +321,7 @@ watch(
           </div>
         </template>
       </PageHeader>
+
       <!-- TODO - move this to card section?? -->
       <p v-if="pattern" class="-mt-4 text-sm ml-4 text-muted-foreground">
         {{ t('common.details.author') }}: {{ pattern.author.nickname }}

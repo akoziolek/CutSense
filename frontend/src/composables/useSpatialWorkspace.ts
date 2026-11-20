@@ -1,5 +1,6 @@
 import { ref, computed, onMounted, onUnmounted, type Ref } from 'vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
+import { getPointDistance, getPolygonEdges } from '@/utils/geometry'
 import { useSpatialHistory, type SpatialHistoryAction } from './useSpatialHistory'
 import { useCanvasViewport } from './useCanvasViewport'
 
@@ -175,7 +176,7 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
   const checkIsNearStart = (pt: Point2D) => {
     if (drawingPoints.value.length < 3) return false
     const startPt = drawingPoints.value[0]!
-    const dist = Math.hypot(pt.pctX - startPt.pctX, pt.pctY - startPt.pctY)
+    const dist = getPointDistance(pt, startPt, 100, 100)
     return dist <= AUTO_CLOSE_THRESHOLD_PCT
   }
 
@@ -244,33 +245,22 @@ export function useSpatialWorkspace(options: useSpatialWorkspaceOptions) {
     const w = width > 0 ? width : 1000
     const h = height > 0 ? height : 1000
 
-    const dx = ((p2.pctX - p1.pctX) / 100) * w
-    const dy = ((p2.pctY - p1.pctY) / 100) * h
-
-    return Math.hypot(dx, dy)
+    return getPointDistance(p1, p2, w, h)
   }
 
   const calculateEdgesForShape = (
     shapePoints: Point2D[],
     customPxPerMm = pxPerMm.value,
   ): PolygonEdge[] => {
-    if (!shapePoints || shapePoints.length < 2 || customPxPerMm <= 0) return []
+    if (!shapePoints || shapePoints.length < 2) return []
 
-    const result: PolygonEdge[] = []
-    const n = shapePoints.length
-    for (let index = 0; index < n; index++) {
-      const p1 = shapePoints[index]!
-      const p2 = shapePoints[(index + 1) % n]!
-      const pixelDist = getImagePixelDistance(p1, p2)
-      const distanceCm = (pixelDist / customPxPerMm / 10).toFixed(1)
-      result.push({
-        index,
-        p1,
-        p2,
-        distanceCm,
-      })
-    }
-    return result
+    const { width, height } = imageDimensions.value
+    return getPolygonEdges(
+      shapePoints,
+      width > 0 ? width : 1000,
+      height > 0 ? height : 1000,
+      customPxPerMm,
+    )
   }
 
   const edges = computed<PolygonEdge[]>(() => calculateEdgesForShape(points.value))

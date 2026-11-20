@@ -13,6 +13,7 @@ import type {
   PatternPieceDefaults,
 } from '@/types/optimization'
 import type { Point2D } from '@/types/geometry'
+import { toImagePercent } from '@/utils/geometry'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { mmToCm } from '@/utils/optimizationConfig'
 
@@ -42,10 +43,7 @@ const previewsById = computed(() => {
 
     const imageWidth = image.imageWidthMm || 1
     const imageHeight = image.imageHeightMm || 1
-    const points = piece.points.map(([x, y]) => ({
-      pctX: (x / imageWidth) * 100,
-      pctY: ((imageHeight - y) / imageHeight) * 100,
-    }))
+    const points = piece.points.map((point) => toImagePercent(point, imageWidth, imageHeight))
     const imageShapes = shapesByImage.get(image.id) ?? []
 
     shapeIndexes.set(piece.id, imageShapes.length)

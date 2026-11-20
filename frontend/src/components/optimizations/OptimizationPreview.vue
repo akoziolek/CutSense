@@ -16,8 +16,7 @@ import {
   EyeOff,
   Tag,
 } from 'lucide-vue-next'
-import type { Point2D } from '@/types/geometry'
-import type { GeometryOriginMm } from '@/types/geometry'
+import type { GeometryOriginMm, Point2D } from '@/types/geometry'
 import type { PlacedPieceViewItem } from '@/types/optimization'
 import { useNonOverlappingLabels } from '@/composables/useSpatialLabels'
 import { useCanvasViewport } from '@/composables/useCanvasViewport'
@@ -26,9 +25,10 @@ import {
   offsetPolygonMm,
   buildRulerTicks,
   getFabricOriginMm,
+  getPolygonCentroidPct,
+  getCartesianDistance,
   toFabricPercent,
 } from '@/utils/geometry'
-import { getPolygonCentroidPct } from '@/utils/geometry'
 
 // TODO - display picture, allow moving shapes?
 const props = withDefaults(
@@ -291,7 +291,12 @@ const labelItems = computed(() => {
         edgeIdx,
         midX: (p1Pct.pctX + p2Pct.pctX) / 2,
         midY: (p1Pct.pctY + p2Pct.pctY) / 2,
-        distanceMm: Number(Math.hypot(p2Mm[0] - p1Mm[0], p2Mm[1] - p1Mm[1]).toFixed(1)),
+        distanceMm: Number(
+          getCartesianDistance(
+            { x: p1Mm[0], y: p1Mm[1] },
+            { x: p2Mm[0], y: p2Mm[1] },
+          ).toFixed(1),
+        ),
       }
     })
   })

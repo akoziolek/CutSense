@@ -4,6 +4,11 @@ export interface Point2D {
   pctY: number
 }
 
+export interface PointMm {
+  x: number
+  y: number
+}
+
 export interface GeometryOriginMm {
   minX: number
   minY: number

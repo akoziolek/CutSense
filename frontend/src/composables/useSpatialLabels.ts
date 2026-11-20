@@ -1,5 +1,6 @@
 import { computed, type Ref } from 'vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
+import { getCartesianDistance, getPointDistance, getSegmentMidpoint } from '@/utils/geometry'
 
 export const MIN_LABEL_SPACING_PX = 35
 
@@ -50,9 +51,8 @@ export function useNonOverlappingLabels(options: {
           candidates.push({
             key: `${shapeIdx}-${edge.index}`,
             isSelected: shapeIdx === activeIdx && edge.index === options.selectedEdgeIndex?.value,
-            len: Math.hypot((edge.p2.pctX - edge.p1.pctX) * w, (edge.p2.pctY - edge.p1.pctY) * h),
-            x: ((edge.p1.pctX + edge.p2.pctX) / 200) * w,
-            y: ((edge.p1.pctY + edge.p2.pctY) / 200) * h,
+            len: getPointDistance(edge.p1, edge.p2, w, h),
+            ...getSegmentMidpoint(edge.p1, edge.p2, w, h),
           })
         })
       } else {
@@ -61,9 +61,8 @@ export function useNonOverlappingLabels(options: {
           candidates.push({
             key: `${shapeIdx}-${idx}`,
             isSelected: false,
-            len: Math.hypot((p2.pctX - p1.pctX) * w, (p2.pctY - p1.pctY) * h),
-            x: ((p1.pctX + p2.pctX) / 200) * w,
-            y: ((p1.pctY + p2.pctY) / 200) * h,
+            len: getPointDistance(p1, p2, w, h),
+            ...getSegmentMidpoint(p1, p2, w, h),
           })
         })
       }
@@ -81,7 +80,7 @@ export function useNonOverlappingLabels(options: {
     const drawn: { x: number; y: number }[] = []
     for (const cand of candidates) {
       const isFree = !drawn.some(
-        (p) => Math.hypot(p.x - cand.x, p.y - cand.y) < MIN_LABEL_SPACING_PX,
+        (p) => getCartesianDistance(p, cand) < MIN_LABEL_SPACING_PX,
       )
 
       if (cand.isSelected || isFree) {

@@ -9,6 +9,7 @@ import {
   type PatternDetails,
   type PatternFormPayload,
 } from '@/types/pattern'
+import { toImageMm } from '@/utils/geometry'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
 import { useI18n } from 'vue-i18n'
 
@@ -76,10 +77,9 @@ const handleSubmit = async (payload: PatternFormPayload) => {
 
     return {
       imageIndex: piece.photoIndex,
-      points: shape.map(({ pctX, pctY }) => ({
-        x: (pctX * config.imageWidth) / 100 / config.pxPerMm,
-        y: ((100 - pctY) * config.imageHeight) / 100 / config.pxPerMm,
-      })),
+      points: shape.map((point) =>
+        toImageMm(point, config.imageWidth, config.imageHeight, config.pxPerMm),
+      ),
       grainline: piece.grainline,
       normal: piece.normal,
       mirrored: piece.mirrored,

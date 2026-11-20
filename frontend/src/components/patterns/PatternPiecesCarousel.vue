@@ -11,6 +11,7 @@ import {
 import ImagePreview from '@/components/common/ImagePreview.vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
 import type { PatternCarouselPiece, PatternImage } from '@/types/pattern'
+import { getPolygonEdges, toImagePercent } from '@/utils/geometry'
 
 const props = defineProps<{
   images: PatternImage[]
@@ -28,29 +29,15 @@ const slides = computed(() =>
     const h = img.imageHeightMm || 1
 
     const shapes: Point2D[][] = imgPieces.map((piece) =>
-      piece.points.map(([xMm, yMm]) => ({
-        pctX: Number(((xMm / w) * 100).toFixed(2)),
-        pctY: Number((((h - yMm) / h) * 100).toFixed(2)),
-      })),
+      piece.points.map((point) => {
+        const pct = toImagePercent(point, w, h)
+        return { pctX: Number(pct.pctX.toFixed(2)), pctY: Number(pct.pctY.toFixed(2)) }
+      }),
     )
 
-    const allShapesEdges: PolygonEdge[][] = shapes.map((pts) => {
-      if (pts.length < 2) return []
-
-      return pts.map((p1, idx) => {
-        const p2 = pts[(idx + 1) % pts.length]!
-        const dx = ((p2.pctX - p1.pctX) / 100) * w
-        const dy = ((p2.pctY - p1.pctY) / 100) * h
-        const distanceCm = (Math.hypot(dx, dy) / 10).toFixed(1)
-
-        return {
-          index: idx,
-          p1,
-          p2,
-          distanceCm,
-        }
-      })
-    })
+    const allShapesEdges: PolygonEdge[][] = shapes.map((points) =>
+      getPolygonEdges(points, w, h),
+    )
 
     return {
       id: img.id,

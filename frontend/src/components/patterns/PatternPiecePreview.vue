@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { ZoomIn } from 'lucide-vue-next'
 import ImagePreview from '@/components/common/ImagePreview.vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
+import { getCartesianDistance, toImagePixels } from '@/utils/geometry'
 
 const props = withDefaults(
   defineProps<{
@@ -45,7 +46,10 @@ const H = computed(() => (hasRealSize.value ? props.imageHeightMm! : 100))
 
 // points in photo units, Y down (same as SVG)
 const pts = computed<[number, number][]>(() =>
-  props.points.map((p) => [(p.pctX / 100) * W.value, (p.pctY / 100) * H.value]),
+  props.points.map((point) => {
+    const pixel = toImagePixels(point, W.value, H.value)
+    return [pixel.x, pixel.y]
+  }),
 )
 
 const fit = (start: number, size: number, limit: number) =>
@@ -125,7 +129,7 @@ const dimensionLabels = computed(() => {
 
   const candidates = p.map(([x1, y1], i) => {
     const [x2, y2] = p[(i + 1) % p.length]!
-    const len = Math.hypot(x2 - x1, y2 - y1)
+    const len = getCartesianDistance({ x: x1, y: y1 }, { x: x2, y: y2 })
     return {
       key: i,
       len,

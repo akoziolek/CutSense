@@ -1,4 +1,4 @@
-import type { Point2D } from './geometry'
+import type { Point2D, PointMm } from './geometry'
 import type { BaseFilters, NameTag, NamedItem, PaginatedResponse } from './common'
 
 export interface FabricFilters extends BaseFilters {
@@ -12,10 +12,7 @@ export interface FabricFormPayload {
   tags: NameTag[]
 }
 
-export interface FabricBoundaryPoint {
-  x: number
-  y: number
-}
+export type FabricBoundaryPoint = PointMm
 
 export interface FabricResponse {
   id: number

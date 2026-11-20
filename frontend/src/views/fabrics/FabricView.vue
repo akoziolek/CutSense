@@ -13,7 +13,7 @@ import { api, ApiError } from '@/api/client'
 import DetailsActions from '@/components/common/DetailsActions.vue'
 import type { FabricResponse } from '@/types/fabric'
 import type { PolygonEdge } from '@/types/geometry'
-import { toImagePercentBoundary } from '@/utils/fabricBoundary'
+import { getPolygonEdges, toImagePercentBoundary } from '@/utils/geometry'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 import FavouriteButton from '@/components/common/FavouriteButton.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
@@ -72,25 +72,11 @@ const normalizedPoints = computed(() => normalizedShapes.value[0] ?? [])
 
 const edges = computed<PolygonEdge[]>(() => {
   const pts = normalizedPoints.value
-  if (pts.length < 2) return []
-  
-    const imageWidthMm = fabric.value?.imageWidthMm ?? 0
-    const imageHeightMm = fabric.value?.imageHeightMm ?? 0
-
-  return pts.map((p1, index) => {
-    const p2 = pts[(index + 1) % pts.length]!
-
-    const dx = ((p2.pctX - p1.pctX) / 100) * imageWidthMm
-    const dy = ((p2.pctY - p1.pctY) / 100) * imageHeightMm
-    const distanceCm = (Math.hypot(dx, dy) / 10).toFixed(1)
-
-    return {
-      index,
-      p1,
-      p2,
-      distanceCm,
-    }
-  })
+  return getPolygonEdges(
+    pts,
+    fabric.value?.imageWidthMm ?? 0,
+    fabric.value?.imageHeightMm ?? 0,
+  )
 })
 
 const metaItems = computed<MetaItem[]>(() =>

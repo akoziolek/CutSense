@@ -15,42 +15,36 @@ import {
   Globe,
   ChevronDown,
 } from 'lucide-vue-next'
-import { api, ApiError } from '@/api/client'
 import PatternPiecesCarousel from '@/components/patterns/PatternPiecesCarousel.vue'
-import type { PatternCarouselPiece, PatternImage } from '@/types/pattern'
-import type { NameTag } from '@/types/common'
 import DetailsActions from '@/components/common/DetailsActions.vue'
 import { useAuth } from '@/stores/authStore'
 import { useFavouriteToggle } from '@/composables/resources/useFavouriteToggle'
 import FavouriteButton from '@/components/common/FavouriteButton.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
 import { useDeleteResource } from '@/composables/resources/useDeleteResource'
+import { usePatternDetails } from '@/composables/patterns/usePatternDetails'
 import PatternPieceCard from '@/components/patterns/PatternPieceCard.vue'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 
-interface Pattern {
-  id: number
-  userId: number
-  name: string
-  description?: string
-  size: string
-  visibility: 'PUBLIC' | 'PRIVATE'
-  minFabricLengthMM: number | null
-  minFabricWidthMM: number | null
-  starCount: number
-  starAverage: string
-  tags: NameTag[]
-  createdAt: string
-  author: { id: number; nickname: string }
-  pieces: PatternCarouselPiece[]
-  images: PatternImage[]
-  isFavourite: boolean
-}
+const props = defineProps<{ id: string }>()
+const { t } = useI18n()
+const { state: auth } = useAuth()
 
-const POLL_DELAYS_MS = [1000, 2000, 4000, 8000, 15000]
-const FRESHNESS_WINDOW_MS = 60_000
+const showDimensions = ref(false)
+
+const {
+  pattern,
+  isFetching,
+  showSkeleton,
+  error,
+  isNotFound,
+  minLengthStatus,
+  clearSkeletonTimer,
+  clearPollTimer,
+  fetchPattern,
+} = usePatternDetails()
 
 const {
   confirmOpen,
@@ -67,36 +61,7 @@ const {
   getId: () => props.id,
 })
 
-const props = defineProps<{ id: string }>()
-const { t } = useI18n()
-
-const showDimensions = ref(false)
-
-const pattern = ref<Pattern | null>(null)
-const isFetching = ref(true)
-const showSkeleton = ref(false)
-const error = ref('')
-const isNotFound = ref(false)
-const minLengthStatus = ref<'calculating' | 'unavailable' | null>(null)
 const { toggle: toggleFavourite, pending } = useFavouriteToggle('/patterns')
-
-let skeletonTimer: ReturnType<typeof setTimeout> | null = null
-let pollTimer: ReturnType<typeof setTimeout> | null = null
-const { state: auth } = useAuth()
-
-const clearSkeletonTimer = () => {
-  if (skeletonTimer) {
-    clearTimeout(skeletonTimer)
-    skeletonTimer = null
-  }
-}
-
-const clearPollTimer = () => {
-  if (pollTimer) {
-    clearTimeout(pollTimer)
-    pollTimer = null
-  }
-}
 
 const formatMinLength = (lengthMm: number, widthMm: number | null) => {
   const lengthM = (lengthMm / 1000).toFixed(2)
@@ -154,81 +119,6 @@ const metaItems = computed<MetaItem[]>(() => {
 
   return items
 })
-
-const startMinLengthPolling = (id: string, activeSignal: { active: boolean }, attempt = 0) => {
-  if (!activeSignal.active) {
-    return
-  }
-  if (attempt >= POLL_DELAYS_MS.length) {
-    clearPollTimer()
-    minLengthStatus.value = 'unavailable'
-    return
-  }
-
-  minLengthStatus.value = 'calculating'
-  pollTimer = setTimeout(async () => {
-    try {
-      const updated = await api<Pattern>(`/patterns/${encodeURIComponent(id)}`)
-      if (!activeSignal.active) return
-
-      if (typeof updated.minFabricLengthMM === 'number' && pattern.value) {
-        pattern.value.minFabricLengthMM = updated.minFabricLengthMM
-        pattern.value.minFabricWidthMM = updated.minFabricWidthMM
-        minLengthStatus.value = null
-        clearPollTimer()
-        return
-      }
-    } catch {
-      // ignore transient network errors during background polling
-    }
-
-    startMinLengthPolling(id, activeSignal, attempt + 1)
-  }, POLL_DELAYS_MS[attempt])
-}
-
-const fetchPattern = async (id: string, activeSignal = { active: true }) => {
-  clearSkeletonTimer()
-  clearPollTimer()
-  minLengthStatus.value = null
-  pattern.value = null
-  error.value = ''
-  isNotFound.value = false
-  isFetching.value = true
-  showSkeleton.value = false
-
-  skeletonTimer = setTimeout(() => {
-    if (activeSignal.active && isFetching.value) {
-      showSkeleton.value = true
-    }
-  }, 150)
-
-  try {
-    const result = await api<Pattern>(`/patterns/${encodeURIComponent(id)}`)
-    if (activeSignal.active) {
-      pattern.value = result
-
-      if (typeof result.minFabricLengthMM !== 'number') {
-        const isFresh = Date.now() - new Date(result.createdAt).getTime() < FRESHNESS_WINDOW_MS
-        if (isFresh) {
-          startMinLengthPolling(id, activeSignal)
-        } else {
-          minLengthStatus.value = 'unavailable'
-        }
-      }
-    }
-  } catch (e) {
-    if (activeSignal.active) {
-      isNotFound.value = e instanceof ApiError && e.status === 404
-      error.value = e instanceof ApiError ? e.body.message : t('patterns.loadFailed')
-    }
-  } finally {
-    if (activeSignal.active) {
-      isFetching.value = false
-      showSkeleton.value = false
-      clearSkeletonTimer()
-    }
-  }
-}
 
 watch(
   [() => props.id, () => auth.user?.id],

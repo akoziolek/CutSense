@@ -2,9 +2,6 @@
 import { ref, watch, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { api, ApiError, apiBlob } from '@/api/client'
-import type { OptimizationView } from '@/types/optimization'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DetailsCard from '@/components/common/DetailsCard.vue'
@@ -43,6 +40,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useOptimizationRun } from '@/composables/optimization/useOptimizationRun'
 
 const route = useRoute()
 const router = useRouter()
@@ -53,20 +51,9 @@ const { state: auth } = useAuth()
 const isSavedRoute = computed(() => route.params.id !== undefined)
 const resourceId = computed(() => String(route.params.id ?? route.params.runId ?? ''))
 
-const optimization = ref<OptimizationView | null>(null)
-const isFetching = ref(true)
-const showSkeleton = ref(false)
-const error = ref('')
-const isNotFound = ref(false)
-const isDownloadingPdf = ref(false)
-
 const isCanvasExpanded = ref(false)
 const isSaveOpen = ref(false)
-const isSaving = ref(false)
-const saveError = ref('')
 const isEditOpen = ref(false)
-const isRenaming = ref(false)
-const renameError = ref('')
 
 const {
   confirmOpen,
@@ -82,15 +69,6 @@ const {
   redirectTo: '/optimizations',
   getId: () => String(optimization.value?.id ?? ''),
 })
-
-let skeletonTimer: ReturnType<typeof setTimeout> | null = null
-
-const clearSkeletonTimer = () => {
-  if (skeletonTimer) {
-    clearTimeout(skeletonTimer)
-    skeletonTimer = null
-  }
-}
 
 onMounted(() => {
   useOptimizationAddingStore().reset()
@@ -173,131 +151,45 @@ const metaItems = computed<MetaItem[]>(() =>
     : [],
 )
 
-const fetchOptimization = async (activeSignal = { active: true }) => {
-  const path = isSavedRoute.value
-    ? `/optimizations/${encodeURIComponent(resourceId.value)}`
-    : `/optimizations/runs/${encodeURIComponent(resourceId.value)}`
-
-  clearSkeletonTimer()
-  optimization.value = null
-  error.value = ''
-  isNotFound.value = false
-  isFetching.value = true
-  showSkeleton.value = false
-
-  skeletonTimer = setTimeout(() => {
-    if (activeSignal.active && isFetching.value) showSkeleton.value = true
-  }, 150)
-
-  try {
-    const result = await api<OptimizationView>(path)
-    if (activeSignal.active) optimization.value = result
-  } catch (e) {
-    if (activeSignal.active) {
-      isNotFound.value = e instanceof ApiError && e.status === 404
-      error.value = e instanceof ApiError ? e.body.message : t('optimizations.loadFailed')
-    }
-  } finally {
-    if (activeSignal.active) {
-      isFetching.value = false
-      showSkeleton.value = false
-      clearSkeletonTimer()
-    }
-  }
-}
-
-const handleDownloadPdf = async (format: 'a4' | 'actual') => {
-  const opt = optimization.value
-  if (!opt || isDownloadingPdf.value) return
-
-  const basePath =
-    opt.isSaved && opt.id !== undefined
-      ? `/optimizations/${opt.id}/pdf`
-      : opt.runId
-        ? `/optimizations/runs/${encodeURIComponent(opt.runId)}/pdf`
-        : null
-
-  if (!basePath) return
-
-  isDownloadingPdf.value = true
-  try {
-    const blob = await apiBlob(`${basePath}?format=${format}`)
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    const baseName = (opt.name ?? opt.pattern?.name ?? 'optimization')
-      .toLowerCase()
-      .replace(/[^a-z0-9_-]+/g, '-')
-    link.href = url
-    link.download = `${baseName}-${format === 'actual' ? '1-to-1' : 'a4'}.pdf`
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(url)
-  } catch (e) {
-    toast.error(e instanceof ApiError ? e.body.message : t('optimizations.downloadPdfFailed'))
-  } finally {
-    isDownloadingPdf.value = false
-  }
-}
-
 const openSave = () => {
   saveError.value = ''
   isSaveOpen.value = true
 }
 
-const handleSave = async (name: string) => {
-  const runId = optimization.value?.runId
-  if (!runId || isSaving.value) return
+const {
+  optimization,
+  isFetching,
+  showSkeleton,
+  error,
+  isNotFound,
+  isDownloadingPdf,
+  isSaving,
+  saveError,
+  isRenaming,
+  renameError,
+  clearSkeletonTimer,
+  fetchOptimization,
+  downloadPdf: handleDownloadPdf,
+  saveOptimization,
+  renameOptimization,
+} = useOptimizationRun(isSavedRoute, resourceId)
 
-  isSaving.value = true
-  saveError.value = ''
-  try {
-    const { id } = await api<{ id: number }>(`/optimizations/runs/${runId}/save`, {
-      method: 'POST',
-      body: JSON.stringify({ name }),
-    })
+const handleSave = async (name: string) => {
+  const id = await saveOptimization(name)
+  if (id !== null) {
     isSaveOpen.value = false
-    toast.success(t('optimizations.savedToast'))
     await router.replace({ name: 'OptimizationDetails', params: { id } })
-  } catch (e) {
-    if (e instanceof ApiError) {
-      saveError.value =
-        e.body.errorCode === 'VALIDATION_ERROR' && Array.isArray(e.body.details)
-          ? e.body.details.join(' ')
-          : e.body.message
-    } else {
-      saveError.value = t('optimizations.saveFailed')
-    }
-  } finally {
-    isSaving.value = false
   }
+}
+
+const handleRename = async (name: string) => {
+  const ok = await renameOptimization(name)
+  if (ok) isEditOpen.value = false
 }
 
 const openEdit = () => {
   renameError.value = ''
   isEditOpen.value = true
-}
-
-const handleRename = async (name: string) => {
-  if (!optimization.value?.id || isRenaming.value) return
-  isRenaming.value = true
-  renameError.value = ''
-  try {
-    const updated = await api<{ id: number; name: string }>(
-      `/optimizations/${optimization.value.id}`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({ name }),
-      },
-    )
-    optimization.value.name = updated.name
-    isEditOpen.value = false
-    toast.success(t('optimizations.updatedToast'))
-  } catch (e) {
-    renameError.value = e instanceof ApiError ? e.body.message : t('optimizations.updateFailed')
-  } finally {
-    isRenaming.value = false
-  }
 }
 
 watch(

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -9,23 +9,20 @@ import type { MetaItem } from '@/types/details'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CalendarDays, RulerDimensionLine } from 'lucide-vue-next'
-import { api, ApiError } from '@/api/client'
 import DetailsActions from '@/components/common/DetailsActions.vue'
-import type { FabricResponse } from '@/types/fabric'
 import type { PolygonEdge } from '@/types/geometry'
 import { getPolygonEdges, toImagePercentBoundary } from '@/utils/geometry'
 import { useFavouriteToggle } from '@/composables/resources/useFavouriteToggle'
 import FavouriteButton from '@/components/common/FavouriteButton.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
 import { useDeleteResource } from '@/composables/resources/useDeleteResource'
+import { useFabricDetails } from '@/composables/fabrics/useFabricDetails'
 
 const props = defineProps<{ id: string }>()
 const { t } = useI18n()
 
-const fabric = ref<FabricResponse | null>(null)
-const isFetching = ref(true)
-const showSkeleton = ref(false)
-const error = ref('')
+const { fabric, isFetching, showSkeleton, error, clearSkeletonTimer, fetchFabric } =
+  useFabricDetails()
 
 const {
   confirmOpen,
@@ -41,15 +38,6 @@ const {
   redirectTo: '/fabrics',
   getId: () => props.id,
 })
-
-let skeletonTimer: ReturnType<typeof setTimeout> | null = null
-
-const clearSkeletonTimer = () => {
-  if (skeletonTimer) {
-    clearTimeout(skeletonTimer)
-    skeletonTimer = null
-  }
-}
 
 const normalizedShapes = computed(() => {
   const currentFabric = fabric.value
@@ -87,35 +75,6 @@ const metaItems = computed<MetaItem[]>(() =>
       ]
     : [],
 )
-
-const fetchFabric = async (id: string, activeSignal = { active: true }) => {
-  clearSkeletonTimer()
-  fabric.value = null
-  error.value = ''
-  isFetching.value = true
-  showSkeleton.value = false
-
-  skeletonTimer = setTimeout(() => {
-    if (activeSignal.active && isFetching.value) {
-      showSkeleton.value = true
-    }
-  }, 150)
-
-  try {
-    const result = await api<FabricResponse>(`/fabrics/${encodeURIComponent(id)}`)
-    if (activeSignal.active) fabric.value = result
-  } catch (e) {
-    if (activeSignal.active) {
-      error.value = e instanceof ApiError ? e.body.message : t('fabrics.loadFailed')
-    }
-  } finally {
-    if (activeSignal.active) {
-      isFetching.value = false
-      showSkeleton.value = false
-      clearSkeletonTimer()
-    }
-  }
-}
 
 const { toggle: toggleFavourite, pending } = useFavouriteToggle()
 

@@ -16,26 +16,20 @@ import BulkDeleteControls from '@/components/common/BulkDeleteControls.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { api, ApiError } from '@/api/client'
-import type {
-  PatternListItem,
-  PatternFilters,
-  PatternListResponse,
-  PatternSort,
-} from '@/types/pattern'
+import type { PatternListItem, PatternFilters, PatternSort } from '@/types/pattern'
 import { PATTERN_SIZE } from '@/types/pattern'
-import type { NameTag } from '@/types/common'
 import { formatCardDate } from '@/utils/formatCardDate'
 import {
   countActiveFilters,
   emptyFilters,
   filtersFromQuery,
-  filtersToApiParams,
   filtersToQuery,
 } from '@/utils/filters/patternFilters'
 import { useAuth } from '@/stores/authStore'
 import { useFavouriteToggle } from '@/composables/resources/useFavouriteToggle'
 import { useSelection } from '@/composables/lists/useSelection'
+import { useResourceTags } from '@/composables/resources/useResourceTags'
+import { usePatternsList } from '@/composables/patterns/usePatternsList'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: PatternSort = 'name_asc'
@@ -93,24 +87,6 @@ const toggleSize = (draft: PatternFilters, size: PATTERN_SIZE) => {
   draft.sizes = Object.values(PATTERN_SIZE).filter((s) => next.has(s))
 }
 
-const availableTags = ref<NameTag[]>([])
-const tagsLoaded = ref(false)
-const tagsLoading = ref(false)
-const tagsError = ref('')
-const loadTags = async () => {
-  if (tagsLoaded.value || tagsLoading.value) return
-  tagsError.value = ''
-  tagsLoading.value = true
-  try {
-    availableTags.value = await api<NameTag[]>('/patterns/tags')
-    tagsLoaded.value = true
-  } catch (e) {
-    tagsError.value = e instanceof ApiError ? e.body.message : t('common.errors.tagsLoadFailed')
-  } finally {
-    tagsLoading.value = false
-  }
-}
-
 // ---------- search ----------
 const search = computed(() =>
   typeof route.query.q === 'string' ? route.query.q.trim().slice(0, SEARCH_MAX) : '',
@@ -154,6 +130,21 @@ const resetCriteria = () => {
   router.push({ query: { sort: route.query.sort } })
 }
 
+const {
+  tags: availableTags,
+  loading: tagsLoading,
+  error: tagsError,
+  loadTags,
+} = useResourceTags('/patterns/tags', 'common.errors.tagsLoadFailed')
+
+const { data, showSkeleton, error, clearSkeletonTimer, fetchPatterns } = usePatternsList({
+  page,
+  sort,
+  search,
+  filters,
+  pageSize: PAGE_SIZE,
+})
+
 // ---------- selection (own patterns only) ----------
 const contentRef = ref<HTMLElement | null>(null)
 const { selectionMode, selectedIds, isSelected, toggleSelect, selectFromGesture, stopSelecting } =
@@ -166,67 +157,6 @@ const onContextMenu = (e: MouseEvent, pattern: PatternListItem) => {
   if (!pattern.isOwner) return // leave the browser menu alone
   e.preventDefault()
   selectFromGesture(pattern.id)
-}
-
-// ---------- list ----------
-const data = ref<PatternListResponse | null>(null)
-const isFetching = ref(true)
-const showSkeleton = ref(false)
-const error = ref('')
-
-let skeletonTimer: ReturnType<typeof setTimeout> | null = null
-const clearSkeletonTimer = () => {
-  if (skeletonTimer) {
-    clearTimeout(skeletonTimer)
-    skeletonTimer = null
-  }
-}
-
-const fetchPatterns = async (activeSignal = { active: true }) => {
-  clearSkeletonTimer()
-  error.value = ''
-  isFetching.value = true
-  showSkeleton.value = false
-
-  skeletonTimer = setTimeout(() => {
-    if (activeSignal.active && isFetching.value) showSkeleton.value = true
-  }, 150)
-
-  try {
-    const params = new URLSearchParams({
-      page: String(page.value),
-      limit: String(PAGE_SIZE),
-      sort: sort.value,
-    })
-    if (search.value) params.set('q', search.value)
-    for (const [key, value] of Object.entries(filtersToApiParams(filters.value))) {
-      params.set(key, value)
-    }
-
-    const result = await api<PatternListResponse>(`/patterns?${params}`)
-    if (!activeSignal.active) return
-
-    if (result.totalPages > 0 && page.value > result.totalPages) {
-      await router.replace({
-        query: {
-          ...route.query,
-          page: result.totalPages === 1 ? undefined : String(result.totalPages),
-        },
-      })
-      return
-    }
-    data.value = result
-  } catch (e) {
-    if (activeSignal.active) {
-      error.value = e instanceof ApiError ? e.body.message : t('patterns.loadFailed')
-    }
-  } finally {
-    if (activeSignal.active) {
-      isFetching.value = false
-      showSkeleton.value = false
-      clearSkeletonTimer()
-    }
-  }
 }
 
 const showTrash = computed(() => isLoggedIn.value && !!data.value?.items.some((p) => p.isOwner))

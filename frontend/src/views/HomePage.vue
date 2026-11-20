@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type Component, computed, onMounted, ref } from 'vue'
+import { type Component, computed, onMounted } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Puzzle, Shirt, Layers, Sparkles } from 'lucide-vue-next'
@@ -9,11 +9,11 @@ import QuickAction from '@/components/home/QuickAction.vue'
 import RecentSection from '@/components/home/RecentSection.vue'
 import StatCard from '@/components/common/StatCard.vue'
 import { useAuth } from '@/stores/authStore'
-import { api } from '@/api/client'
 import { formatCardDate } from '@/utils/formatCardDate'
 import type { OptimizationListItem } from '@/types/optimization'
 import type { PatternListItem } from '@/types/pattern'
 import type { FabricListItem } from '@/types/fabric'
+import { useDashboardStatistics } from '@/composables/home/useDashboardStatistics'
 
 interface QuickActionItem {
   label: string
@@ -32,34 +32,11 @@ interface StatCardItem {
   loading: boolean
 }
 
-interface ResourceStat {
-  total: number
-  thisWeek: number
-}
-
-interface UserStatistics {
-  optimizations: ResourceStat
-  fabrics: ResourceStat
-  patterns: ResourceStat
-}
-
 const { t } = useI18n()
 const { state: auth } = useAuth()
+const { statistics, isLoadingStats, statsLoadFailed, loadStatistics } = useDashboardStatistics()
 
-const statistics = ref<UserStatistics | null>(null)
-const isLoadingStats = ref(true)
-const statsLoadFailed = ref(false)
-
-onMounted(async () => {
-  try {
-    statistics.value = await api<UserStatistics>('/statistics')
-  } catch (err) {
-    console.error('Failed to load dashboard statistics:', err)
-    statsLoadFailed.value = true
-  } finally {
-    isLoadingStats.value = false
-  }
-})
+onMounted(loadStatistics)
 
 const quickActions = computed<QuickActionItem[]>(() => [
   {

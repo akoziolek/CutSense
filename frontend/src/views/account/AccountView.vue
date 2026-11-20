@@ -2,7 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/common/PageHeader.vue'
 import GridLayout from '@/components/layouts/GridLayout.vue'
-import { useAuth } from '@/composables/useAuth'
+import { useAuth } from '@/stores/authStore'
 import Button from '@/components/ui/button/Button.vue'
 import { Pencil } from 'lucide-vue-next'
 

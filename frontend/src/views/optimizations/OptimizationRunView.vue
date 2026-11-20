@@ -34,7 +34,7 @@ import {
   Loader2,
 } from 'lucide-vue-next'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
-import { login, useAuth } from '@/composables/useAuth'
+import { login, useAuth } from '@/stores/authStore'
 import { useDeleteResource } from '@/composables/useDeleteResource'
 import { getGeometryBoundsMm } from '@/utils/geometry'
 import {
@@ -294,8 +294,7 @@ const handleRename = async (name: string) => {
     isEditOpen.value = false
     toast.success(t('optimizations.updatedToast'))
   } catch (e) {
-    renameError.value =
-      e instanceof ApiError ? e.body.message : t('optimizations.updateFailed')
+    renameError.value = e instanceof ApiError ? e.body.message : t('optimizations.updateFailed')
   } finally {
     isRenaming.value = false
   }
@@ -617,7 +616,11 @@ watch(
       :success-open="successOpen"
       :is-deleting="isDeleting"
       :error="deleteError"
-      :title="t('optimizations.list.deleteTitle', { name: optimization?.name ?? t('optimizations.list.thisOptimization') })"
+      :title="
+        t('optimizations.list.deleteTitle', {
+          name: optimization?.name ?? t('optimizations.list.thisOptimization'),
+        })
+      "
       :description="t('optimizations.list.deleteDescription')"
       :success-title="t('optimizations.list.deleted')"
       :success-description="t('optimizations.list.deletedDescription')"

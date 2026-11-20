@@ -12,7 +12,7 @@ import type { PatternFormPayload } from '@/types/pattern'
 import { PATTERN_SIZE, PATTERN_VISIBILITY } from '@/types/pattern'
 import type { NameTag } from '@/types/common'
 import ErrorState from '@/components/common/ErrorState.vue'
-import { useAuth } from '@/composables/useAuth'
+import { useAuth } from '@/stores/authStore'
 import { useFormDraft } from '@/composables/useFormDraft'
 
 interface Pattern {
@@ -79,7 +79,8 @@ const fetchPattern = async (id: number, activeSignal = { active: true }) => {
       const isOwner = result.userId && currentUserId ? result.userId === currentUserId : false
 
       if (!isOwner) {
-        if (result.visibility === PATTERN_VISIBILITY.PUBLIC) error.value = t('patterns.noEditAccess')
+        if (result.visibility === PATTERN_VISIBILITY.PUBLIC)
+          error.value = t('patterns.noEditAccess')
         else error.value = t('patterns.loadFailed')
         return
       }

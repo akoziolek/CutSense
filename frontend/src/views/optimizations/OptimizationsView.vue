@@ -6,7 +6,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import FloatingButton from '@/components/common/FloatingButton.vue'
 import OptimizationList from '@/components/optimizations/OptimizationList.vue'
 import { Button } from '@/components/ui/button'
-import { login, useAuth } from '@/composables/useAuth'
+import { login, useAuth } from '@/stores/authStore'
 import { useI18n } from 'vue-i18n'
 
 const { state: auth } = useAuth()

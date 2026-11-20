@@ -27,7 +27,7 @@ import {
   filtersToApiParams,
   filtersToQuery,
 } from '@/utils/filters/patternFilters'
-import { useAuth } from '@/composables/useAuth'
+import { useAuth } from '@/stores/authStore'
 
 const emit = defineEmits<{
   (e: 'next'): void

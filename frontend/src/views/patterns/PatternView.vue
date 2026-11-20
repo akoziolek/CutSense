@@ -20,7 +20,7 @@ import PatternPiecesCarousel from '@/components/patterns/PatternPiecesCarousel.v
 import type { PatternCarouselPiece, PatternImage } from '@/types/pattern'
 import type { NameTag } from '@/types/common'
 import DetailsActions from '@/components/common/DetailsActions.vue'
-import { useAuth } from '@/composables/useAuth'
+import { useAuth } from '@/stores/authStore'
 import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
 import FavouriteButton from '@/components/common/FavouriteButton.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'

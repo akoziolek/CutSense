@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useAuth, login } from '@/composables/useAuth'
+import { useAuth, login } from '@/stores/authStore.ts'
 import { useI18n } from 'vue-i18n'
 import LangToggle from '../accessibility/LangToggle.vue'
 import ThemeToggle from '../accessibility/ThemeToggle.vue'

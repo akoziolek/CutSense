@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import NickNameModal from '@/components/auth/NickNameModal.vue'
 import LoginModal from '@/components/auth/LoginModal.vue'
 import { api, ApiError } from '@/api/client'
-import { login, useAuth } from '@/composables/useAuth'
+import { login, useAuth } from '@/stores/authStore'
 import { clearReturnTo, consumeReturnTo } from '@/utils/returnTo'
 
 const route = useRoute()

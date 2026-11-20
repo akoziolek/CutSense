@@ -33,7 +33,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { api, ApiError } from '@/api/client'
 import { useListQuery } from '@/composables/lists/useListQuery'
 import type { SortOption } from '@/types/common'
 import { usePagedList } from '@/composables/lists/usePagedList'
@@ -47,13 +46,13 @@ import {
   filtersToQuery,
 } from '@/utils/filters/optimizationFilters'
 import type {
-  OptimizationFilterOptions,
   OptimizationFilters,
   OptimizationListItem,
   OptimizationListResponse,
   OptimizationSort,
   OptimizationSortField,
 } from '@/types/optimization'
+import { useOptimizations } from '@/composables/lists/useOptimizations'
 
 const emit = defineEmits<{ (e: 'loaded', total: number): void }>()
 
@@ -90,6 +89,20 @@ const {
   resetCriteria,
 } = useListQuery<OptimizationSort>({ defaultSort: 'date_desc', sortOptions: SORT_OPTIONS })
 
+const {
+  options,
+  optionsLoading,
+  optionsError,
+  loadOptions,
+  resetOptions,
+  isDeleting,
+  deleteError,
+  deleteOptimization,
+  isRenaming,
+  renameError,
+  renameOptimization,
+} = useOptimizations()
+
 // ---------- sorting by column headers ----------
 const activeField = computed(() => sort.value.split('_')[0] as OptimizationSortField)
 const activeDir = computed(() => sort.value.split('_')[1] as 'asc' | 'desc')
@@ -110,23 +123,6 @@ const filters = computed(() => filtersFromQuery(route.query))
 const hasActiveFilters = computed(() => countActiveFilters(filters.value) > 0)
 const applyFilters = (next: OptimizationFilters) => applyQuery(filtersToQuery(next))
 
-const options = ref<OptimizationFilterOptions | null>(null)
-const optionsLoading = ref(false)
-const optionsError = ref('')
-const loadOptions = async () => {
-  if (options.value || optionsLoading.value) return
-  optionsError.value = ''
-  optionsLoading.value = true
-  try {
-    options.value = await api<OptimizationFilterOptions>('/optimizations/filter-options')
-  } catch (e) {
-    optionsError.value =
-      e instanceof ApiError ? e.body.message : t('common.filters.optionsLoadFailed')
-  } finally {
-    optionsLoading.value = false
-  }
-}
-
 const sectionTitle = (label: string, count: number) =>
   count ? t('common.filters.selectedCount', { label, count }) : label
 
@@ -141,7 +137,7 @@ const { selectionMode, selectedIds, isSelected, toggleSelect, selectFromGesture,
 const showTrash = computed(() => (data.value?.total ?? 0) > 0)
 const onBulkDeleted = () => {
   stopSelecting()
-  options.value = null
+  resetOptions()
   void refetch()
 }
 watch([page, sort, search, () => JSON.stringify(filters.value)], stopSelecting)
@@ -166,44 +162,34 @@ const { data, showSkeleton, error, refetch } = usePagedList<OptimizationListResp
 
 watch(data, (value) => value && emit('loaded', value.total))
 
-// ---------- delete ----------
 const target = ref<OptimizationListItem | null>(null)
 const confirmOpen = ref(false)
 const successOpen = ref(false)
-const isDeleting = ref(false)
-const deleteError = ref('')
 
 const requestDelete = (item: OptimizationListItem) => {
   target.value = item
   deleteError.value = ''
   confirmOpen.value = true
 }
+
 const confirmDelete = async () => {
-  if (!target.value || isDeleting.value) return
-  isDeleting.value = true
-  deleteError.value = ''
-  try {
-    await api<void>(`/optimizations/${target.value.id}`, { method: 'DELETE' })
+  if (!target.value) return
+  const ok = await deleteOptimization(target.value.id)
+  if (ok) {
     confirmOpen.value = false
     successOpen.value = true
-  } catch (e) {
-    deleteError.value =
-      e instanceof ApiError ? e.body.message : t('common.errors.somethingWentWrongRetry')
-  } finally {
-    isDeleting.value = false
   }
 }
+
 const closeSuccess = () => {
   successOpen.value = false
   target.value = null
-  options.value = null // counts in the filters changed
+  resetOptions()
   void refetch()
 }
 
 const editTarget = ref<OptimizationListItem | null>(null)
 const editOpen = ref(false)
-const isRenaming = ref(false)
-const renameError = ref('')
 
 const requestEdit = (item: OptimizationListItem) => {
   editTarget.value = item
@@ -212,21 +198,12 @@ const requestEdit = (item: OptimizationListItem) => {
 }
 
 const handleRename = async (name: string) => {
-  if (!editTarget.value || isRenaming.value) return
-  isRenaming.value = true
-  renameError.value = ''
-  try {
-    await api<{ id: number; name: string }>(`/optimizations/${editTarget.value.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ name }),
-    })
+  if (!editTarget.value) return
+  const ok = await renameOptimization(editTarget.value.id, name)
+  if (ok) {
     editOpen.value = false
     editTarget.value = null
     await refetch()
-  } catch (e) {
-    renameError.value = e instanceof ApiError ? e.body.message : t('optimizations.updateFailed')
-  } finally {
-    isRenaming.value = false
   }
 }
 </script>

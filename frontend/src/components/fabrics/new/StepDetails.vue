@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { api, ApiError } from '@/api/client'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
-import { toPostgisBoundary } from '@/utils/geometry'
 import FabricForm from '@/components/fabrics/FabricForm.vue'
 import type { FabricFormPayload } from '@/types/fabric'
-import { useI18n } from 'vue-i18n'
+import { useCreateFabric } from '@/composables/wizards/useFabricWizard'
 
 const emit = defineEmits<{
   (e: 'cancel'): void
@@ -14,10 +11,7 @@ const emit = defineEmits<{
 
 const fabricStore = useFabricAddingStore()
 const router = useRouter()
-
-const isSubmitting = ref(false)
-const submitError = ref('')
-const { t } = useI18n()
+const { isSubmitting, submitError, createFabric } = useCreateFabric()
 
 const saveDetails = async (payload: Partial<FabricFormPayload>) => {
   try {
@@ -32,52 +26,9 @@ const saveDetails = async (payload: Partial<FabricFormPayload>) => {
 }
 
 const handleSubmit = async (payload: FabricFormPayload) => {
-  submitError.value = ''
-  if (isSubmitting.value) return
-
-  const { file, config } = fabricStore
-
-  if (!file || !fabricStore.isShapeConfigured) {
-    submitError.value = t('fabrics.missingPhotoConfiguration')
-    return
-  }
-
-  await fabricStore.updateDetails({
-    name: payload.name,
-    description: payload.description,
-    tags: payload.tags,
-  })
-
-  const tagIds = payload.tags.map((tag) => tag.id)
-
-  const boundary = toPostgisBoundary(config.shapes[0] ?? [], config)
-  const imageWidthMm = Math.round(config.imageWidth / config.pxPerMm)
-  const imageHeightMm = Math.round(config.imageHeight / config.pxPerMm)
-  const formData = new FormData()
-  formData.append('picture', file)
-  formData.append('name', payload.name)
-  if (payload.description) {
-    formData.append('description', payload.description)
-  }
-  formData.append('boundary', JSON.stringify(boundary))
-  formData.append('imageWidthMm', String(imageWidthMm))
-  formData.append('imageHeightMm', String(imageHeightMm))
-  formData.append('grainline', String(config.threadAngle))
-  formData.append('tagIds', JSON.stringify(tagIds))
-
-  isSubmitting.value = true
-  try {
-    const createdFabric = await api<{ id: number }>('/fabrics', {
-      method: 'POST',
-      body: formData,
-    })
-    await fabricStore.resetWizard()
-    await router.push({ name: 'FabricDetails', params: { id: createdFabric.id } })
-  } catch (error) {
-    console.error('Failed to create fabric:', error)
-    submitError.value = error instanceof ApiError ? error.body.message : t('fabrics.saveError')
-  } finally {
-    isSubmitting.value = false
+  const createdId = await createFabric(payload)
+  if (createdId !== null) {
+    await router.push({ name: 'FabricDetails', params: { id: createdId } })
   }
 }
 </script>

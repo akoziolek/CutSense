@@ -105,7 +105,7 @@ export class OptimizationPdfService {
     );
 
     return this.collectBuffer(doc, () => {
-      // Strona 1: Podsumowanie A4 z nałożoną siatką kafelków + kwadrat testowy 50x50 mm
+      // Strona 1: Summary
       doc.addPage({
         size: 'A4',
         layout: summaryIsLandscape ? 'landscape' : 'portrait',
@@ -114,7 +114,7 @@ export class OptimizationPdfService {
 
       drawSummaryCoverPage(doc, view, { tileBounds, plan });
 
-      // Strony 2..N: Czyste kafelki 1:1
+      // Strony 2..N: Tiles N:N
       const marginPt = marginMm * MM_TO_PT;
       const tileWPt = plan.tileWmm * MM_TO_PT;
       const tileHPt = plan.tileHmm * MM_TO_PT;

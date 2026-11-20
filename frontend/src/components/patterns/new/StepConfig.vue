@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
 import { useSpatialWorkspace } from '@/composables/spatial/useSpatialWorkspace'
 import SpatialWorkspace from '@/components/spatial/SpatialWorkspace.vue'
@@ -9,15 +8,10 @@ import PatternPhotosSidebar from '@/components/patterns/new/PatternPhotosSidebar
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import { Skeleton } from '@/components/ui/skeleton'
-import { api, ApiError } from '@/api/client'
 import { Loader2 } from 'lucide-vue-next'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
+import { usePatternBoundaryAnalysis } from '@/composables/wizards/usePatternWizard'
 
-interface ShapeAnalysisResponse {
-  shapes: Point2D[][]
-  imageWidth: number
-  imageHeight: number
-}
 
 const emit = defineEmits<{
   (e: 'next'): void
@@ -25,7 +19,7 @@ const emit = defineEmits<{
 }>()
 
 const patternStore = usePatternAddingStore()
-const { t } = useI18n()
+const { analyzeAllPhotos } = usePatternBoundaryAnalysis()
 const workspaceRef = ref<InstanceType<typeof SpatialWorkspace> | null>(null)
 
 const activePhotoIndex = ref(0)
@@ -210,58 +204,17 @@ const syncWorkspaceState = () => {
   })
 }
 
-const detectPatternBoundary = async (photoIndex: number) => {
-  const file = patternStore.photos[photoIndex]
-  if (!file) return
-
-  const photoConfig = patternStore.photoConfigs[photoIndex]
-  if (photoConfig?.isAnalyzed || photoConfig?.isAnalyzing) return
-
-  patternStore.setPhotoAnalyzing(photoIndex, true)
-
-  try {
-    const formData = new FormData()
-    formData.append('picture', file)
-
-    const result = await api<ShapeAnalysisResponse>('/patterns/analyze-boundary', {
-      method: 'POST',
-      body: formData,
-    })
-
-    if (
-      !result.shapes ||
-      result.shapes.length === 0 ||
-      !result.shapes[0] ||
-      result.shapes[0].length < 3 ||
-      !Number.isFinite(result.imageWidth) ||
-      result.imageWidth <= 0 ||
-      !Number.isFinite(result.imageHeight) ||
-      result.imageHeight <= 0
-    ) {
-      throw new Error('Invalid boundary returned.')
-    }
-
-    await patternStore.updatePhotoDimensions(photoIndex, result.imageWidth, result.imageHeight)
-    patternStore.setPhotoShapes(photoIndex, result.shapes)
-
-    if (photoIndex === activePhotoIndex.value) {
-      syncWorkspaceState()
-    }
-  } catch (error) {
-    console.error(`Failed to analyze photo #${photoIndex + 1}:`, error)
-    patternStore.setPhotoAnalyzing(photoIndex, false)
-    if (photoIndex === activePhotoIndex.value) {
-      analysisError.value =
-        error instanceof ApiError ? error.body.message : t('patterns.analysisFailed')
-      isErrorModalOpen.value = true
-    }
-  }
-}
-
 const analyzeAllPhotosInBackground = () => {
-  if (!patternStore.isHydrated) return
-  patternStore.photos.forEach((_, idx) => {
-    void detectPatternBoundary(idx)
+  analyzeAllPhotos({
+    onPhotoAnalyzed: (idx) => {
+      if (idx === activePhotoIndex.value) syncWorkspaceState()
+    },
+    onPhotoError: (idx, message) => {
+      if (idx === activePhotoIndex.value) {
+        analysisError.value = message
+        isErrorModalOpen.value = true
+      }
+    },
   })
 }
 

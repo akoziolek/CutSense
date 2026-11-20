@@ -33,7 +33,6 @@ import {
 } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CheckIcon } from 'lucide-vue-next'
-import { api, ApiError } from '@/api/client'
 import FormFloatingActions from '../forms/FormFloatingActions.vue'
 import Skeleton from '../ui/skeleton/Skeleton.vue'
 import { PATTERN_SIZE, PATTERN_VISIBILITY, type PatternFormPayload } from '@/types/pattern'
@@ -42,6 +41,7 @@ import SelectGroup from '../ui/select/SelectGroup.vue'
 import SelectLabel from '../ui/select/SelectLabel.vue'
 import RadioGroup from '../ui/radio-group/RadioGroup.vue'
 import RadioGroupItem from '../ui/radio-group/RadioGroupItem.vue'
+import { useResourceTags } from '@/composables/useResourceTags.ts'
 
 const SIZES = Object.values(PATTERN_SIZE)
 const MAX_NAME_LENGTH = 35
@@ -83,8 +83,9 @@ const description = ref(props.description)
 const visibility = ref(props.visibility)
 
 const selectedTagNames = ref<string[]>(props.tags ? props.tags.map((tag) => tag.name) : [])
-const availableTags = ref<NameTag[]>([])
-const tagLoadError = ref('')
+const { tags: availableTags, error: tagLoadError, loadTags: loadAvailableTags } =
+  useResourceTags('/patterns/tags', 'patterns.tagLoadError')
+
 
 const knownTagsMap = computed(() => {
   const map = new Map<string, NameTag>()
@@ -122,15 +123,6 @@ const filteredTags = computed(() =>
     ? availableTags.value
     : availableTags.value.filter((tag) => contains(tag.name, searchTerm.value)),
 )
-
-const loadAvailableTags = async () => {
-  tagLoadError.value = ''
-  try {
-    availableTags.value = await api<NameTag[]>('/patterns/tags')
-  } catch (error) {
-    tagLoadError.value = error instanceof ApiError ? error.body.message : t('patterns.tagLoadError')
-  }
-}
 
 const handleEnterKey = () => {
   const trimmed = searchTerm.value.trim()

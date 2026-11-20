@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { Scissors } from 'lucide-vue-next'
@@ -9,14 +9,12 @@ import ListFilterPopover from '@/components/common/ListFilterPopover.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import SelectableResourceList from '@/components/common/SelectableResourceList.vue'
 import type { SortOption } from '@/types/common'
-import { api, ApiError } from '@/api/client'
 import {
   type PatternListItem,
   type PatternFilters,
   PATTERN_SIZE,
   type PatternSort,
 } from '@/types/pattern'
-import type { NameTag } from '@/types/common'
 import { formatCardDate } from '@/utils/formatCardDate'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { useRoute, useRouter } from 'vue-router'
@@ -28,6 +26,7 @@ import {
   filtersToQuery,
 } from '@/utils/filters/patternFilters'
 import { useAuth } from '@/stores/authStore'
+import { useResourceTags } from '@/composables/useResourceTags'
 
 const emit = defineEmits<{
   (e: 'next'): void
@@ -62,24 +61,12 @@ const toggleSize = (draft: PatternFilters, size: PATTERN_SIZE) => {
   draft.sizes = Object.values(PATTERN_SIZE).filter((value) => next.has(value))
 }
 
-const availableTags = ref<NameTag[]>([])
-const tagsLoaded = ref(false)
-const tagsLoading = ref(false)
-const tagsError = ref('')
-const loadTags = async () => {
-  if (tagsLoaded.value || tagsLoading.value) return
-  tagsError.value = ''
-  tagsLoading.value = true
-  try {
-    availableTags.value = await api<NameTag[]>('/patterns/tags')
-    tagsLoaded.value = true
-  } catch (error) {
-    tagsError.value =
-      error instanceof ApiError ? error.body.message : t('common.errors.tagsLoadFailed')
-  } finally {
-    tagsLoading.value = false
-  }
-}
+const {
+  tags: availableTags,
+  loading: tagsLoading,
+  error: tagLoadError,
+  loadTags: loadAvailableTags,
+} = useResourceTags('/patterns/tags', 'common.errors.tagsLoadFailed')
 
 const SORT_OPTIONS = computed<SortOption<PatternSort>[]>(() => [
   { value: 'name_asc', label: t('common.sort.nameAscending') },
@@ -119,10 +106,10 @@ const getMeta = (pattern: PatternListItem) =>
           :show-community="isLoggedIn"
           :tags="availableTags"
           :tags-loading="tagsLoading"
-          :tags-error="tagsError"
+          :tags-error="tagLoadError"
           :active="hasActiveFilters"
           @apply="applyFilters"
-          @opened="loadTags"
+          @opened="loadAvailableTags"
         >
           <template #default="{ draft }">
             <FilterSection :title="$t('common.filters.size')" :default-open="true">

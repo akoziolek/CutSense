@@ -494,6 +494,28 @@
     "stepsTitle": "See how easy it is to get started",
     "stepsDescription": "There are just few simple steps that you need to follow.",
     "step": "Step {number}",
+    "steps": {
+      "1": {
+        "title": "Choose your fabric",
+        "description": "Pick a fabric from your stash or enter custom dimensions."
+      },
+      "2": {
+        "title": "Select a pattern",
+        "description": "Pick a pattern from your library or browse community patterns."
+      },
+      "3": {
+        "title": "Set parameters",
+        "description": "Provide details such as the desired number of pieces and margins."
+      },
+      "4": {
+        "title": "Pick an algorithm",
+        "description": "Choose the nesting algorithm best suited for your layout."
+      },
+      "5": {
+        "title": "Export results",
+        "description": "View, save, and export your optimized fabric layout."
+      }
+    },
     "creators": "Creators",
     "creatorDescription": "Some description about us.",
     "tickerSignUp": "Sign up to access all the features",

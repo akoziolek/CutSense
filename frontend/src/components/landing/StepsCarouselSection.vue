@@ -1,20 +1,27 @@
-  <script setup lang="ts">
-  import {
-    Carousel,
-    CarouselContent,
-    CarouselItem,
-    CarouselNext,
-    CarouselPrevious,
-  } from '@/components/ui/carousel'
-  import { Card, CardContent } from '@/components/ui/card'
+<script setup lang="ts">
+import type { Component } from 'vue'
+import { Ruler, Scissors, SlidersHorizontal, Cpu, FileDown } from 'lucide-vue-next'
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel'
+import { Card, CardContent } from '@/components/ui/card'
 
-  // TODO decide what we want to display here
-  interface Step {
-    id: number
-  }
+interface Step {
+  id: number
+  icon: Component
+}
 
-  const steps: Step[] = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }]
-
+const steps: Step[] = [
+  { id: 1, icon: Ruler },
+  { id: 2, icon: Scissors },
+  { id: 3, icon: SlidersHorizontal },
+  { id: 4, icon: Cpu },
+  { id: 5, icon: FileDown },
+]
 </script>
 
 <template>
@@ -43,12 +50,37 @@
             class="pl-4 sm:pl-6 basis-full sm:basis-1/2 lg:basis-1/3"
           >
             <Card
-              class="border-2 border-border rounded-2xl bg-popover shadow-none h-95 sm:h-105 flex flex-col justify-center items-center"
+              class="group border-2 border-muted hover:border-brand-pink transition-colors duration-300 rounded-2xl bg-popover shadow-none h-95 sm:h-105"
             >
-              <CardContent class="p-6">
-                <span class="text-2xl font-bold text-muted-foreground/40">
-                  {{ $t('landing.step', { number: step.id }) }}
-                </span>
+              <CardContent class="px-6 pt-5 pb-7 h-full flex flex-col">
+                <div class="flex items-center justify-between w-full">
+                  <span
+                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-secondary text-secondary-foreground"
+                  >
+                    {{ $t('landing.step', { number: step.id }) }}
+                  </span>
+                  <span class="text-3xl font-bold text-muted-foreground/40 select-none font-inter">
+                    0{{ step.id }}
+                  </span>
+                </div>
+
+                <div class="flex-1 flex items-center justify-center">
+                  <component
+                    :is="step.icon"
+                    class="w-14 h-14 text-foreground/80 group-hover:text-foreground stroke-[1.8] transition-all duration-300 group-hover:-translate-y-1"
+                  />
+                </div>
+
+                <div class="space-y-2 text-center">
+                  <h3
+                    class="text-lg sm:text-xl font-bold font-inter text-foreground tracking-tight"
+                  >
+                    {{ $t(`landing.steps.${step.id}.title`) }}
+                  </h3>
+                  <p class="text-sm text-muted-foreground leading-relaxed min-h-[4.5rem]">
+                    {{ $t(`landing.steps.${step.id}.description`) }}
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </CarouselItem>

@@ -493,6 +493,28 @@
     "stepsTitle": "Zobacz, jak łatwo zacząć",
     "stepsDescription": "Wystarczy wykonać kilka prostych kroków.",
     "step": "Krok {number}",
+    "steps": {
+      "1": {
+        "title": "Wybierz materiał",
+        "description": "Wybierz tkaninę z własnej szafy albo wpisz jej dokładne wymiary."
+      },
+      "2": {
+        "title": "Dobierz wykrój",
+        "description": "Wybierz wykrój z własnej biblioteki albo skorzystaj z bazy społeczności."
+      },
+      "3": {
+        "title": "Podaj parametry",
+        "description": "Określ wymagania, takie jak liczba sztuk poszczególnych elementów."
+      },
+      "4": {
+        "title": "Wybierz algorytm",
+        "description": "Dopasuj algorytm rozmieszczania elementów do swoich potrzeb."
+      },
+      "5": {
+        "title": "Eksportuj wyniki",
+        "description": "Zobacz, zapisz i wyeksportuj gotowy układ swojej optymalizacji."
+      }
+    },
     "creators": "Twórcy",
     "creatorDescription": "Kilka słów o nas.",
     "tickerSignUp": "Zarejestruj się, aby uzyskać dostęp do wszystkich funkcji",

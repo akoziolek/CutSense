@@ -5,17 +5,30 @@ import { JwtModule, JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter.js';
 import { UsersService } from '../src/modules/users/users.service.js';
-import { AuthController } from '../src/auth/auth.controller.js';
-import { AuthService } from '../src/auth/auth.service.js';
-import { GoogleAuthGuard } from '../src/auth/guards/google-auth.guard.js';
-import { SessionGuard } from '../src/auth/guards/session.guard.js';
+import { AuthController } from '../src/modules/auth/auth.controller.js';
+import { AuthService } from '../src/modules/auth/auth.service.js';
+import { GoogleAuthGuard } from '../src/modules/auth/guards/google-auth.guard.js';
+import { SessionGuard } from '../src/modules/auth/guards/session.guard.js';
 
 const SECRET = 'test-secret';
 const FRONT = 'http://localhost:5173';
-const profile = { email: 'a@b.pl', name: 'ala', surname: 'M', avatar: 'http://x/y.png' };
+const profile = {
+  email: 'a@b.pl',
+  name: 'ala',
+  surname: 'M',
+  avatar: 'http://x/y.png',
+};
 
 // ---- mocks ----
 const users = {
@@ -35,8 +48,10 @@ const fakeGoogleGuard = {
 
 // ---- token helpers ----
 const jwt = new JwtService({ secret: SECRET });
-const sessionToken = (sub = '5', expiresIn: JwtSignOptions['expiresIn'] = '1h') =>
-  jwt.sign({ sub, purpose: 'session' }, { expiresIn });
+const sessionToken = (
+  sub = '5',
+  expiresIn: JwtSignOptions['expiresIn'] = '1h',
+) => jwt.sign({ sub, purpose: 'session' }, { expiresIn });
 const registrationToken = (expiresIn: JwtSignOptions['expiresIn'] = '15m') =>
   jwt.sign({ ...profile, purpose: 'registration' }, { expiresIn });
 
@@ -52,7 +67,8 @@ const setCookies = (res: request.Response) =>
   (res.headers['set-cookie'] as unknown as string[] | undefined) ?? [];
 const cookie = (res: request.Response, name: string) =>
   setCookies(res).find((c) => c.startsWith(`${name}=`));
-const cookieValue = (c: string) => c.split(';')[0].split('=').slice(1).join('=');
+const cookieValue = (c: string) =>
+  c.split(';')[0].split('=').slice(1).join('=');
 const isCleared = (c?: string) => !!c && c.includes('Expires=Thu, 01 Jan 1970');
 
 describe('Auth module guards (HTTP)', () => {
@@ -77,7 +93,11 @@ describe('Auth module guards (HTTP)', () => {
     app = moduleRef.createNestApplication();
     app.use(cookieParser());
     app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
     );
     app.useGlobalFilters(new AllExceptionsFilter());
     app.setGlobalPrefix('v1');
@@ -114,20 +134,39 @@ describe('Auth module guards (HTTP)', () => {
     });
 
     it('401 for tampered token (changed user)', async () => {
-      const forged = tamper(sessionToken('5'), { sub: '1', purpose: 'session' });
-      unauthorized(await http().get('/v1/auth/me').set('Cookie', `session=${forged}`).expect(401));
+      const forged = tamper(sessionToken('5'), {
+        sub: '1',
+        purpose: 'session',
+      });
+      unauthorized(
+        await http()
+          .get('/v1/auth/me')
+          .set('Cookie', `session=${forged}`)
+          .expect(401),
+      );
     });
 
     it('200 for valid session with only public fields', async () => {
       users.findById.mockResolvedValue({
-        id: 5, nickname: 'ala', email: 'a@b.pl', pictureUrl: 'http://x/y.png',
-        name: 'ala', surname: 'K', createdAt: new Date(), updatedAt: new Date(),
+        id: 5,
+        nickname: 'ala',
+        email: 'a@b.pl',
+        pictureUrl: 'http://x/y.png',
+        name: 'ala',
+        surname: 'K',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
       const res = await http()
         .get('/v1/auth/me')
         .set('Cookie', `session=${sessionToken('5')}`)
         .expect(200);
-      expect(Object.keys(res.body).sort()).toEqual(['avatar', 'email', 'id', 'nickname']);
+      expect(Object.keys(res.body).sort()).toEqual([
+        'avatar',
+        'email',
+        'id',
+        'nickname',
+      ]);
     });
   });
 
@@ -145,32 +184,44 @@ describe('Auth module guards (HTTP)', () => {
     });
 
     it('401 when session token is provided instead of registration token', async () => {
-      await send(`registration_token=${sessionToken()}`, { nickname: 'ala_Test' }).expect(401);
+      await send(`registration_token=${sessionToken()}`, {
+        nickname: 'ala_Test',
+      }).expect(401);
       expect(users.create).not.toHaveBeenCalled();
     });
 
     it('401 for expired registration token', async () => {
-      await send(`registration_token=${registrationToken(-1)}`, { nickname: 'ala_Test' }).expect(401);
+      await send(`registration_token=${registrationToken(-1)}`, {
+        nickname: 'ala_Test',
+      }).expect(401);
       expect(users.create).not.toHaveBeenCalled();
     });
 
     it('401 for tampered registration token (foreign email)', async () => {
       const forged = tamper(registrationToken(), {
-        ...profile, email: 'victim@x.pl', purpose: 'registration',
+        ...profile,
+        email: 'victim@x.pl',
+        purpose: 'registration',
       });
-      await send(`registration_token=${forged}`, { nickname: 'ala_Test' }).expect(401);
+      await send(`registration_token=${forged}`, {
+        nickname: 'ala_Test',
+      }).expect(401);
       expect(users.create).not.toHaveBeenCalled();
     });
 
     it('400 when client tries to submit additional fields (email, id)', async () => {
       await send(`registration_token=${registrationToken()}`, {
-        nickname: 'ala_Test', email: 'attacker@evil.com', id: 1,
+        nickname: 'ala_Test',
+        email: 'attacker@evil.com',
+        id: 1,
       }).expect(400);
       expect(users.create).not.toHaveBeenCalled();
     });
 
     it('201: e-mail comes from the token, session is set, registration token is cleared', async () => {
-      const res = await send(`registration_token=${registrationToken()}`, { nickname: 'ala_Test' }).expect(201);
+      const res = await send(`registration_token=${registrationToken()}`, {
+        nickname: 'ala_Test',
+      }).expect(201);
 
       expect(users.create).toHaveBeenCalledWith(
         expect.objectContaining({ email: profile.email, nickname: 'ala_Test' }),
@@ -193,7 +244,11 @@ describe('Auth module guards (HTTP)', () => {
       expect(c).toContain('Max-Age=604800');
 
       // czas życia ciasteczka = czas życia tokenu
-      const payload = jwt.decode(cookieValue(c)) as { sub: string; exp: number; iat: number };
+      const payload = jwt.decode(cookieValue(c)) as {
+        sub: string;
+        exp: number;
+        iat: number;
+      };
       expect(payload.sub).toBe('7');
       expect(payload.exp - payload.iat).toBe(7 * 24 * 3600);
     });

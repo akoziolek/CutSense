@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { Trash2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
-import { useBulkDelete } from '@/composables/useBulkDelete'
+import { useBulkDelete } from '@/composables/lists/useBulkDelete'
 
 const props = defineProps<{
   basePath: string

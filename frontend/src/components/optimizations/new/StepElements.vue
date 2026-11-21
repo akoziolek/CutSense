@@ -1,20 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Skeleton } from '@/components/ui/skeleton'
 import ErrorState from '@/components/common/ErrorState.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import AllowancesPanel from '@/components/optimizations/new/AllowancesPanel.vue'
 import OptimizationPieceCard from '@/components/optimizations/new/OptimizationPieceCard.vue'
-import { api, ApiError } from '@/api/client'
-import type {
-  OptimizationDefaults,
-  PatternDetails,
-  PatternPieceDefaults,
-} from '@/types/optimization'
 import type { Point2D } from '@/types/geometry'
+import { toImagePercent } from '@/utils/geometry'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
-import { mmToCm } from '@/utils/optimizationConfig'
+import { useOptimizationSetup } from '@/composables/wizards/useOptimizationWizard'
 
 const emit = defineEmits<{
   (e: 'next'): void
@@ -22,12 +17,8 @@ const emit = defineEmits<{
 }>()
 
 const store = useOptimizationAddingStore()
+const { patternPieces, patternDetails, isLoading, loadError, load } = useOptimizationSetup()
 const { t } = useI18n()
-
-const patternPieces = ref<PatternPieceDefaults[]>([])
-const patternDetails = ref<PatternDetails | null>(null)
-const isLoading = ref(true)
-const loadError = ref('')
 
 const previewsById = computed(() => {
   if (!patternDetails.value) return new Map()
@@ -42,10 +33,7 @@ const previewsById = computed(() => {
 
     const imageWidth = image.imageWidthMm || 1
     const imageHeight = image.imageHeightMm || 1
-    const points = piece.points.map(([x, y]) => ({
-      pctX: (x / imageWidth) * 100,
-      pctY: ((imageHeight - y) / imageHeight) * 100,
-    }))
+    const points = piece.points.map((point) => toImagePercent(point, imageWidth, imageHeight))
     const imageShapes = shapesByImage.get(image.id) ?? []
 
     shapeIndexes.set(piece.id, imageShapes.length)
@@ -92,31 +80,6 @@ const labeledPieces = computed(() => {
   })
 })
 
-const load = async () => {
-  const pattern = store.pattern
-  if (!pattern) return
-  isLoading.value = true
-  loadError.value = ''
-  try {
-    const [details, defaults] = await Promise.all([
-      api<PatternDetails>(`/patterns/${pattern.id}`),
-      api<OptimizationDefaults>('/optimizations/defaults'),
-    ])
-    patternPieces.value = details.pieces
-    patternDetails.value = details
-
-    if (store.piecesPatternId !== pattern.id) store.initPieces(pattern.id, details.pieces)
-    if (store.seamAllowanceCm === '') store.seamAllowanceCm = mmToCm(defaults.seamAllowanceMm)
-    if (store.cuttingAllowanceCm === '')
-      store.cuttingAllowanceCm = mmToCm(defaults.cuttingAllowanceMm)
-  } catch (e) {
-    loadError.value =
-      e instanceof ApiError ? e.body.message : t('optimizations.patternLoadFailed')
-  } finally {
-    isLoading.value = false
-  }
-}
-
 onMounted(load)
 </script>
 
@@ -158,7 +121,10 @@ onMounted(load)
         />
       </div>
 
-      <AllowancesPanel v-model:seam="store.seamAllowanceCm" v-model:cutting="store.cuttingAllowanceCm" />
+      <AllowancesPanel
+        v-model:seam="store.seamAllowanceCm"
+        v-model:cutting="store.cuttingAllowanceCm"
+      />
     </div>
 
     <FormFloatingActions

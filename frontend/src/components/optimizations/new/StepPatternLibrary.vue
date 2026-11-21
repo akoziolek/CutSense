@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { Scissors } from 'lucide-vue-next'
@@ -8,10 +8,13 @@ import FilterSection from '@/components/common/FilterSection.vue'
 import ListFilterPopover from '@/components/common/ListFilterPopover.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import SelectableResourceList from '@/components/common/SelectableResourceList.vue'
-import type { SortOption } from '@/composables/useListQuery'
-import { api, ApiError } from '@/api/client'
-import { PATTERN_SIZES, type PatternListItem, type PatternSize, type PatternSort } from '@/types/pattern'
-import type { NameTag } from '@/types/fabric'
+import type { SortOption } from '@/types/common'
+import {
+  type PatternListItem,
+  type PatternFilters,
+  PATTERN_SIZE,
+  type PatternSort,
+} from '@/types/pattern'
 import { formatCardDate } from '@/utils/formatCardDate'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { useRoute, useRouter } from 'vue-router'
@@ -21,9 +24,9 @@ import {
   filtersFromQuery,
   filtersToApiParams,
   filtersToQuery,
-  type PatternFilters,
-} from '@/utils/patternFilters'
-import { useAuth } from '@/composables/useAuth'
+} from '@/utils/filters/patternFilters'
+import { useAuth } from '@/stores/authStore'
+import { useResourceTags } from '@/composables/resources/useResourceTags'
 
 const emit = defineEmits<{
   (e: 'next'): void
@@ -51,31 +54,19 @@ const clearFilters = () =>
       page: undefined,
     },
   })
-const toggleSize = (draft: PatternFilters, size: PatternSize) => {
+const toggleSize = (draft: PatternFilters, size: PATTERN_SIZE) => {
   const next = new Set(draft.sizes)
   if (next.has(size)) next.delete(size)
   else next.add(size)
-  draft.sizes = PATTERN_SIZES.filter((value) => next.has(value))
+  draft.sizes = Object.values(PATTERN_SIZE).filter((value) => next.has(value))
 }
 
-const availableTags = ref<NameTag[]>([])
-const tagsLoaded = ref(false)
-const tagsLoading = ref(false)
-const tagsError = ref('')
-const loadTags = async () => {
-  if (tagsLoaded.value || tagsLoading.value) return
-  tagsError.value = ''
-  tagsLoading.value = true
-  try {
-    availableTags.value = await api<NameTag[]>('/patterns/tags')
-    tagsLoaded.value = true
-  } catch (error) {
-    tagsError.value =
-      error instanceof ApiError ? error.body.message : t('common.errors.tagsLoadFailed')
-  } finally {
-    tagsLoading.value = false
-  }
-}
+const {
+  tags: availableTags,
+  loading: tagsLoading,
+  error: tagLoadError,
+  loadTags: loadAvailableTags,
+} = useResourceTags('/patterns/tags', 'common.errors.tagsLoadFailed')
 
 const SORT_OPTIONS = computed<SortOption<PatternSort>[]>(() => [
   { value: 'name_asc', label: t('common.sort.nameAscending') },
@@ -84,7 +75,8 @@ const SORT_OPTIONS = computed<SortOption<PatternSort>[]>(() => [
   { value: 'date_asc', label: t('common.sort.oldest') },
 ])
 
-const getMeta = (pattern: PatternListItem) => `${formatCardDate(pattern.createdAt)} • ${pattern.size}`
+const getMeta = (pattern: PatternListItem) =>
+  `${formatCardDate(pattern.createdAt)} • ${pattern.size}`
 </script>
 
 <template>
@@ -114,20 +106,24 @@ const getMeta = (pattern: PatternListItem) => `${formatCardDate(pattern.createdA
           :show-community="isLoggedIn"
           :tags="availableTags"
           :tags-loading="tagsLoading"
-          :tags-error="tagsError"
+          :tags-error="tagLoadError"
           :active="hasActiveFilters"
           @apply="applyFilters"
-          @opened="loadTags"
+          @opened="loadAvailableTags"
         >
           <template #default="{ draft }">
             <FilterSection :title="$t('common.filters.size')" :default-open="true">
               <div class="flex flex-wrap gap-1.5">
                 <button
-                  v-for="size in PATTERN_SIZES"
+                  v-for="size in PATTERN_SIZE"
                   :key="size"
                   type="button"
                   class="cursor-pointer rounded-md border px-2.5 py-1 text-xs hover:bg-brand-green hover:text-brand-green-foreground"
-                  :class="draft.sizes.includes(size) ? 'border-foreground bg-brand-green text-brand-green-foreground' : 'border-border'"
+                  :class="
+                    draft.sizes.includes(size)
+                      ? 'border-foreground bg-brand-green text-brand-green-foreground'
+                      : 'border-border'
+                  "
                   :aria-pressed="draft.sizes.includes(size)"
                   @click="toggleSize(draft, size)"
                 >
@@ -146,7 +142,9 @@ const getMeta = (pattern: PatternListItem) => `${formatCardDate(pattern.createdA
           {{ $t('optimizations.noPatternsDescription') }}
         </p>
         <Button as-child size="sm" class="mt-2 rounded-lg">
-          <RouterLink :to="{ name: 'PatternNew' }">{{ $t('optimizations.addFirstPattern') }}</RouterLink>
+          <RouterLink :to="{ name: 'PatternNew' }">{{
+            $t('optimizations.addFirstPattern')
+          }}</RouterLink>
         </Button>
       </template>
     </SelectableResourceList>

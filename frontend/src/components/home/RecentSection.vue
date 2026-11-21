@@ -1,8 +1,4 @@
-<script
-  setup
-  lang="ts"
-  generic="T extends { id: string | number; name: string }"
->
+<script setup lang="ts" generic="T extends { id: string | number; name: string }">
 import { ref, type Component } from 'vue'
 import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -10,7 +6,7 @@ import { ArrowRight } from 'lucide-vue-next'
 import ResourceCard from '@/components/common/ResourceCard.vue'
 import ResourceList from '@/components/common/ResourceList.vue'
 import { Button } from '@/components/ui/button'
-import { usePagedList } from '@/composables/usePagedList'
+import { usePagedList } from '@/composables/lists/usePagedList'
 
 interface PagedResponse<Item> {
   items: Item[]

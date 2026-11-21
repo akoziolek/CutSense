@@ -2,6 +2,28 @@ import { describe, expect, it } from 'vitest';
 import { PatternsMapper } from './patterns.mapper.js';
 
 describe('PatternsMapper.mapPiecesForEngine', () => {
+  it('maps GeoJSON rings to open object-point boundaries', () => {
+    expect(
+      PatternsMapper.piecePointsFromGeoJson(
+        '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,5],[0,0]]]}',
+      ),
+    ).toEqual([
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 5 },
+    ]);
+  });
+
+  it('closes open object-point boundaries when converting them to WKT', () => {
+    expect(
+      PatternsMapper.pieceBoundaryToWkt([
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 10, y: 5 },
+      ]),
+    ).toBe('POLYGON((0 0, 10 0, 10 5, 0 0))');
+  });
+
   it('passes copy counts as native variant constraints', () => {
     expect(
       PatternsMapper.mapPiecesForEngine([

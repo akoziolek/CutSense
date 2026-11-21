@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Toaster } from 'vue-sonner'
 import 'vue-sonner/style.css'
 import AuthModal from './components/auth/AuthModal.vue'
-import { useAuth } from '@/composables/useAuth'
+import { useAuth } from '@/stores/authStore.ts'
 
 const route = useRoute()
 const router = useRouter()

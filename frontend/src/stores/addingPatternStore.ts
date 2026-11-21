@@ -2,37 +2,13 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { get, set, del } from 'idb-keyval'
 import type { Point2D } from '@/types/geometry'
-import type { NameTag } from '@/types/patterns'
-
-export interface PatternPhotoData {
-  shapes: Point2D[][]
-  shapeIds: string[]
-  hiddenShapes: boolean[]
-  pxPerMm: number
-  rotation: number
-  imageWidth: number
-  imageHeight: number
-  isAnalyzing?: boolean
-  isAnalyzed?: boolean
-}
-
-export interface PatternPiece {
-  id: string
-  photoIndex: number
-  shapeId: string
-  name: string
-  normal: number
-  mirrored: number
-  grainline: number
-}
-
-export interface PatternDetails {
-  name: string
-  size: string
-  description: string
-  tags: NameTag[]
-  visibility: 'PRIVATE' | 'PUBLIC'
-}
+import {
+  type PatternPhotoData,
+  type PatternPiece,
+  type PatternDetails,
+  PATTERN_VISIBILITY,
+  PATTERN_SIZE,
+} from '@/types/pattern'
 
 const STORAGE_PHOTOS_KEY = 'adding_pattern_photos'
 const STORAGE_CONFIGS_KEY = 'adding_pattern_pieces'
@@ -41,10 +17,10 @@ const STORAGE_DETAILS_KEY = 'adding_pattern_details'
 
 const DEFAULT_DETAILS: PatternDetails = {
   name: '',
-  size: '',
+  size: PATTERN_SIZE.M,
   description: '',
   tags: [],
-  visibility: 'PRIVATE',
+  visibility: PATTERN_VISIBILITY.PRIVATE,
 }
 
 const DEFAULT_SHAPE: Point2D[] = [
@@ -386,7 +362,10 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
         details.value = {
           ...DEFAULT_DETAILS,
           ...savedDetails,
-          visibility: savedDetails.visibility?.toUpperCase() === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE',
+          visibility:
+            savedDetails.visibility?.toUpperCase() === PATTERN_VISIBILITY.PUBLIC
+              ? PATTERN_VISIBILITY.PUBLIC
+              : PATTERN_VISIBILITY.PRIVATE,
         }
       }
 

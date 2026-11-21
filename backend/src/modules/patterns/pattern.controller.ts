@@ -3,7 +3,6 @@ import {
   Controller,
   Param,
   ParseIntPipe,
-  UseGuards,
   Body,
   Post,
   HttpCode,
@@ -36,13 +35,15 @@ import {
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
 import { PatternsService } from './patterns.service.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
-import { SessionGuard } from '../../auth/guards/session.guard.js';
 import {
   CreatePatternDto,
   CreatePatternUploadDto,
 } from './dto/create-pattern.dto.js';
-import { OptionalSessionGuard } from '../../auth/guards/optional-session.guard.js';
 import { OptionalUser } from '../../common/decorators/optional-user.decorator.js';
+import {
+  OptionalAuth,
+  Public,
+} from '../../common/decorators/auth.decorator.js';
 import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
 import { PatternTagDto } from './dto/pattern-tag.dto.js';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
@@ -57,7 +58,6 @@ import {
   BulkDeleteResponseDto,
 } from '../../common/dto/bulk-delete.dto.js';
 import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
-import { PatternSize, PatternVisibility } from './dto/pattern.enum.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')
@@ -66,7 +66,7 @@ export class PatternController {
   constructor(private readonly patternsService: PatternsService) {}
 
   @Get()
-  @UseGuards(OptionalSessionGuard)
+  @OptionalAuth()
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'List patterns',
@@ -89,6 +89,7 @@ export class PatternController {
   }
 
   @Get('tags')
+  @Public()
   @ApiOperation({
     summary: 'Get available pattern tags',
     description:
@@ -107,6 +108,7 @@ export class PatternController {
   }
 
   @Post('analyze-boundary')
+  @Public()
   @UseInterceptors(
     FileInterceptor('picture', { limits: { fileSize: 5 * 1024 * 1024 } }),
   )
@@ -154,7 +156,7 @@ export class PatternController {
   }
 
   @Get(':id')
-  @UseGuards(OptionalSessionGuard)
+  @OptionalAuth()
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Get a pattern by ID',
@@ -186,7 +188,6 @@ export class PatternController {
   }
 
   @Post()
-  @UseGuards(SessionGuard)
   @ApiCookieAuth('session')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
@@ -232,7 +233,6 @@ export class PatternController {
   }
 
   @Patch(':id')
-  @UseGuards(SessionGuard)
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Update an existing pattern',
@@ -273,7 +273,6 @@ export class PatternController {
   }
 
   @Patch(':id/favourite')
-  @UseGuards(SessionGuard)
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Add or remove a pattern from favourites',
@@ -304,7 +303,6 @@ export class PatternController {
   }
 
   @Delete(':id')
-  @UseGuards(SessionGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiCookieAuth('session')
   @ApiOperation({
@@ -339,7 +337,6 @@ export class PatternController {
   }
 
   @Post('bulk-delete')
-  @UseGuards(SessionGuard)
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth('session')
   @ApiOperation({

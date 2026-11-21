@@ -4,7 +4,7 @@ import { watch } from 'vue'
 import SelectableOptionCard from '@/components/common/SelectableOptionCard.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
-import { useAuth } from '@/composables/useAuth'
+import { useAuth } from '@/stores/authStore'
 import { computed } from 'vue'
 
 const emit = defineEmits<{

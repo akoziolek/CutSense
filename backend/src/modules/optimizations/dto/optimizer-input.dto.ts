@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PointDto } from '../../../common/geometry/point.dto.js';
 
-export type OptimizerPointDto = [number, number];
+export type OptimizerPointDto = PointDto;
 
 export class OptimizerFabricInputDto {
   @ApiPropertyOptional({ description: 'Library fabric ID; omitted for custom dimensions.' })
@@ -16,14 +17,14 @@ export class OptimizerFabricInputDto {
   grainline!: number;
 
   @ApiProperty({
-    description: 'Fabric boundary points in millimeters, without a repeated closing point.',
-    type: 'array',
-    items: { type: 'array', items: { type: 'number' } },
+    description:
+      'Open fabric boundary ring as {x, y} points in millimeters, positive Y upward.',
+    type: [PointDto],
     example: [
-      [0, 0],
-      [1450, 0],
-      [1450, 2900],
-      [0, 2900],
+      { x: 0, y: 0 },
+      { x: 1450, y: 0 },
+      { x: 1450, y: 2900 },
+      { x: 0, y: 2900 },
     ],
   })
   boundary!: OptimizerPointDto[];
@@ -34,9 +35,9 @@ export class OptimizerPieceInputDto {
   patternPieceId!: number;
 
   @ApiProperty({
-    description: 'Pattern piece boundary points, without a repeated closing point.',
-    type: 'array',
-    items: { type: 'array', items: { type: 'number' } },
+    description:
+      'Open pattern piece boundary ring as {x, y} points in millimeters, positive Y upward.',
+    type: [PointDto],
   })
   boundary!: OptimizerPointDto[];
 

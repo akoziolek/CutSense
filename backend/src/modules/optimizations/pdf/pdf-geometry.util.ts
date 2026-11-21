@@ -9,6 +9,7 @@ import type {
   OptimizationViewDto,
   PlacementDto,
 } from '../dto/optimization-view.dto.js';
+import type { PointDto } from '../../../common/geometry/point.dto.js';
 
 export interface Bounds {
   minX: number;
@@ -33,13 +34,17 @@ export function getFabricPolygon(
   view: OptimizationViewDto,
 ): [number, number][] {
   const boundary = view.fabric.boundary ?? [];
-  if (boundary.length >= 3) return boundary;
+  if (boundary.length >= 3) return toTuplePolygon(boundary);
   return [
     [0, 0],
     [view.fabric.widthMm, 0],
     [view.fabric.widthMm, view.fabric.lengthMm],
     [0, view.fabric.lengthMm],
   ];
+}
+
+export function toTuplePolygon(points: PointDto[]): [number, number][] {
+  return points.map(({ x, y }) => [x, y]);
 }
 
 export function computeBounds(polygons: [number, number][][]): Bounds {

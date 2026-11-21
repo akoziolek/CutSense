@@ -26,20 +26,15 @@ import {
 } from '@/components/ui/tags-input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CheckIcon } from 'lucide-vue-next'
-import { api, ApiError } from '@/api/client'
+import type { FabricFormPayload } from '@/types/fabric'
 import FormFloatingActions from '../forms/FormFloatingActions.vue'
 import Skeleton from '../ui/skeleton/Skeleton.vue'
-import type { NameTag } from '@/types/fabric'
+import type { NameTag } from '@/types/common'
+import { useResourceTags } from '@/composables/resources/useResourceTags.ts'
 
 const MAX_NAME_LENGTH = 35
 const MAX_DESC_LENGTH = 400
 const { t } = useI18n()
-
-export interface FabricFormPayload {
-  name: string
-  description?: string
-  tags: NameTag[]
-}
 
 const emit = defineEmits<{
   (e: 'submit', payload: FabricFormPayload): void
@@ -69,10 +64,13 @@ const props = withDefaults(
 const fabricName = ref(props.name)
 const description = ref(props.description)
 
-const selectedTagNames = ref<string[]>(props.tags ? props.tags.map((tag) => tag.name) : [])
+const {
+  tags: availableTags,
+  error: tagLoadError,
+  loadTags: loadAvailableTags,
+} = useResourceTags('/fabrics/tags', 'fabrics.tagLoadError')
 
-const availableTags = ref<NameTag[]>([])
-const tagLoadError = ref('')
+const selectedTagNames = ref<string[]>(props.tags ? props.tags.map((tag) => tag.name) : [])
 
 const knownTagsMap = computed(() => {
   const map = new Map<string, NameTag>()
@@ -110,15 +108,6 @@ const filteredTags = computed(() =>
     ? availableTags.value
     : availableTags.value.filter((tag) => contains(tag.name, searchTerm.value)),
 )
-
-const loadAvailableTags = async () => {
-  tagLoadError.value = ''
-  try {
-    availableTags.value = await api<NameTag[]>('/fabrics/tags')
-  } catch (error) {
-    tagLoadError.value = error instanceof ApiError ? error.body.message : t('fabrics.tagLoadError')
-  }
-}
 
 const handleEnterKey = () => {
   const trimmed = searchTerm.value.trim()

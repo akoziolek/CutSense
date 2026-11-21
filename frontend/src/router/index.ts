@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuth } from '../composables/useAuth'
+import { useAuth } from '../stores/authStore.ts'
 import { consumeReturnTo } from '../utils/returnTo'
 
 const LandingPage = () => import('../views/LandingPage.vue')

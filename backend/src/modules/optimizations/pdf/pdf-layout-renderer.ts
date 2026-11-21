@@ -8,6 +8,7 @@ import {
   getPolygonCentroid,
   getTileCode,
   offsetPolygon,
+  toTuplePolygon,
 } from './pdf-geometry.util.js';
 
 export const MM_TO_PT = 72 / 25.4;
@@ -59,7 +60,7 @@ export function drawSummaryCoverPage(
   const fabricBounds = computeBounds([fabricPts]);
   const bounds = computeBounds([
     fabricPts,
-    ...view.placements.map((p) => p.polygon),
+    ...view.placements.map((p) => toTuplePolygon(p.polygon)),
   ]);
 
   const pageW = doc.page.width;
@@ -286,9 +287,10 @@ export function drawLayoutVector(
     if (placement.polygon.length < 3) continue;
 
     if (view.cuttingAllowanceMm > 0 && totalAllowance > 0) {
-      const cuttingPoly = offsetPolygon(placement.polygon, totalAllowance).map(
-        mapPt,
-      );
+      const cuttingPoly = offsetPolygon(
+        toTuplePolygon(placement.polygon),
+        totalAllowance,
+      ).map(mapPt);
       if (cuttingPoly.length >= 3) {
         doc.save();
         tracePolygon(doc, cuttingPoly);
@@ -303,7 +305,7 @@ export function drawLayoutVector(
 
     if (view.seamAllowanceMm > 0) {
       const seamPoly = offsetPolygon(
-        placement.polygon,
+        toTuplePolygon(placement.polygon),
         view.seamAllowanceMm,
       ).map(mapPt);
       if (seamPoly.length >= 3) {
@@ -334,7 +336,7 @@ export function drawLayoutVector(
 
   view.placements.forEach((placement, idx) => {
     if (placement.polygon.length < 3) return;
-    const mapped = placement.polygon.map(mapPt);
+    const mapped = toTuplePolygon(placement.polygon).map(mapPt);
 
     doc.save();
     tracePolygon(doc, mapped);

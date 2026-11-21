@@ -1,4 +1,8 @@
-import type { PointDto } from './dto/create-pattern.dto.js';
+import { PointDto } from '../../common/geometry/point.dto.js';
+import {
+  pointsToWktPolygon,
+  withoutClosingPoint,
+} from '../../common/geometry/shapes-geometry.js';
 import { PatternListItemDto } from './dto/pattern-list.dto.js';
 import { PatternSize, PatternVisibility } from './dto/pattern.enum.js';
 import {
@@ -132,16 +136,17 @@ export class PatternsMapper {
   }
 
   static pieceBoundaryToWkt(points: PointDto[]): string {
-    const ring = [...points];
-    const first = ring[0];
-    const last = ring[ring.length - 1];
-    if (first.x !== last.x || first.y !== last.y) ring.push(first);
-    return `POLYGON((${ring.map((p) => `${p.x} ${p.y}`).join(', ')}))`;
+    return pointsToWktPolygon(points);
   }
 
-  static piecePointsFromGeoJson(geojson: string): [number, number][] {
-    return (JSON.parse(geojson) as { coordinates: [number, number][][] })
-      .coordinates[0];
+  static piecePointsFromGeoJson(geojson: string): PointDto[] {
+    const coordinates =
+      (JSON.parse(geojson) as { coordinates: [number, number][][] })
+        .coordinates[0] ?? [];
+    return withoutClosingPoint(
+      coordinates.map(([x, y]) => ({ x, y })),
+      (first, last) => first.x === last.x && first.y === last.y,
+    );
   }
 
   static toPieceGeometryDto(piece: {

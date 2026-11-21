@@ -1,7 +1,7 @@
-import { Controller, Get, Patch, Query, UseGuards, Body } from '@nestjs/common';
+import { Controller, Get, Patch, Query, Body } from '@nestjs/common';
 import { UsersService } from './users.service.js';
-import { SessionGuard } from '../../auth/guards/session.guard.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import { Public } from '../../common/decorators/auth.decorator.js';
 import type { AuthUser } from '../../common/decorators/current-user.decorator.js';
 import { AuthenticationRequiredException } from '../../common/exceptions/authentication-required.exception.js';
 import { CheckNicknameDto } from './dto/check-nickname.dto.js';
@@ -23,7 +23,6 @@ export class UsersController {
   constructor(private readonly users: UsersService) {}
 
   @Get('me')
-  @UseGuards(SessionGuard)
   async me(@CurrentUser() user: AuthUser): Promise<UserProfileDto> {
     const profile = await this.users.getProfileById(user.id);
     if (!profile) {
@@ -33,13 +32,13 @@ export class UsersController {
   }
 
   @Get('check-nickname')
+  @Public()
   async checkNickname(@Query() query: CheckNicknameDto) {
     const exists = await this.users.nicknameExists(query.nickname);
     return { available: !exists };
   }
 
   @Patch('me')
-  @UseGuards(SessionGuard)
   @ApiCookieAuth('session')
   @ApiOperation({
     summary: 'Update current user profile',

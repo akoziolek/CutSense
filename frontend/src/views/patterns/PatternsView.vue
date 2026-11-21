@@ -16,27 +16,20 @@ import BulkDeleteControls from '@/components/common/BulkDeleteControls.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { api, ApiError } from '@/api/client'
-import {
-  PATTERN_SIZES,
-  type PatternListItem,
-  type PatternListResponse,
-  type PatternSize,
-  type PatternSort,
-} from '@/types/pattern'
-import type { NameTag } from '@/types/fabric'
+import type { PatternListItem, PatternFilters, PatternSort } from '@/types/pattern'
+import { PATTERN_SIZE } from '@/types/pattern'
 import { formatCardDate } from '@/utils/formatCardDate'
 import {
   countActiveFilters,
   emptyFilters,
   filtersFromQuery,
-  filtersToApiParams,
   filtersToQuery,
-  type PatternFilters,
-} from '@/utils/patternFilters'
-import { useAuth } from '@/composables/useAuth'
-import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
-import { useSelection } from '@/composables/useSelection'
+} from '@/utils/filters/patternFilters'
+import { useAuth } from '@/stores/authStore'
+import { useFavouriteToggle } from '@/composables/resources/useFavouriteToggle'
+import { useSelection } from '@/composables/lists/useSelection'
+import { useResourceTags } from '@/composables/resources/useResourceTags'
+import { usePatternsList } from '@/composables/patterns/usePatternsList'
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: PatternSort = 'name_asc'
@@ -87,30 +80,11 @@ const hasActiveFilters = computed(() => countActiveFilters(filters.value) > 0)
 const applyFilters = (next: PatternFilters) =>
   router.push({ query: { ...route.query, ...filtersToQuery(next), page: undefined } })
 
-const toggleSize = (draft: PatternFilters, size: PatternSize) => {
+const toggleSize = (draft: PatternFilters, size: PATTERN_SIZE) => {
   const next = new Set(draft.sizes)
   if (next.has(size)) next.delete(size)
   else next.add(size)
-  draft.sizes = PATTERN_SIZES.filter((s) => next.has(s))
-}
-
-const availableTags = ref<NameTag[]>([])
-const tagsLoaded = ref(false)
-const tagsLoading = ref(false)
-const tagsError = ref('')
-const loadTags = async () => {
-  if (tagsLoaded.value || tagsLoading.value) return
-  tagsError.value = ''
-  tagsLoading.value = true
-  try {
-    availableTags.value = await api<NameTag[]>('/patterns/tags')
-    tagsLoaded.value = true
-  } catch (e) {
-    tagsError.value =
-      e instanceof ApiError ? e.body.message : t('common.errors.tagsLoadFailed')
-  } finally {
-    tagsLoading.value = false
-  }
+  draft.sizes = Object.values(PATTERN_SIZE).filter((s) => next.has(s))
 }
 
 // ---------- search ----------
@@ -156,6 +130,21 @@ const resetCriteria = () => {
   router.push({ query: { sort: route.query.sort } })
 }
 
+const {
+  tags: availableTags,
+  loading: tagsLoading,
+  error: tagsError,
+  loadTags,
+} = useResourceTags('/patterns/tags', 'common.errors.tagsLoadFailed')
+
+const { data, showSkeleton, error, clearSkeletonTimer, fetchPatterns } = usePatternsList({
+  page,
+  sort,
+  search,
+  filters,
+  pageSize: PAGE_SIZE,
+})
+
 // ---------- selection (own patterns only) ----------
 const contentRef = ref<HTMLElement | null>(null)
 const { selectionMode, selectedIds, isSelected, toggleSelect, selectFromGesture, stopSelecting } =
@@ -168,68 +157,6 @@ const onContextMenu = (e: MouseEvent, pattern: PatternListItem) => {
   if (!pattern.isOwner) return // leave the browser menu alone
   e.preventDefault()
   selectFromGesture(pattern.id)
-}
-
-// ---------- list ----------
-const data = ref<PatternListResponse | null>(null)
-const isFetching = ref(true)
-const showSkeleton = ref(false)
-const error = ref('')
-
-let skeletonTimer: ReturnType<typeof setTimeout> | null = null
-const clearSkeletonTimer = () => {
-  if (skeletonTimer) {
-    clearTimeout(skeletonTimer)
-    skeletonTimer = null
-  }
-}
-
-const fetchPatterns = async (activeSignal = { active: true }) => {
-  clearSkeletonTimer()
-  error.value = ''
-  isFetching.value = true
-  showSkeleton.value = false
-
-  skeletonTimer = setTimeout(() => {
-    if (activeSignal.active && isFetching.value) showSkeleton.value = true
-  }, 150)
-
-  try {
-    const params = new URLSearchParams({
-      page: String(page.value),
-      limit: String(PAGE_SIZE),
-      sort: sort.value,
-    })
-    if (search.value) params.set('q', search.value)
-    for (const [key, value] of Object.entries(filtersToApiParams(filters.value))) {
-      params.set(key, value)
-    }
-
-    const result = await api<PatternListResponse>(`/patterns?${params}`)
-    if (!activeSignal.active) return
-
-    if (result.totalPages > 0 && page.value > result.totalPages) {
-      await router.replace({
-        query: {
-          ...route.query,
-          page: result.totalPages === 1 ? undefined : String(result.totalPages),
-        },
-      })
-      return
-    }
-    data.value = result
-  } catch (e) {
-    if (activeSignal.active) {
-      error.value =
-        e instanceof ApiError ? e.body.message : t('patterns.loadFailed')
-    }
-  } finally {
-    if (activeSignal.active) {
-      isFetching.value = false
-      showSkeleton.value = false
-      clearSkeletonTimer()
-    }
-  }
 }
 
 const showTrash = computed(() => isLoggedIn.value && !!data.value?.items.some((p) => p.isOwner))
@@ -307,7 +234,7 @@ watch(
             <FilterSection :title="t('common.filters.size')" :default-open="true">
               <div class="flex flex-wrap gap-1.5">
                 <button
-                  v-for="size in PATTERN_SIZES"
+                  v-for="size in PATTERN_SIZE"
                   :key="size"
                   type="button"
                   class="cursor-pointer rounded-md border px-2.5 py-1 text-xs hover:bg-brand-green hover:text-brand-green-foreground"
@@ -366,7 +293,7 @@ watch(
         </div>
 
         <!-- search or filters match nothing -->
-         <div
+        <div
           v-else-if="data && data.total === 0 && hasActiveCriteria"
           key="no-match"
           class="flex flex-col items-center justify-center gap-2 py-20 text-center"

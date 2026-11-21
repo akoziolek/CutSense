@@ -16,27 +16,19 @@ import {
   EyeOff,
   Tag,
 } from 'lucide-vue-next'
-import type { Point2D } from '@/types/geometry'
-import { useNonOverlappingLabels } from '@/composables/useSpatialLabels'
-import { useCanvasViewport } from '@/composables/useCanvasViewport'
+import type { GeometryOriginMm, Point2D } from '@/types/geometry'
+import type { PlacedPieceViewItem } from '@/types/optimization'
+import { useNonOverlappingLabels } from '@/composables/spatial/useSpatialLabels'
+import { useCanvasViewport } from '@/composables/spatial/useCanvasViewport'
 import {
   toSvgPoints,
   offsetPolygonMm,
   buildRulerTicks,
   getFabricOriginMm,
-  type GeometryOriginMm,
+  getPolygonCentroidPct,
+  getCartesianDistance,
   toFabricPercent,
 } from '@/utils/geometry'
-import { getPolygonCentroidPct } from '@/utils/geometry'
-
-export interface PlacedPieceViewItem {
-  id: number
-  patternPieceId?: number
-  pieceNumber?: number
-  isMirrored?: boolean
-  rotationAngle?: number
-  points: [number, number][]
-}
 
 // TODO - display picture, allow moving shapes?
 const props = withDefaults(
@@ -299,7 +291,9 @@ const labelItems = computed(() => {
         edgeIdx,
         midX: (p1Pct.pctX + p2Pct.pctX) / 2,
         midY: (p1Pct.pctY + p2Pct.pctY) / 2,
-        distanceMm: Number(Math.hypot(p2Mm[0] - p1Mm[0], p2Mm[1] - p1Mm[1]).toFixed(1)),
+        distanceMm: Number(
+          getCartesianDistance({ x: p1Mm[0], y: p1Mm[1] }, { x: p2Mm[0], y: p2Mm[1] }).toFixed(1),
+        ),
       }
     })
   })

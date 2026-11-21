@@ -2,21 +2,14 @@
 import { onMounted, ref, watch, nextTick } from 'vue'
 import { toast } from 'vue-sonner'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
-import { useSpatialWorkspace } from '@/composables/useSpatialWorkspace'
+import { useSpatialWorkspace } from '@/composables/spatial/useSpatialWorkspace'
 import FabricConfigSidebar from '@/components/fabrics/new/FabricConfigSidebar.vue'
 import SpatialWorkspace from '@/components/spatial/SpatialWorkspace.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import { Skeleton } from '@/components/ui/skeleton'
-import { api, ApiError } from '@/api/client'
 import BaseModal from '@/components/common/BaseModal.vue'
-import type { Point2D } from '@/types/geometry'
 import { useI18n } from 'vue-i18n'
-
-interface ShapeAnalysisResponse {
-  shapes: Point2D[][]
-  imageWidth: number
-  imageHeight: number
-}
+import { useFabricBoundaryAnalysis } from '@/composables/wizards/useFabricWizard'
 
 const emit = defineEmits<{
   (e: 'next'): void
@@ -24,11 +17,11 @@ const emit = defineEmits<{
 }>()
 
 const fabricStore = useFabricAddingStore()
+const { isAnalyzing, analysisError, analyzeBoundary } = useFabricBoundaryAnalysis()
+
 const workspaceRef = ref<InstanceType<typeof SpatialWorkspace> | null>(null)
 
 const isErrorModalOpen = ref(false)
-const isAnalyzing = ref(false)
-const analysisError = ref('')
 let isSyncing = false
 const { t } = useI18n()
 
@@ -101,43 +94,19 @@ const detectFabricBoundary = async () => {
     return
   }
 
-  isAnalyzing.value = true
-  analysisError.value = ''
+  isSyncing = true
   try {
-    const formData = new FormData()
-    formData.append('picture', picture)
-    const result = await api<ShapeAnalysisResponse>('/fabrics/analyze-boundary', {
-      method: 'POST',
-      body: formData,
-    })
-
-    const [shape] = result.shapes
-    if (
-      result.imageWidth <= 0 ||
-      result.imageHeight <= 0 ||
-      result.shapes.length !== 1 ||
-      !shape ||
-      shape.length < 3
-    ) {
-      throw new Error('Shape analysis returned an invalid boundary.')
+    const shape = await analyzeBoundary(picture)
+    if (!shape) {
+      isErrorModalOpen.value = true
+      return
     }
-
-    isSyncing = true
     points.value = shape
     updateOriginalPoints(shape)
-    await fabricStore.updateConfig({
-      shapes: result.shapes,
-    })
-  } catch (error) {
-    console.error('Failed to analyze fabric photo:', error)
-    analysisError.value =
-      error instanceof ApiError ? error.body.message : t('fabrics.analysisFailed')
-    isErrorModalOpen.value = true
   } finally {
     void nextTick(() => {
       isSyncing = false
     })
-    isAnalyzing.value = false
   }
 }
 

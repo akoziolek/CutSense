@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
 import TextHighlight from '../common/TextHighlight.vue'
-import { useRouter } from 'vue-router';
-import { login, useAuth } from '@/composables/useAuth'
+import { useRouter } from 'vue-router'
+import { login, useAuth } from '@/stores/authStore.ts'
 
-const router = useRouter();
-const { state } = useAuth();
+const router = useRouter()
+const { state } = useAuth()
 
 const onStart = () => (state.user ? router.push('/home') : login())
 </script>
@@ -15,7 +15,6 @@ const onStart = () => (state.user ? router.push('/home') : login())
     class="relative w-full pb-18 pt-12 sm:pt-26 sm:pb-30 px-4 sm:px-10 flex flex-col items-center justify-center text-center overflow-hidden"
   >
     <div class="relative max-w-6xl mx-auto flex flex-col items-center">
-      
       <div class="my-3">
         <TextHighlight class="text-5xl sm:text-6xl lg:text-8xl">
           <span class="relative inline-block w-0 h-0">
@@ -39,17 +38,13 @@ const onStart = () => (state.user ? router.push('/home') : login())
       </div>
 
       <div class="inline-flex items-center justify-center mt-2">
-        <h3
-          class="text-3xl sm:text-5xl lg:text-7xl uppercase text-foreground font-staatliches"
-        >
+        <h3 class="text-3xl sm:text-5xl lg:text-7xl uppercase text-foreground font-staatliches">
           {{ $t('landing.subheadline') }}
         </h3>
       </div>
 
       <div class="inline-block mt-2">
-        <h3
-          class="text-3xl sm:text-5xl lg:text-7xl uppercase text-foreground font-staatliches"
-        >
+        <h3 class="text-3xl sm:text-5xl lg:text-7xl uppercase text-foreground font-staatliches">
           {{ $t('landing.andCreateMore') }}
         </h3>
       </div>
@@ -57,21 +52,13 @@ const onStart = () => (state.user ? router.push('/home') : login())
 
     <div class="mt-8 sm:mt-12">
       <div class="relative group inline-block">
-
         <Button
           @click="onStart"
           variant="outline"
-          class="h-auto bg-background text-foreground border-2 border-border 
-                 shadow-[3px_3px_0px_0px_rgba(24,24,27,1)] sm:shadow-[4px_4px_0px_0px_rgba(24,24,27,1)] 
-                 px-5 py-2 sm:px-8 sm:py-2 
-                 text-sm sm:text-sm font-bold 
-                 hover:bg-pink-100 hover:text-foreground hover:-translate-x-1 hover:-translate-y-1 
-                 active:translate-x-0 active:translate-y-0 
-                 transition-all duration-200 ease-out rounded-lg"
+          class="h-auto bg-background text-foreground border-2 border-border shadow-[3px_3px_0px_0px_rgba(24,24,27,1)] sm:shadow-[4px_4px_0px_0px_rgba(24,24,27,1)] px-5 py-2 sm:px-8 sm:py-2 text-sm sm:text-sm font-bold hover:bg-pink-100 hover:text-foreground hover:-translate-x-1 hover:-translate-y-1 active:translate-x-0 active:translate-y-0 transition-all duration-200 ease-out rounded-lg"
         >
           {{ $t('landing.getStarted') }}
         </Button>
-
       </div>
     </div>
   </section>

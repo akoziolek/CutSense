@@ -147,7 +147,11 @@ describe('PatternsService', () => {
             mirroredCount: 1,
             patternImageId: 8,
             grainline: 90,
-            points: [[0, 0], [10, 0], [10, 5], [0, 0]],
+            points: [
+              { x: 0, y: 0 },
+              { x: 10, y: 0 },
+              { x: 10, y: 5 },
+            ],
           },
         ],
         isFavourite: false,

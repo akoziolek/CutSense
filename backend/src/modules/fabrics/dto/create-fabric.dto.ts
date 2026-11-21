@@ -1,9 +1,8 @@
-import { Type, Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsOptional,
   IsArray,
-  IsNumber,
   IsInt,
   IsString,
   Max,
@@ -14,38 +13,11 @@ import {
   IsPositive,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PointDto } from '../../../common/geometry/point.dto.js';
 import {
   TransformJson,
   TransformJsonToInstance,
 } from '../../../common/decorators/transform-json.decorator.js';
-
-const COORD_LIMIT = 1_000_000;
-
-export class PointDto {
-  @ApiProperty({
-    description: 'X coordinate in calibrated millimeters.',
-    example: -2500,
-    minimum: -COORD_LIMIT,
-    maximum: COORD_LIMIT,
-  })
-  @Type(() => Number)
-  @IsNumber({ allowNaN: false, allowInfinity: false })
-  @Min(-COORD_LIMIT)
-  @Max(COORD_LIMIT)
-  x!: number;
-
-  @ApiProperty({
-    description: 'Y coordinate in calibrated millimeters.',
-    example: 1250,
-    minimum: -COORD_LIMIT,
-    maximum: COORD_LIMIT,
-  })
-  @Type(() => Number)
-  @IsNumber({ allowNaN: false, allowInfinity: false })
-  @Min(-COORD_LIMIT)
-  @Max(COORD_LIMIT)
-  y!: number;
-}
 
 export class CreateFabricDto {
   @ApiProperty({ example: 'Cotton canvas', maxLength: 35 })
@@ -56,7 +28,7 @@ export class CreateFabricDto {
 
   @ApiProperty({
     description:
-      'JSON-encoded array of boundary points in calibrated millimeters. Provide at least three points; the boundary is closed automatically.',
+      'JSON-encoded open boundary ring of {x, y} points in millimeters, with Y positive upward. Provide at least three points; the ring is closed when stored.',
     type: String,
     example:
       '[{"x":-2500,"y":1250},{"x":2500,"y":1250},{"x":2500,"y":6250},{"x":-2500,"y":6250}]',

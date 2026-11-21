@@ -1,30 +1,28 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ImagePreview from '@/components/common/ImagePreview.vue'
-import DetailsCard, { type MetaItem } from '@/components/common/DetailsCard.vue'
+import DetailsCard from '@/components/common/DetailsCard.vue'
+import type { MetaItem } from '@/types/details'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CalendarDays, RulerDimensionLine } from 'lucide-vue-next'
-import { api, ApiError } from '@/api/client'
 import DetailsActions from '@/components/common/DetailsActions.vue'
-import type { FabricResponse } from '@/types/fabric'
 import type { PolygonEdge } from '@/types/geometry'
-import { toImagePercentBoundary } from '@/utils/fabricBoundary'
-import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
+import { getPolygonEdges, toImagePercentBoundary } from '@/utils/geometry'
+import { useFavouriteToggle } from '@/composables/resources/useFavouriteToggle'
 import FavouriteButton from '@/components/common/FavouriteButton.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
-import { useDeleteResource } from '@/composables/useDeleteResource'
+import { useDeleteResource } from '@/composables/resources/useDeleteResource'
+import { useFabricDetails } from '@/composables/fabrics/useFabricDetails'
 
 const props = defineProps<{ id: string }>()
 const { t } = useI18n()
 
-const fabric = ref<FabricResponse | null>(null)
-const isFetching = ref(true)
-const showSkeleton = ref(false)
-const error = ref('')
+const { fabric, isFetching, showSkeleton, error, clearSkeletonTimer, fetchFabric } =
+  useFabricDetails()
 
 const {
   confirmOpen,
@@ -41,24 +39,11 @@ const {
   getId: () => props.id,
 })
 
-let skeletonTimer: ReturnType<typeof setTimeout> | null = null
-
-const clearSkeletonTimer = () => {
-  if (skeletonTimer) {
-    clearTimeout(skeletonTimer)
-    skeletonTimer = null
-  }
-}
-
 const normalizedShapes = computed(() => {
   const currentFabric = fabric.value
   const imageWidthMm = currentFabric?.imageWidthMm
   const imageHeightMm = currentFabric?.imageHeightMm
-  if (
-    !currentFabric ||
-    imageWidthMm === undefined ||
-    imageHeightMm === undefined
-  ) {
+  if (!currentFabric || imageWidthMm === undefined || imageHeightMm === undefined) {
     return []
   }
 
@@ -71,25 +56,7 @@ const normalizedPoints = computed(() => normalizedShapes.value[0] ?? [])
 
 const edges = computed<PolygonEdge[]>(() => {
   const pts = normalizedPoints.value
-  if (pts.length < 2) return []
-  
-    const imageWidthMm = fabric.value?.imageWidthMm ?? 0
-    const imageHeightMm = fabric.value?.imageHeightMm ?? 0
-
-  return pts.map((p1, index) => {
-    const p2 = pts[(index + 1) % pts.length]!
-
-    const dx = ((p2.pctX - p1.pctX) / 100) * imageWidthMm
-    const dy = ((p2.pctY - p1.pctY) / 100) * imageHeightMm
-    const distanceCm = (Math.hypot(dx, dy) / 10).toFixed(1)
-
-    return {
-      index,
-      p1,
-      p2,
-      distanceCm,
-    }
-  })
+  return getPolygonEdges(pts, fabric.value?.imageWidthMm ?? 0, fabric.value?.imageHeightMm ?? 0)
 })
 
 const metaItems = computed<MetaItem[]>(() =>
@@ -108,36 +75,6 @@ const metaItems = computed<MetaItem[]>(() =>
       ]
     : [],
 )
-
-const fetchFabric = async (id: string, activeSignal = { active: true }) => {
-  clearSkeletonTimer()
-  fabric.value = null
-  error.value = ''
-  isFetching.value = true
-  showSkeleton.value = false
-
-  skeletonTimer = setTimeout(() => {
-    if (activeSignal.active && isFetching.value) {
-      showSkeleton.value = true
-    }
-  }, 150)
-
-  try {
-    const result = await api<FabricResponse>(`/fabrics/${encodeURIComponent(id)}`)
-    if (activeSignal.active) fabric.value = result
-  } catch (e) {
-    if (activeSignal.active) {
-      error.value =
-        e instanceof ApiError ? e.body.message : t('fabrics.loadFailed')
-    }
-  } finally {
-    if (activeSignal.active) {
-      isFetching.value = false
-      showSkeleton.value = false
-      clearSkeletonTimer()
-    }
-  }
-}
 
 const { toggle: toggleFavourite, pending } = useFavouriteToggle()
 
@@ -167,9 +104,9 @@ watch(
               :disabled="pending.has(fabric.id)"
               @toggle="toggleFavourite(fabric)"
             />
-            <DetailsActions 
-              :edit-to="{ name: 'FabricEdit', params: { id: props.id } }" 
-              @delete="requestDelete"  
+            <DetailsActions
+              :edit-to="{ name: 'FabricEdit', params: { id: props.id } }"
+              @delete="requestDelete"
             />
           </div>
         </template>

@@ -15,22 +15,23 @@ import ListFilterPopover from '@/components/common/ListFilterPopover.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { api, ApiError } from '@/api/client'
-import type { FabricListResponse, FabricSort, NameTag } from '@/types/fabric'
+import type { FabricFilters, FabricSort } from '@/types/fabric'
 import { formatCardDate } from '@/utils/formatCardDate'
-import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
+import { useFavouriteToggle } from '@/composables/resources/useFavouriteToggle'
 import { SearchX } from 'lucide-vue-next'
 import {
   countActiveFilters,
   emptyFilters,
   filtersFromQuery,
-  filtersToApiParams,
   filtersToQuery,
   areaRangeError,
-  type FabricFilters,
-} from '@/utils/fabricFilters'
-import { useSelection } from '@/composables/useSelection'
+} from '@/utils/filters/fabricFilters'
+import { useSelection } from '@/composables/lists/useSelection'
 import BulkDeleteControls from '@/components/common/BulkDeleteControls.vue'
+import { useResourceTags } from '@/composables/resources/useResourceTags'
+import { useFabricsList } from '@/composables/fabrics/useFabricsLists'
+
+// load tags z inneog composable
 
 const PAGE_SIZE = 12
 const DEFAULT_SORT: FabricSort = 'date_desc'
@@ -64,24 +65,6 @@ const hasActiveFilters = computed(() => countActiveFilters(filters.value) > 0)
 
 const applyFilters = (next: FabricFilters) =>
   router.push({ query: { ...route.query, ...filtersToQuery(next), page: undefined } })
-
-const availableTags = ref<NameTag[]>([])
-const tagsLoaded = ref(false)
-const tagsLoading = ref(false)
-const tagsError = ref('')
-const loadTags = async () => {
-  if (tagsLoaded.value || tagsLoading.value) return
-  tagsError.value = ''
-  tagsLoading.value = true
-  try {
-    availableTags.value = await api<NameTag[]>('/fabrics/tags')
-    tagsLoaded.value = true
-  } catch (e) {
-    tagsError.value = e instanceof ApiError ? e.body.message : t('common.errors.tagsLoadFailed')
-  } finally {
-    tagsLoading.value = false
-  }
-}
 
 const sortModel = computed({
   get: () => sort.value,
@@ -142,69 +125,22 @@ const resetCriteria = () => {
   router.push({ query: { sort: route.query.sort } })
 }
 
-const data = ref<FabricListResponse | null>(null)
-const isFetching = ref(true)
-const showSkeleton = ref(false)
-const error = ref('')
-
-let skeletonTimer: ReturnType<typeof setTimeout> | null = null
-
-const clearSkeletonTimer = () => {
-  if (skeletonTimer) {
-    clearTimeout(skeletonTimer)
-    skeletonTimer = null
-  }
-}
-
-const fetchFabrics = async (activeSignal = { active: true }) => {
-  clearSkeletonTimer()
-  error.value = ''
-  isFetching.value = true
-  showSkeleton.value = false
-
-  skeletonTimer = setTimeout(() => {
-    if (activeSignal.active && isFetching.value) showSkeleton.value = true
-  }, 150)
-
-  try {
-    const params = new URLSearchParams({
-      page: String(page.value),
-      limit: String(PAGE_SIZE),
-      sort: sort.value,
-    })
-    if (search.value) {
-      params.set('q', search.value)
-    }
-    for (const [key, value] of Object.entries(filtersToApiParams(filters.value)))
-      params.set(key, value)
-
-    const result = await api<FabricListResponse>(`/fabrics?${params}`)
-    if (!activeSignal.active) return
-
-    if (result.totalPages > 0 && page.value > result.totalPages) {
-      await router.replace({
-        query: {
-          ...route.query,
-          page: result.totalPages === 1 ? undefined : String(result.totalPages),
-        },
-      })
-      return
-    }
-    data.value = result
-  } catch (e) {
-    if (activeSignal.active) {
-      error.value = e instanceof ApiError ? e.body.message : t('fabrics.loadFailed')
-    }
-  } finally {
-    if (activeSignal.active) {
-      isFetching.value = false
-      showSkeleton.value = false
-      clearSkeletonTimer()
-    }
-  }
-}
-
 const { toggle: toggleFavourite } = useFavouriteToggle()
+
+const {
+  tags: availableTags,
+  loading: tagsLoading,
+  error: tagsError,
+  loadTags,
+} = useResourceTags('/fabrics/tags', 'common.errors.tagsLoadFailed')
+
+const { data, showSkeleton, error, clearSkeletonTimer, fetchFabrics } = useFabricsList({
+  page,
+  sort,
+  search,
+  filters,
+  pageSize: PAGE_SIZE,
+})
 
 const contentRef = ref<HTMLElement | null>(null)
 const { selectionMode, selectedIds, isSelected, toggleSelect, selectFromGesture, stopSelecting } =

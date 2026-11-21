@@ -6,10 +6,10 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
 import NicknameInput from '@/components/auth/NicknameInput.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
-import { useAuth } from '@/composables/useAuth'
-import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
-import { useFormDraft } from '@/composables/useFormDraft'
-import { api, ApiError } from '@/api/client'
+import { useAuth } from '@/stores/authStore'
+import { useUnsavedChangesGuard } from '@/composables/forms/useUnsavedChangesGuard'
+import { useFormDraft } from '@/composables/forms/useFormDraft'
+import { useUpdateAccount } from '@/composables/auth/useUpdateAccount'
 
 interface AccountDraft {
   nickname: string
@@ -23,12 +23,21 @@ const DRAFT_KEY = computed(() =>
 )
 
 const { isDirty, loadDraft, saveDraft, clearDraft } = useFormDraft<AccountDraft>(DRAFT_KEY)
+const { isSubmitting, submitError, updateNickname } = useUpdateAccount()
+
+const handleSubmit = async () => {
+  if (!isNicknameValid.value || !isDirty.value || isSubmitting.value) return
+
+  const ok = await updateNickname(nickname.value.trim())
+  if (ok) {
+    await loadUser(true)
+    clearDraft()
+    confirmExit()
+  }
+}
 
 const nickname = ref('')
 const isNicknameValid = ref(false)
-const isSubmitting = ref(false)
-const submitError = ref('')
-
 const currentNickname = computed(() => auth.user?.nickname ?? '')
 
 const { isCancelModalOpen, handleCancel, confirmExit } = useUnsavedChangesGuard({
@@ -63,30 +72,6 @@ const handleNicknameChange = (value: string) => {
 const handleConfirmExit = () => {
   clearDraft()
   confirmExit()
-}
-
-const handleSubmit = async () => {
-  if (!isNicknameValid.value || !isDirty.value || isSubmitting.value) return
-
-  const cleanNickname = nickname.value.trim()
-  submitError.value = ''
-  isSubmitting.value = true
-
-  try {
-    await api(`/users/me`, {
-      method: 'PATCH',
-      body: JSON.stringify({ nickname: cleanNickname }),
-    })
-
-    await loadUser(true)
-    clearDraft()
-    confirmExit()
-  } catch (e) {
-    console.error('Failed to update account:', e)
-    submitError.value = e instanceof ApiError ? e.body.message : t('account.updateFailed')
-  } finally {
-    isSubmitting.value = false
-  }
 }
 </script>
 

@@ -1,31 +1,19 @@
 <script setup lang="ts">
+import { ref, watch, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
-import { useRoute } from 'vue-router'
-import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
-import { ref, watch, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { api, ApiError } from '@/api/client'
-import PatternForm, { type PatternFormPayload } from '@/components/patterns/PatternForm.vue'
-import { PatternSize, PatternVisibility, type NameTag } from '@/types/patterns'
 import ErrorState from '@/components/common/ErrorState.vue'
-import { useAuth } from '@/composables/useAuth'
-import { useFormDraft } from '@/composables/useFormDraft'
-
-interface Pattern {
-  id: number
-  userId?: number
-  name: string
-  size: PatternSize | string
-  description?: string
-  tags: NameTag[]
-  visibility: PatternVisibility | string
-}
+import PatternForm from '@/components/patterns/PatternForm.vue'
+import { PATTERN_VISIBILITY, type PatternFormPayload } from '@/types/pattern'
+import { useUnsavedChangesGuard } from '@/composables/forms/useUnsavedChangesGuard'
+import { useFormDraft } from '@/composables/forms/useFormDraft'
+import { usePatternEdit } from '@/composables/patterns/usePatternEdit'
 
 const route = useRoute()
 const { t } = useI18n()
-const { state: auth } = useAuth()
 
 const patternId = computed(() => Number(route.params.id))
 const DRAFT_KEY = computed(() => `pattern_edit_draft_${patternId.value}`)
@@ -33,81 +21,33 @@ const DRAFT_KEY = computed(() => `pattern_edit_draft_${patternId.value}`)
 const draftData = ref<Partial<PatternFormPayload>>({})
 const { isDirty, loadDraft, saveDraft, clearDraft } = useFormDraft<PatternFormPayload>(DRAFT_KEY)
 
-const isSubmitting = ref(false)
-const submitError = ref('')
-
 const detailsRoute = computed(() => ({ name: 'PatternDetails', params: { id: patternId.value } }))
 const { isCancelModalOpen, handleCancel, confirmExit, resetGuard } = useUnsavedChangesGuard({
   isDirty,
   defaultTarget: detailsRoute,
 })
 
-const pattern = ref<Pattern | null>(null)
-const isFetching = ref(true)
-const showSkeleton = ref(false)
-const error = ref('')
-
-let skeletonTimer: ReturnType<typeof setTimeout> | null = null
-
-const clearSkeletonTimer = () => {
-  if (skeletonTimer) {
-    clearTimeout(skeletonTimer)
-    skeletonTimer = null
-  }
-}
+const {
+  isFetching,
+  showSkeleton,
+  error,
+  isSubmitting,
+  submitError,
+  clearSkeletonTimer,
+  fetchPattern: loadPattern,
+  updatePattern,
+} = usePatternEdit()
 
 const fetchPattern = async (id: number, activeSignal = { active: true }) => {
-  clearSkeletonTimer()
-  pattern.value = null
-  error.value = ''
-  isFetching.value = true
-  showSkeleton.value = false
-
-  skeletonTimer = setTimeout(() => {
-    if (activeSignal.active && isFetching.value) {
-      showSkeleton.value = true
-    }
-  }, 150)
-
-  try {
-    const result = await api<Pattern>(`/patterns/${id}`)
-
-    if (activeSignal.active) {
-      const currentUserId = auth.user?.id
-      const isOwner = result.userId && currentUserId ? result.userId === currentUserId : false
-
-      if (!isOwner) {
-        if (result.visibility === PatternVisibility.PUBLIC)
-          error.value = t('patterns.noEditAccess')
-        else error.value = t('patterns.loadFailed')
-        return
-      }
-
-      pattern.value = result
-
-      const savedDraft = loadDraft()
-      draftData.value = savedDraft ?? {
-        name: result.name,
-        size: result.size,
-        description: result.description ?? '',
-        tags: result.tags ?? [],
-        visibility: result.visibility ?? PatternVisibility.PRIVATE,
-      }
-    }
-  } catch (e) {
-    if (activeSignal.active) {
-      if (e instanceof ApiError && e.status === 403) {
-        error.value = t('patterns.loadFailed')
-      } else {
-        error.value =
-          e instanceof ApiError ? e.body.message : t('patterns.loadFailed')
-      }
-    }
-  } finally {
-    if (activeSignal.active) {
-      isFetching.value = false
-      showSkeleton.value = false
-      clearSkeletonTimer()
+  const result = await loadPattern(id, activeSignal)
+  if (result && activeSignal.active) {
+    const savedDraft = loadDraft()
+    draftData.value = savedDraft ?? {
+      name: result.name,
+      size: result.size,
+      description: result.description ?? '',
+      tags: result.tags ?? [],
+      visibility: result.visibility ?? PATTERN_VISIBILITY.PRIVATE,
     }
   }
 }
@@ -124,29 +64,10 @@ const handleConfirmExit = () => {
 }
 
 const handleSubmit = async (payload: PatternFormPayload) => {
-  submitError.value = ''
-  isSubmitting.value = true
-
-  try {
-    await api(`/patterns/${patternId.value}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        name: payload.name,
-        size: payload.size,
-        description: payload.description ? payload.description.trim() : null,
-        tagIds: payload.tags.map((t) => t.id),
-        visibility: payload.visibility,
-      }),
-    })
-
+  const ok = await updatePattern(patternId.value, payload)
+  if (ok) {
     clearDraft()
     confirmExit()
-  } catch (e) {
-    console.error('Failed to update pattern:', e)
-    submitError.value =
-      e instanceof ApiError ? e.body.message : t('patterns.updateFailed')
-  } finally {
-    isSubmitting.value = false
   }
 }
 

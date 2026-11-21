@@ -34,7 +34,7 @@ import { FavouriteStateDto } from '../../common/dto/favourite-state.dto.js';
 import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 import { gte, lte, ilike } from 'drizzle-orm';
 import { assertDateRange, likeTerm } from '../../common/utils/list-query.js';
-import type { FabricGeometryDto } from '../optimizations/dto/fabric-geometry.dto.js';
+import type { FabricGeometryDto } from './dto/fabric-geometry.dto.js';
 
 @Injectable()
 export class FabricService {

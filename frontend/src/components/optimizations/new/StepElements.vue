@@ -7,7 +7,7 @@ import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import AllowancesPanel from '@/components/optimizations/new/AllowancesPanel.vue'
 import OptimizationPieceCard from '@/components/optimizations/new/OptimizationPieceCard.vue'
 import type { Point2D } from '@/types/geometry'
-import { toImagePercent } from '@/utils/geometry'
+import { toImagePercentBoundary } from '@/utils/geometry'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { useOptimizationSetup } from '@/composables/wizards/useOptimizationWizard'
 
@@ -31,9 +31,11 @@ const previewsById = computed(() => {
     const image = imagesById.get(piece.patternImageId)
     if (!image) continue
 
-    const imageWidth = image.imageWidthMm || 1
-    const imageHeight = image.imageHeightMm || 1
-    const points = piece.points.map((point) => toImagePercent(point, imageWidth, imageHeight))
+    const points = toImagePercentBoundary(
+      piece.points,
+      image.imageWidthMm ?? 0,
+      image.imageHeightMm ?? 0,
+    )
     const imageShapes = shapesByImage.get(image.id) ?? []
 
     shapeIndexes.set(piece.id, imageShapes.length)
@@ -52,7 +54,7 @@ const previewsById = computed(() => {
         [
           piece.id,
           {
-            imageUrl: image.url,
+            image,
             points: allShapes[shapeIndex]!,
             shapeIndex,
             allShapes,
@@ -111,7 +113,7 @@ onMounted(load)
           :piece="item.piece"
           :label="item.label"
           :points="item.points"
-          :image-url="item.imageUrl"
+          :image="item.image"
           :shape-index="item.shapeIndex"
           :all-shapes="item.allShapes"
           :can-delete="store.pieces.length > 1"

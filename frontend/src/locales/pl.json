@@ -337,7 +337,20 @@
     "minLength": "Min. długość materiału",
     "minLengthValue": "{lengthM}\u00A0m × {widthM}\u00A0m",
     "calculating": "Obliczanie...",
-    "calculationUnavailable": "Obliczenie niedostępne"
+    "calculationUnavailable": "Obliczenie niedostępne",
+    "pieceList": {
+      "piece": "Element",
+      "pieceNumbered": "Element {number}",
+      "grainline": "Kierunek nitki",
+      "grainlineTitle": "Kierunek nitki: {angle}°",
+      "normal": "Zwykłe",
+      "normalTitle": "Liczba sztuk standardowych",
+      "mirrored": "Odbite",
+      "mirroredTitle": "Liczba sztuk w odbiciu lustrzanym",
+      "title": "Elementy wykroju ({count})",
+      "showDimensions": "Pokaż wymiary",
+      "empty": "Ten wykrój nie zawiera żadnych elementów."
+    }
   },
   "optimizations": {
     "addFirstFabric": "Dodaj pierwszą tkaninę",

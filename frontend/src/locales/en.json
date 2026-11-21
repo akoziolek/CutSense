@@ -338,7 +338,20 @@
     "minLength": "Min. fabric length",
     "minLengthValue": "{lengthM}\u00A0m × {widthM}\u00A0m",
     "calculating": "Calculating...",
-    "calculationUnavailable": "Calculation unavailable"
+    "calculationUnavailable": "Calculation unavailable",
+    "pieceList": {
+      "piece": "Piece",
+      "pieceNumbered": "Piece {number}",
+      "grainline": "Grainline",
+      "grainlineTitle": "Grainline: {angle}°",
+      "normal": "Normal",
+      "normalTitle": "Normal pieces",
+      "mirrored": "Mirrored",
+      "mirroredTitle": "Mirrored pieces",
+      "title": "Pattern pieces ({count})",
+      "showDimensions": "Show dimensions",
+      "empty": "This pattern has no pieces."
+    }
   },
   "optimizations": {
     "addFirstFabric": "Add your first fabric",

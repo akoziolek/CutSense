@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DetailsCard from '@/components/common/DetailsCard.vue'
@@ -29,8 +29,8 @@ import PatternPieceCard from '@/components/patterns/PatternPieceCard.vue'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import type { PatternRatingState } from '@/components/patterns/PatternRating.vue'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
+import type { PatternRatingState } from '@/types/pattern'
 
 const props = defineProps<{ id: string }>()
 const { t } = useI18n()
@@ -187,15 +187,17 @@ watch(
           />
         </template>
 
-        <template #actions>
-          <div class="flex items-center gap-2">
+<template #actions>
+          <div class="flex shrink-0 items-center gap-2">
             <Button
               v-if="pattern"
-              class="h-9 gap-2 rounded-lg bg-brand-pink font-bold text-brand-pink-foreground hover:bg-brand-pink/80"
+              type="button"
+              variant="outline"
+              class="inline-flex! h-9! w-fit! shrink-0! flex-row! cursor-pointer items-center! justify-center! gap-1.5! rounded-full! border-2! border-foreground/70! bg-background! px-3.5! text-sm! font-medium! whitespace-nowrap! text-foreground! hover:bg-brand-pink! hover:text-brand-pink-foreground! hover:border-brand-pink!"
               @click="optimize"
             >
-              <Puzzle class="size-4" />
-              {{ t('optimizations.optimize') }}
+              <Puzzle class="size-4 shrink-0" />
+              <span class="whitespace-nowrap">{{ t('optimizations.optimize') }}</span>
             </Button>
             <FavouriteButton
               v-if="pattern && auth.user"

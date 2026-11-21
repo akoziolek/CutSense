@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import NickNameModal from './NicknameModal.vue'
+import NickNameModal from './NickNameModal.vue'
 import LoginModal from '@/components/auth/LoginModal.vue'
 import { login, useAuth } from '@/stores/authStore'
 import { clearReturnTo, consumeReturnTo } from '@/utils/returnTo'

@@ -1,20 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { Star } from 'lucide-vue-next'
-import { toast } from 'vue-sonner'
-import { api, ApiError } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import RatingStars from '@/components/patterns/RatingStars.vue'
-import { login } from '@/composables/useAuth'
-
-export interface PatternRatingState {
-  userRating: number | null
-  starCount: number
-  starAverage: string
-}
+import { usePatternRating } from '@/composables/patterns/usePatternRating'
+import type { PatternRatingState } from '@/types/pattern'
+import { useI18n } from 'vue-i18n'
 
 const STARS = [1, 2, 3, 4, 5]
+const { t } = useI18n()
 
 const props = defineProps<{
   patternId: number
@@ -29,36 +24,17 @@ const emit = defineEmits<{ (e: 'rated', state: PatternRatingState): void }>()
 
 const open = ref(false)
 const hovered = ref<number | null>(null)
-const pending = ref(false)
+const { pending, rate: saveRating, signIn: handleSignIn } = usePatternRating()
 
 const shown = computed(() => hovered.value ?? props.userRating ?? 0)
 const average = computed(() => Number(props.starAverage))
 const averageLabel = computed(() => `(${average.value.toFixed(2)})`)
 
-const signIn = () => login(window.location.pathname + window.location.search)
-
 const rate = async (value: number) => {
-  if (pending.value || value === props.userRating) return
-  const wasRated = props.userRating !== null
-  pending.value = true
-  try {
-    const result = await api<PatternRatingState>(`/patterns/${props.patternId}/rating`, {
-      method: 'PUT',
-      body: JSON.stringify({ rating: value }),
-    })
-    emit('rated', {
-      userRating: result.userRating,
-      starCount: result.starCount,
-      starAverage: result.starAverage,
-    })
-    toast.success(wasRated ? 'Rating updated' : 'Rating saved')
+  const result = await saveRating(props.patternId, value, props.userRating)
+  if (result) {
+    emit('rated', result)
     open.value = false
-  } catch (e) {
-    toast.error('Could not save your rating', {
-      description: e instanceof ApiError ? e.body.message : 'Please try again.',
-    })
-  } finally {
-    pending.value = false
   }
 }
 </script>
@@ -122,8 +98,8 @@ const rate = async (value: number) => {
         </div>
       </template>
 
-      <Button v-else variant="outline" size="sm" class="w-full rounded-lg" @click="signIn">
-        Sign in to rate
+      <Button v-else variant="outline" size="sm" class="w-full rounded-lg" @click="handleSignIn">
+        {{ t('signInToRate') }}
       </Button>
     </PopoverContent>
   </Popover>

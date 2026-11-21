@@ -337,9 +337,10 @@
     "minLength": "Min. długość materiału",
     "minLengthValue": "{lengthM}\u00A0m × {widthM}\u00A0m",
     "calculating": "Obliczanie...",
-    "calculationUnavailable": "Obliczenie niedostępne"
+    "calculationUnavailable": "Obliczenie niedostępne",
+    "signInToRate": "Zaloguj się, aby wystawić ocenę"
   },
-  "optimizations": {
+  "optimizations": { 
     "addFirstFabric": "Dodaj pierwszą tkaninę",
     "addFirstPattern": "Dodaj pierwszy wykrój",
     "algorithm": "Algorytm",

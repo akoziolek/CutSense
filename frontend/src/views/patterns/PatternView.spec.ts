@@ -47,9 +47,17 @@ const PatternPiecesCarouselStub = defineComponent({
 })
 
 const ErrorStateStub = defineComponent({
-  props: { title: String, message: String, code: String },
-  setup(props, { slots }) {
-    return () => h('section', [h('h2', props.title), h('p', props.message), slots.actions?.()])
+  props: {
+    title: String,
+    message: String,
+    code: String,
+    retryLabel: String,
+    backLabel: String,
+    backTo: String,
+  },
+  emits: ['retry'],
+  setup(props) {
+    return () => h('section', [h('h2', props.title), h('p', props.message)])
   },
 })
 
@@ -118,13 +126,13 @@ const pattern = {
       id: 1,
       patternImageId: 1,
       grainline: 90,
-      points: [[0, 0], [10, 0], [10, 5], [0, 0]],
+      points: [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 5 }],
     },
     {
       id: 2,
       patternImageId: 1,
       grainline: 180,
-      points: [[0, 0], [4, 0], [4, 4], [0, 0]],
+      points: [{ x: 0, y: 0 }, { x: 4, y: 0 }, { x: 4, y: 4 }],
     },
   ],
   images: [],
@@ -244,9 +252,11 @@ describe('PatternView', () => {
 
     expect(wrapper.text()).toContain('Unable to load pattern')
     expect(wrapper.text()).toContain('The pattern could not be loaded')
-    expect(wrapper.find('a[href="/patterns"]').exists()).toBe(true)
+    const errorState = wrapper.findComponent(ErrorStateStub)
+    expect(errorState.props('backTo')).toBe('/patterns')
+    expect(errorState.props('retryLabel')).toBe('Try again')
 
-    await wrapper.get('button').trigger('click')
+    errorState.vm.$emit('retry')
     await flushPromises()
 
     expect(apiMock).toHaveBeenCalledTimes(2)
@@ -267,8 +277,9 @@ describe('PatternView', () => {
 
     expect(wrapper.text()).toContain('Unable to load pattern')
     expect(wrapper.text()).toContain('This pattern is private and belongs to another user.')
-    expect(wrapper.text()).toContain('Try again')
-    expect(wrapper.find('a[href="/patterns"]').exists()).toBe(true)
+    const errorState = wrapper.findComponent(ErrorStateStub)
+    expect(errorState.props('retryLabel')).toBe('Try again')
+    expect(errorState.props('backTo')).toBe('/patterns')
   })
 
   it('shows a generic message for a non-API error', async () => {

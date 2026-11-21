@@ -1,8 +1,9 @@
 import { fabrics } from '../../db/schema/schema.js';
 import { FabricListItemDto } from './dto/fabric-list.dto.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
-import { PointDto } from './dto/create-fabric.dto.js';
-import { FabricGeometryDto } from '../optimizations/dto/fabric-geometry.dto.js';
+import { PointDto } from '../../common/geometry/point.dto.js';
+import { withoutClosingPoint } from '../../common/geometry/shapes-geometry.js';
+import { FabricGeometryDto } from './dto/fabric-geometry.dto.js';
 
 interface FabricWithTags {
   id: number;
@@ -58,14 +59,20 @@ export class FabricMapper {
       return { x: position[0], y: position[1] };
     });
 
-    return FabricMapper.withoutClosingPoint(points);
+    return withoutClosingPoint(
+      points,
+      (first, last) => first.x === last.x && first.y === last.y,
+    );
   }
 
   static toResponseDto(
     fabric: FabricWithTags,
     pictureUrl?: string,
   ): FabricResponseDto {
-    const shape = FabricMapper.withoutClosingPoint(fabric.boundary);
+    const shape = withoutClosingPoint(
+      fabric.boundary,
+      (first, last) => first.x === last.x && first.y === last.y,
+    );
 
     return Object.assign(new FabricResponseDto(), {
       id: fabric.id,
@@ -85,19 +92,6 @@ export class FabricMapper {
       shapes: shape.length > 0 ? [shape] : [],
       grainline: fabric.grainline,
     });
-  }
-
-  private static withoutClosingPoint(points: PointDto[]): PointDto[] {
-    if (points.length < 2) return points;
-
-    const boundary = [...points];
-    const first = boundary[0];
-    const last = boundary.at(-1);
-
-    if (first && last && first.x === last.x && first.y === last.y) {
-      boundary.pop();
-    }
-    return boundary;
   }
 
   static toListItemDto(
@@ -133,9 +127,7 @@ export class FabricMapper {
       widthMm: fabric.imageWidthMm,
       lengthMm: fabric.imageHeightMm,
       grainline: fabric.grainline,
-      boundary: this.boundaryFromGeoJson(fabric.boundaryGeoJson).map(
-        ({ x, y }): [number, number] => [x, y],
-      ),
+      boundary: this.boundaryFromGeoJson(fabric.boundaryGeoJson),
     };
   }
 }

@@ -1,16 +1,14 @@
 <script setup lang="ts">
-import { onMounted, ref, type Component } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { onMounted, type Component } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowDownWideNarrow, RotateCw, Sparkles, RotateCcw } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
+import { ArrowDownWideNarrow, RotateCw, Sparkles } from 'lucide-vue-next'
 import { Skeleton } from '@/components/ui/skeleton'
 import ErrorState from '@/components/common/ErrorState.vue'
 import SelectableOptionCard from '@/components/common/SelectableOptionCard.vue'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
-import { api, ApiError } from '@/api/client'
-import type { OptimizationAlgorithm, OptimizationView } from '@/types/optimization'
+import type { OptimizationAlgorithm } from '@/types/optimization'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
+import { useRunOptimization } from '@/composables/wizards/useOptimizationWizard'
 
 const emit = defineEmits<{
   (e: 'next'): void
@@ -19,13 +17,15 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const store = useOptimizationAddingStore()
-const { t } = useI18n()
-
-const algorithms = ref<OptimizationAlgorithm[]>([])
-const isLoading = ref(true)
-const error = ref('')
-const isSubmitting = ref(false)
-const submitError = ref('')
+const {
+  algorithms,
+  isLoading,
+  error,
+  isSubmitting,
+  submitError,
+  loadAlgorithms: load,
+  runOptimization,
+} = useRunOptimization()
 
 const getAlgorithmIcon = (algorithm: OptimizationAlgorithm): Component => {
   const key = algorithm.name.toLowerCase()
@@ -34,55 +34,12 @@ const getAlgorithmIcon = (algorithm: OptimizationAlgorithm): Component => {
   return Sparkles
 }
 
-const load = async () => {
-  isLoading.value = true
-  error.value = ''
-  try {
-    algorithms.value = await api<OptimizationAlgorithm[]>('/optimizations/algorithms')
-    if (algorithms.value.length === 0) {
-      error.value = t('optimizations.noAlgorithms')
-      return
-    }
-    // single algorithm for now
-    if (store.algorithmId === null && algorithms.value.length === 1) {
-      store.selectAlgorithm(algorithms.value[0]!.id)
-    }
-  } catch (e) {
-    error.value =
-      e instanceof ApiError ? e.body.message : t('optimizations.algorithmsLoadFailed')
-  } finally {
-    isLoading.value = false
-  }
-}
-
 onMounted(load)
 
 const handleSubmit = async () => {
-  if (isSubmitting.value) return
-  const payload = store.toPayload()
-  if (!payload || !store.canSubmit) {
-    submitError.value = t('optimizations.incompleteConfiguration')
-    return
-  }
-
-  submitError.value = ''
-  isSubmitting.value = true
-  try {
-    const view = await api<OptimizationView>('/optimizations/run', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-
-    store.markSubmitted()
-
-    await router.push({ name: 'OptimizationRun', params: { runId: view.runId! } })
-  } catch (e) {
-    submitError.value =
-      e instanceof ApiError
-        ? e.body.message
-        : t('optimizations.prepareFailed')
-  } finally {
-    isSubmitting.value = false
+  const runId = await runOptimization()
+  if (runId !== null) {
+    await router.push({ name: 'OptimizationRun', params: { runId } })
   }
 }
 </script>
@@ -97,14 +54,14 @@ const handleSubmit = async () => {
       <Skeleton v-for="n in 3" :key="n" class="h-56 w-full rounded-xl" />
     </div>
 
-    <ErrorState v-else-if="error" :title="$t('optimizations.unableToLoadAlgorithms')" :message="error" :code="$t('common.errors.errorCode')">
-      <template #actions>
-        <Button variant="outline" class="rounded-lg gap-2" @click="load">
-          <RotateCcw class="w-4 h-4" />
-          <span>{{ $t('common.actions.tryAgain') }}</span>
-        </Button>
-      </template>
-    </ErrorState>
+    <ErrorState
+      v-else-if="error"
+      :title="$t('optimizations.unableToLoadAlgorithms')"
+      :message="error"
+      :code="$t('common.errors.errorCode')"
+      :retry-label="$t('common.actions.tryAgain')"
+      @retry="load"
+    />
 
     <div
       v-else
@@ -137,7 +94,9 @@ const handleSubmit = async () => {
     <FormFloatingActions
       :cancel-label="$t('common.actions.cancel')"
       :next-label="$t('optimizations.prepareConfiguration')"
-      :disabled="isLoading || !!error || isSubmitting || store.algorithmId === null || !store.canSubmit"
+      :disabled="
+        isLoading || !!error || isSubmitting || store.algorithmId === null || !store.canSubmit
+      "
       @cancel="emit('cancel')"
       @next="handleSubmit"
     />

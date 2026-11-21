@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AuthModule } from '../../auth/auth.module.js';
 import { OptimizerEngineModule } from '../optimizer-engine/optimizer-engine.module.js';
 import { OptimizationController } from './optimizations.controller.js';
 import { OptimizationRunsStore } from './optimization-runs.store.js';
@@ -9,7 +8,7 @@ import { PatternsModule } from '../patterns/pattern.module.js';
 import { OptimizationPdfService } from './pdf/optimization-pdf.service.js';
 
 @Module({
-  imports: [AuthModule, OptimizerEngineModule, FabricModule, PatternsModule],
+  imports: [OptimizerEngineModule, FabricModule, PatternsModule],
   controllers: [OptimizationController],
   providers: [
     OptimizationsService,

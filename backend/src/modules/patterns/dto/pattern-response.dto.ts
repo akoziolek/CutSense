@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PatternTagDto } from './pattern-tag.dto.js';
 import { PatternVisibility, PatternSize } from './pattern.enum.js';
+import { PointDto } from '../../../common/geometry/point.dto.js';
 
 class PatternAuthorDto {
   @ApiProperty({ description: 'Unique identifier of the author', example: 42 })
@@ -55,19 +56,16 @@ class PatternPieceDto {
   grainline!: number;
 
   @ApiProperty({
-    description: 'Outer ring of the piece polygon as [x, y] pairs',
-    type: 'array',
-    items: {
-      type: 'array',
-      items: { type: 'number' },
-    },
+    description:
+      'Open outer ring of the piece polygon as {x, y} points in millimeters, positive Y upward.',
+    type: [PointDto],
     example: [
-      [0, 0],
-      [15, 0],
-      [15, 9],
+      { x: 0, y: 0 },
+      { x: 15, y: 0 },
+      { x: 15, y: 9 },
     ],
   })
-  points!: [number, number][];
+  points!: PointDto[];
 }
 
 export class PatternResponseDto {

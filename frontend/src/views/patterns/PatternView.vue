@@ -4,72 +4,48 @@ import { useI18n } from 'vue-i18n'
 import { RouterLink, useRouter } from 'vue-router'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
-import DetailsCard, { type MetaItem } from '@/components/common/DetailsCard.vue'
+import DetailsCard from '@/components/common/DetailsCard.vue'
+import type { MetaItem } from '@/types/details'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
 import {
   CalendarDays,
   RulerDimensionLine,
   Scissors,
   Lock,
   Globe,
-  ArrowLeft,
-  RotateCcw,
   ChevronDown,
   Puzzle
 } from 'lucide-vue-next'
-import { api, ApiError } from '@/api/client'
-import PatternPiecesCarousel, {
-  type PatternPiece,
-} from '@/components/patterns/PatternPiecesCarousel.vue'
 import PatternRating from '@/components/patterns/PatternRating.vue'
-import type { NameTag } from '@/types/fabric'
 import DetailsActions from '@/components/common/DetailsActions.vue'
-import { useAuth } from '@/composables/useAuth'
-import { useFavouriteToggle } from '@/composables/useFavouriteToggle'
+import { useAuth } from '@/stores/authStore'
+import { useFavouriteToggle } from '@/composables/resources/useFavouriteToggle'
 import FavouriteButton from '@/components/common/FavouriteButton.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
-import { useDeleteResource } from '@/composables/useDeleteResource'
+import { useDeleteResource } from '@/composables/resources/useDeleteResource'
+import { usePatternDetails } from '@/composables/patterns/usePatternDetails'
 import PatternPieceCard from '@/components/patterns/PatternPieceCard.vue'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import type { PatternRatingState } from '@/components/patterns/PatternRating.vue'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 
-interface Pattern {
-  id: number
-  userId: number
-  name: string
-  description?: string
-  size: string
-  visibility: 'PUBLIC' | 'PRIVATE'
-  minFabricLengthMM: number | null
-  minFabricWidthMM: number | null
-  starCount: number
-  starAverage: string
-  tags: NameTag[]
-  createdAt: string
-  author: { id: number; nickname: string }
-  pieces: PatternPiece[]
-  images: {
-    id: number
-    url: string
-    imageWidthMm: number
-    imageHeightMm: number
-    orderIndex: number
-  }[]
-  isFavourite: boolean
-  userRating: number | null
-}
+const props = defineProps<{ id: string }>()
+const { t } = useI18n()
 
-const POLL_DELAYS_MS = [1000, 2000, 4000, 8000, 15000]
-const FRESHNESS_WINDOW_MS = 60_000
+const showDimensions = ref(false)
+
+const {
+  pattern,
+  isFetching,
+  showSkeleton,
+  error,
+  isNotFound,
+  minLengthStatus,
+  fetchPattern,
+} = usePatternDetails()
 
 const {
   confirmOpen,
@@ -86,17 +62,6 @@ const {
   getId: () => props.id,
 })
 
-const props = defineProps<{ id: string }>()
-const { t } = useI18n()
-
-const showDimensions = ref(false)
-
-const pattern = ref<Pattern | null>(null)
-const isFetching = ref(true)
-const showSkeleton = ref(false)
-const error = ref('')
-const isNotFound = ref(false)
-const minLengthStatus = ref<'calculating' | 'unavailable' | null>(null)
 const { toggle: toggleFavourite, pending } = useFavouriteToggle('/patterns')
 
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
@@ -187,81 +152,6 @@ const metaItems = computed<MetaItem[]>(() => {
 
   return items
 })
-
-const startMinLengthPolling = (id: string, activeSignal: { active: boolean }, attempt = 0) => {
-  if (!activeSignal.active) {
-    return
-  }
-  if (attempt >= POLL_DELAYS_MS.length) {
-    clearPollTimer()
-    minLengthStatus.value = 'unavailable'
-    return
-  }
-
-  minLengthStatus.value = 'calculating'
-  pollTimer = setTimeout(async () => {
-    try {
-      const updated = await api<Pattern>(`/patterns/${encodeURIComponent(id)}`)
-      if (!activeSignal.active) return
-
-      if (typeof updated.minFabricLengthMM === 'number' && pattern.value) {
-        pattern.value.minFabricLengthMM = updated.minFabricLengthMM
-        pattern.value.minFabricWidthMM = updated.minFabricWidthMM
-        minLengthStatus.value = null
-        clearPollTimer()
-        return
-      }
-    } catch {
-      // ignore transient network errors during background polling
-    }
-
-    startMinLengthPolling(id, activeSignal, attempt + 1)
-  }, POLL_DELAYS_MS[attempt])
-}
-
-const fetchPattern = async (id: string, activeSignal = { active: true }) => {
-  clearSkeletonTimer()
-  clearPollTimer()
-  minLengthStatus.value = null
-  pattern.value = null
-  error.value = ''
-  isNotFound.value = false
-  isFetching.value = true
-  showSkeleton.value = false
-
-  skeletonTimer = setTimeout(() => {
-    if (activeSignal.active && isFetching.value) {
-      showSkeleton.value = true
-    }
-  }, 150)
-
-  try {
-    const result = await api<Pattern>(`/patterns/${encodeURIComponent(id)}`)
-    if (activeSignal.active) {
-      pattern.value = result
-
-      if (typeof result.minFabricLengthMM !== 'number') {
-        const isFresh = Date.now() - new Date(result.createdAt).getTime() < FRESHNESS_WINDOW_MS
-        if (isFresh) {
-          startMinLengthPolling(id, activeSignal)
-        } else {
-          minLengthStatus.value = 'unavailable'
-        }
-      }
-    }
-  } catch (e) {
-    if (activeSignal.active) {
-      isNotFound.value = e instanceof ApiError && e.status === 404
-      error.value = e instanceof ApiError ? e.body.message : t('patterns.loadFailed')
-    }
-  } finally {
-    if (activeSignal.active) {
-      isFetching.value = false
-      showSkeleton.value = false
-      clearSkeletonTimer()
-    }
-  }
-}
 
 watch(
   [() => props.id, () => auth.user?.id],
@@ -359,25 +249,11 @@ watch(
             :title="t(isNotFound ? 'patterns.notFound' : 'patterns.unableToLoad')"
             :message="isNotFound ? t('patterns.notFoundMessage') : error"
             :code="t(isNotFound ? 'common.errors.notFoundCode' : 'common.errors.errorCode')"
-          >
-            <template #actions>
-              <Button
-                v-if="!isNotFound"
-                variant="outline"
-                class="rounded-lg gap-2"
-                @click="fetchPattern(props.id)"
-              >
-                <RotateCcw class="w-4 h-4" />
-                <span>{{ t('common.actions.tryAgain') }}</span>
-              </Button>
-              <Button as-child variant="default" class="rounded-lg gap-2">
-                <RouterLink to="/patterns">
-                  <ArrowLeft class="w-4 h-4" />
-                  <span>{{ t('common.actions.backToPatterns') }}</span>
-                </RouterLink>
-              </Button>
-            </template>
-          </ErrorState>
+            :retry-label="isNotFound ? undefined : t('common.actions.tryAgain')"
+            :back-label="t('common.actions.backToPatterns')"
+            back-to="/patterns"
+            @retry="fetchPattern(props.id)"
+          />
         </main>
 
         <main
@@ -402,7 +278,9 @@ watch(
               <CollapsibleTrigger
                 class="group flex cursor-pointer items-center gap-2 rounded-md text-lg font-bold font-inter text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <ChevronDown class="size-5 transition-transform group-data-[state=closed]:-rotate-90" />
+                <ChevronDown
+                  class="size-5 transition-transform group-data-[state=closed]:-rotate-90"
+                />
                 <span>Pattern pieces ({{ pattern.pieces.length }})</span>
               </CollapsibleTrigger>
               <div class="flex flex-wrap items-center gap-x-5 gap-y-2">

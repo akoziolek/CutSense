@@ -33,27 +33,20 @@ import {
 } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CheckIcon } from 'lucide-vue-next'
-import { api, ApiError } from '@/api/client'
 import FormFloatingActions from '../forms/FormFloatingActions.vue'
 import Skeleton from '../ui/skeleton/Skeleton.vue'
-import { type NameTag, PatternSize, PatternVisibility } from '@/types/patterns'
+import { PATTERN_SIZE, PATTERN_VISIBILITY, type PatternFormPayload } from '@/types/pattern'
+import type { NameTag } from '@/types/common'
 import SelectGroup from '../ui/select/SelectGroup.vue'
 import SelectLabel from '../ui/select/SelectLabel.vue'
 import RadioGroup from '../ui/radio-group/RadioGroup.vue'
 import RadioGroupItem from '../ui/radio-group/RadioGroupItem.vue'
+import { useResourceTags } from '@/composables/resources/useResourceTags.ts'
 
-const SIZES = Object.values(PatternSize)
+const SIZES = Object.values(PATTERN_SIZE)
 const MAX_NAME_LENGTH = 35
 const MAX_DESC_LENGTH = 400
 const { t } = useI18n()
-
-export interface PatternFormPayload {
-  name: string
-  size: PatternSize | string
-  description?: string
-  tags: NameTag[]
-  visibility: PatternVisibility | string
-}
 
 const emit = defineEmits<{
   (e: 'submit', payload: PatternFormPayload): void
@@ -64,10 +57,10 @@ const emit = defineEmits<{
 const props = withDefaults(
   defineProps<{
     name?: string
-    size?: PatternSize | string
+    size?: PATTERN_SIZE | string
     description?: string
     tags?: NameTag[]
-    visibility?: PatternVisibility | string
+    visibility?: PATTERN_VISIBILITY | string
     isSubmitting?: boolean
     isLoading?: boolean
     submitError?: string
@@ -77,7 +70,7 @@ const props = withDefaults(
     size: '',
     description: '',
     tags: () => [],
-    visibility: PatternVisibility.PRIVATE,
+    visibility: PATTERN_VISIBILITY.PRIVATE,
     isSubmitting: false,
     isLoading: false,
     submitError: '',
@@ -90,8 +83,11 @@ const description = ref(props.description)
 const visibility = ref(props.visibility)
 
 const selectedTagNames = ref<string[]>(props.tags ? props.tags.map((tag) => tag.name) : [])
-const availableTags = ref<NameTag[]>([])
-const tagLoadError = ref('')
+const {
+  tags: availableTags,
+  error: tagLoadError,
+  loadTags: loadAvailableTags,
+} = useResourceTags('/patterns/tags', 'patterns.tagLoadError')
 
 const knownTagsMap = computed(() => {
   const map = new Map<string, NameTag>()
@@ -129,15 +125,6 @@ const filteredTags = computed(() =>
     ? availableTags.value
     : availableTags.value.filter((tag) => contains(tag.name, searchTerm.value)),
 )
-
-const loadAvailableTags = async () => {
-  tagLoadError.value = ''
-  try {
-    availableTags.value = await api<NameTag[]>('/patterns/tags')
-  } catch (error) {
-    tagLoadError.value = error instanceof ApiError ? error.body.message : t('patterns.tagLoadError')
-  }
-}
 
 const handleEnterKey = () => {
   const trimmed = searchTerm.value.trim()
@@ -311,13 +298,13 @@ onMounted(() => {
       </Label>
       <RadioGroup v-model="visibility" class="flex gap-6">
         <div class="flex items-center gap-2">
-          <RadioGroupItem id="visibility-public" :value="PatternVisibility.PUBLIC" />
+          <RadioGroupItem id="visibility-public" :value="PATTERN_VISIBILITY.PUBLIC" />
           <Label for="visibility-public" class="text-sm font-normal cursor-pointer font-inter">
             {{ t('patterns.public') }}
           </Label>
         </div>
         <div class="flex items-center gap-2">
-          <RadioGroupItem id="visibility-private" :value="PatternVisibility.PRIVATE" />
+          <RadioGroupItem id="visibility-private" :value="PATTERN_VISIBILITY.PRIVATE" />
           <Label for="visibility-private" class="text-sm font-normal cursor-pointer font-inter">
             {{ t('patterns.private') }}
           </Label>

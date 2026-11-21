@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, toRef } from 'vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
-import { useNonOverlappingLabels } from '@/composables/useSpatialLabels'
+import { useNonOverlappingLabels } from '@/composables/spatial/useSpatialLabels'
 import { toSvgPoints, clampPanOffset } from '@/utils/geometry'
 
 const props = withDefaults(
@@ -117,8 +117,7 @@ const handleWheel = (e: WheelEvent) => {
     return
   }
 
-  const maxImgDimension =
-    Math.max(imageDimensions.value.width, imageDimensions.value.height) || 500
+  const maxImgDimension = Math.max(imageDimensions.value.width, imageDimensions.value.height) || 500
   const maxOffset = (maxImgDimension / 2) * props.zoomLevel + 100
 
   emit(

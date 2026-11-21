@@ -192,7 +192,9 @@
     "details": "Twoje konto",
     "detailsDescription": "W tym miejscu wygodnie sprawdzisz i zmienisz swoje dane.",
     "email": "Adres mailowy",
-    "nickname": "Pseudonim"
+    "nickname": "Pseudonim",
+    "edit": "Edytuj konto",
+    "saveFailed": "Nie udało się zapisać zmian"
   },
   "home": {
     "hello": "Cześć",

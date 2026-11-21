@@ -2,15 +2,16 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import NickNameModal from '@/components/auth/NickNameModal.vue'
+import NickNameModal from './NicknameModal.vue'
 import LoginModal from '@/components/auth/LoginModal.vue'
-import { api, ApiError } from '@/api/client'
-import { login, useAuth } from '@/composables/useAuth'
+import { login, useAuth } from '@/stores/authStore'
 import { clearReturnTo, consumeReturnTo } from '@/utils/returnTo'
+import { useRegistration } from '@/composables/auth/useRegistration.ts'
 
 const route = useRoute()
 const router = useRouter()
 const { loadUser, logout } = useAuth()
+const { googleName, saving, fetchRegistrationSession, register } = useRegistration()
 const { t } = useI18n()
 
 // ---------- login modal ----------
@@ -21,9 +22,7 @@ const registrationCancelled = computed(() => route.query.registration_cancelled 
 const dismissError = ref('')
 const loginError = computed(() => dismissError.value || authError.value)
 
-const googleName = ref('')
 const regError = ref('')
-const saving = ref(false)
 
 const activeModal = computed<'login' | 'registration' | null>(() => {
   if (route.query.registration === '1') {
@@ -55,7 +54,7 @@ watch(
     if (!open) return
     regError.value = ''
     try {
-      googleName.value = (await api<{ name: string }>('/auth/registration-session')).name
+      await fetchRegistrationSession()
     } catch {
       router.replace({ name: 'Landing', query: { login: '1' } })
     }
@@ -64,27 +63,21 @@ watch(
 )
 
 async function onSave(nickname: string) {
-  saving.value = true
   regError.value = ''
-  try {
-    await api('/auth/register', { method: 'POST', body: JSON.stringify({ nickname }) })
+  const result = await register(nickname)
+
+  if (result.ok) {
     await loadUser(true)
     router.replace(consumeReturnTo())
-  } catch (e) {
-    if (e instanceof ApiError) {
-      if (e.status === 401) {
-        router.replace({ name: 'Landing', query: { login: '1' } })
-      } else if (e.body.errorCode === 'VALIDATION_ERROR' && Array.isArray(e.body.details)) {
-        regError.value = e.body.details.join(' ')
-      } else {
-        regError.value = e.body.message
-      }
-    } else {
-      regError.value = t('common.errors.somethingWentWrongRetry')
-    }
-  } finally {
-    saving.value = false
+    return
   }
+
+  if (result.unauthorized) {
+    router.replace({ name: 'Landing', query: { login: '1' } })
+    return
+  }
+
+  regError.value = result.message || t('common.errors.somethingWentWrongRetry')
 }
 
 // Abandon registration and show a confirmation without blocking the landing page.

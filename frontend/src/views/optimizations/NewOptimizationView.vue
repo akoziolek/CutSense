@@ -13,8 +13,8 @@ import StepPatternLibrary from '@/components/optimizations/new/StepPatternLibrar
 import StepAlgorithm from '@/components/optimizations/new/StepAlgorithm.vue'
 import StepElements from '@/components/optimizations/new/StepElements.vue'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
-import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
-import { provideWizardNav } from '@/composables/useWizardNav'
+import { useUnsavedChangesGuard } from '@/composables/forms/useUnsavedChangesGuard'
+import { provideWizardNav } from '@/composables/forms/useWizardNav'
 
 const TOTAL_STEPS = 5
 
@@ -50,7 +50,9 @@ const step = computed({
 
 provideWizardNav({
   canGoBack: computed(() => step.value > 1),
-  back: () => { step.value = step.value - 1 },
+  back: () => {
+    step.value = step.value - 1
+  },
 })
 
 watch(

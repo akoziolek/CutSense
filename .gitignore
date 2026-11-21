@@ -15,4 +15,4 @@ shapes-engine/sample-images/
 
 *.pt
 
-backend/src/db/seeder/assets/*
+backend/src/seed/assets/*

@@ -1,12 +1,7 @@
+import type { ApiErrorBody } from '@/types/api'
+
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 const API_BASE = `${API_URL}/v1`
-
-export interface ApiErrorBody {
-  statusCode: number
-  errorCode: string
-  message: string
-  details?: unknown
-}
 
 export class ApiError extends Error {
   constructor(

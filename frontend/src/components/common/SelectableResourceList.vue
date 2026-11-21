@@ -7,8 +7,9 @@ import ListToolbar from '@/components/common/ListToolbar.vue'
 import ListPagination from '@/components/common/ListPagination.vue'
 import ResourceCard from '@/components/common/ResourceCard.vue'
 import ResourceList from '@/components/common/ResourceList.vue'
-import { useListQuery, type SortOption } from '@/composables/useListQuery'
-import { usePagedList } from '@/composables/usePagedList'
+import { useListQuery } from '@/composables/lists/useListQuery'
+import type { SortOption } from '@/types/common'
+import { usePagedList } from '@/composables/lists/usePagedList'
 
 interface PagedResponse {
   items: T[]
@@ -42,8 +43,17 @@ const emit = defineEmits<{
   (e: 'reset-filters'): void
 }>()
 
-const { page, sort, search, searchMax, sortModel, goToPage, searchInput, flushSearch, clearSearch } =
-  useListQuery<S>({ defaultSort: props.defaultSort, sortOptions: props.sortOptions })
+const {
+  page,
+  sort,
+  search,
+  searchMax,
+  sortModel,
+  goToPage,
+  searchInput,
+  flushSearch,
+  clearSearch,
+} = useListQuery<S>({ defaultSort: props.defaultSort, sortOptions: props.sortOptions })
 
 const { data, showSkeleton, error, refetch } = usePagedList<PagedResponse>({
   path: props.path,

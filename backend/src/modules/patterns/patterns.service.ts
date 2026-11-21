@@ -377,6 +377,21 @@ export class PatternsService {
     return rows.map((row) => PatternsMapper.toPieceGeometryDto(row));
   }
 
+  async getPatternSummary(patternId: number) {
+    const pattern = await this.db.query.patterns.findFirst({
+      where: eq(patterns.id, patternId),
+      columns: { id: true, name: true, size: true, createdAt: true },
+    });
+    if (!pattern) throw new ResourceNotFoundException('Pattern', patternId);
+
+    return {
+      id: pattern.id,
+      name: pattern.name,
+      size: pattern.size,
+      createdAt: pattern.createdAt.toISOString(),
+    };
+  }
+
   async createPattern(
     dto: CreatePatternDto,
     photos: Express.Multer.File[],

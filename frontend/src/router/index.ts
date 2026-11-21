@@ -1,10 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuth } from '../composables/useAuth'
+import { useAuth } from '../stores/authStore.ts'
 import { consumeReturnTo } from '../utils/returnTo'
 
 const LandingPage = () => import('../views/LandingPage.vue')
 const HomePage = () => import('../views/HomePage.vue')
 const AccountPage = () => import('../views/account/AccountView.vue')
+const AccountEditPage = () => import('../views/account/AccountEditView.vue')
 const ComingSoonPage = () => import('../views/ComingSoonPage.vue')
 const FabricPage = () => import('../views/fabrics/FabricView.vue')
 const FabricsPage = () => import('../views/fabrics/FabricsView.vue')
@@ -44,6 +45,7 @@ const routes = [
   // pages that are private unless explicitly marked public above
   { path: '/home', name: 'Home', component: HomePage },
   { path: '/account', name: 'UserAccount', component: AccountPage },
+  { path: '/account/edit', name: 'UserEditAccount', component: AccountEditPage },
   {
     path: '/optimizations',
     name: 'Optimizations',

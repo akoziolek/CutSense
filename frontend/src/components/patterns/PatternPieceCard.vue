@@ -4,11 +4,12 @@ import { ArrowUp, Copy, FlipHorizontal2 } from 'lucide-vue-next'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import PatternPiecePreview from '@/components/patterns/PatternPiecePreview.vue'
-import type { PatternPiece } from '@/components/patterns/PatternPiecesCarousel.vue'
+import type { PatternCarouselPiece } from '@/types/pattern'
 import type { PieceImageSource, Point2D } from '@/types/geometry'
+import { toImagePercent } from '@/utils/geometry'
 
 const props = defineProps<{
-  piece: PatternPiece
+  piece: PatternCarouselPiece
   label: string
   image?: PieceImageSource
   showDimensions?: boolean
@@ -19,10 +20,7 @@ const shape = computed<Point2D[]>(() => {
   const w = props.image?.imageWidthMm
   const h = props.image?.imageHeightMm
   if (!w || !h) return []
-  return props.piece.points.map(([x, y]) => ({
-    pctX: (x / w) * 100,
-    pctY: ((h - y) / h) * 100,
-  }))
+  return props.piece.points.map((point) => toImagePercent(point, w, h))
 })
 </script>
 

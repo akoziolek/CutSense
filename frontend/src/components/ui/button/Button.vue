@@ -2,7 +2,7 @@
 import type { HTMLAttributes } from 'vue'
 import type { ButtonVariants } from '.'
 import { Primitive } from 'reka-ui'
-import { cn } from '@/lib/utils'
+import { cn } from '@/utils/cn'
 import { buttonVariants } from '.'
 import { type PrimitiveProps } from 'radix-vue'
 

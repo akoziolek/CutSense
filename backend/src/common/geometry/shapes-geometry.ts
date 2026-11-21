@@ -1,19 +1,28 @@
-export interface Point {
-  x: number;
-  y: number;
+import type { CartesianPoint } from './cartesian-point.js';
+
+export type Point = CartesianPoint;
+
+export function withoutClosingPoint<T>(
+  points: T[],
+  pointsAreEqual: (first: T, last: T) => boolean,
+): T[] {
+  if (points.length < 2) return points;
+  const first = points[0];
+  const last = points.at(-1);
+  return first !== undefined && last !== undefined && pointsAreEqual(first, last)
+    ? points.slice(0, -1)
+    : points;
 }
 
 const round3 = (v: number) => Math.round(v * 1000) / 1000 + 0;
 
 export function pointsToWktPolygon(points: Point[]): string {
   if (points.length === 0) return 'POLYGON(())';
-  const ring = [...points];
-  const first = ring[0]!;
-  const last = ring.at(-1);
-
-  if (first && last && (first.x !== last.x || first.y !== last.y)) {
-    ring.push(first);
-  }
+  const openPoints = withoutClosingPoint(
+    points,
+    (first, last) => first.x === last.x && first.y === last.y,
+  );
+  const ring = [...openPoints, openPoints[0]!];
 
   return `POLYGON((${ring.map((p) => `${p.x} ${p.y}`).join(', ')}))`;
 }

@@ -1,15 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   and,
-  AnyColumn, 
+  AnyColumn,
   asc,
   count,
   desc,
   eq,
-  gte, 
+  gte,
   ilike,
   inArray,
-  lte, 
+  lte,
   sql,
   type SQL,
 } from 'drizzle-orm';
@@ -56,7 +56,6 @@ import {
   toEngineInput,
 } from '../optimizer-engine/optimizer-engine.mapper.js';
 import { assertDateRange, likeTerm } from '../../common/utils/list-query.js';
-import { StorageService } from '../storage/storage.service.js';
 import {
   ListOptimizationsQueryDto,
   OptimizationSortOption,
@@ -105,7 +104,9 @@ export class OptimizationsService {
   ): Promise<OptimizationViewDto> {
     const { input, fabricMetadata } =
       await this.prepareOptimizationWithMetadata(dto, currentUserId);
-    const pattern = await this.getPatternSummary(input.patternId);
+    const pattern = await this.patternsService.getPatternSummary(
+      input.patternId,
+    );
     const engineInput = toEngineInput(
       input,
       ENGINE_ALGORITHM_IDS[input.algorithmName]!,
@@ -121,9 +122,8 @@ export class OptimizationsService {
       result,
     });
 
-    const rawEngineResult = await this.engine.run(engineInput);
     console.log('=== ENGINE INPUT ===', JSON.stringify(engineInput));
-    console.log('=== RAW ENGINE RESULT ===', JSON.stringify(rawEngineResult));
+    console.log('=== RAW ENGINE RESULT ===', JSON.stringify(result));
 
     return OptimizationViewMapper.toView(
       OptimizationViewMapper.sourceFromInput(
@@ -150,7 +150,9 @@ export class OptimizationsService {
       currentUserId,
     );
     if (!source.pattern) {
-      source.pattern = await this.getPatternSummary(run.input.patternId);
+      source.pattern = await this.patternsService.getPatternSummary(
+        run.input.patternId,
+      );
     }
 
     return OptimizationViewMapper.toView(source, {
@@ -169,21 +171,6 @@ export class OptimizationsService {
     return run;
   }
 
-  private async getPatternSummary(patternId: number) {
-    const pattern = await this.db.query.patterns.findFirst({
-      where: eq(patterns.id, patternId),
-      columns: { id: true, name: true, size: true, createdAt: true },
-    });
-    if (!pattern) throw new ResourceNotFoundException('Pattern', patternId);
-
-    return {
-      id: pattern.id,
-      name: pattern.name,
-      size: pattern.size,
-      createdAt: pattern.createdAt.toISOString(),
-    };
-  }
-
   private async getFabricMetadata(
     fabricId?: number,
     currentUserId?: number,
@@ -196,18 +183,40 @@ export class OptimizationsService {
     return this.fabricsService.getOwnedFabricSummary(fabricId, currentUserId);
   }
 
-  async getOptimizations(query: ListOptimizationsQueryDto, userId: number): Promise<OptimizationListResponseDto> {
-    const { page, limit, sort, createdFrom, createdTo, patternIds, fabricIds, algorithmIds } = query;
+  async getOptimizations(
+    query: ListOptimizationsQueryDto,
+    userId: number,
+  ): Promise<OptimizationListResponseDto> {
+    const {
+      page,
+      limit,
+      sort,
+      createdFrom,
+      createdTo,
+      patternIds,
+      fabricIds,
+      algorithmIds,
+    } = query;
     assertDateRange(createdFrom, createdTo);
     const term = likeTerm(query.q);
     const where = and(
       eq(optimizationResults.userId, userId),
       term ? ilike(optimizationResults.name, term) : undefined,
-      createdFrom ? gte(optimizationResults.createdAt, new Date(createdFrom)) : undefined,
-      createdTo ? lte(optimizationResults.createdAt, new Date(createdTo)) : undefined,
-      patternIds?.length ? inArray(optimizationResults.patternId, patternIds) : undefined,
-      fabricIds?.length ? inArray(optimizationResults.customFabricId, fabricIds) : undefined,
-      algorithmIds?.length ? inArray(optimizationResults.algorithmId, algorithmIds) : undefined,
+      createdFrom
+        ? gte(optimizationResults.createdAt, new Date(createdFrom))
+        : undefined,
+      createdTo
+        ? lte(optimizationResults.createdAt, new Date(createdTo))
+        : undefined,
+      patternIds?.length
+        ? inArray(optimizationResults.patternId, patternIds)
+        : undefined,
+      fabricIds?.length
+        ? inArray(optimizationResults.customFabricId, fabricIds)
+        : undefined,
+      algorithmIds?.length
+        ? inArray(optimizationResults.algorithmId, algorithmIds)
+        : undefined,
     )!;
 
     const [rows, [{ total }]] = await Promise.all([
@@ -224,7 +233,10 @@ export class OptimizationsService {
         })
         .from(optimizationResults)
         .innerJoin(patterns, eq(patterns.id, optimizationResults.patternId))
-        .innerJoin(algorithmTypes, eq(algorithmTypes.id, optimizationResults.algorithmId))
+        .innerJoin(
+          algorithmTypes,
+          eq(algorithmTypes.id, optimizationResults.algorithmId),
+        )
         .leftJoin(fabrics, eq(fabrics.id, optimizationResults.customFabricId))
         .where(where)
         .orderBy(...this.getOrderBy(sort))
@@ -252,7 +264,9 @@ export class OptimizationsService {
         algorithmName: row.algorithmName,
         minLengthMm: row.minLengthMm,
       })),
-      total, page, limit,
+      total,
+      page,
+      limit,
       totalPages: Math.ceil(total / limit),
     };
   }
@@ -261,24 +275,39 @@ export class OptimizationsService {
     const lower = (c: SQL | AnyColumn) => sql`lower(${c})`;
     const id = optimizationResults.id;
     switch (sort) {
-      case OptimizationSortOption.NAME_ASC: return [asc(lower(optimizationResults.name)), asc(id)];
-      case OptimizationSortOption.NAME_DESC: return [desc(lower(optimizationResults.name)), desc(id)];
-      case OptimizationSortOption.DATE_ASC: return [asc(optimizationResults.createdAt), asc(id)];
-      case OptimizationSortOption.PATTERN_ASC: return [asc(lower(patterns.name)), asc(id)];
-      case OptimizationSortOption.PATTERN_DESC: return [desc(lower(patterns.name)), desc(id)];
-      case OptimizationSortOption.FABRIC_ASC: return [asc(lower(sql`coalesce(${fabrics.name}, '')`)), asc(id)];
-      case OptimizationSortOption.FABRIC_DESC: return [desc(lower(sql`coalesce(${fabrics.name}, '')`)), desc(id)];
-      case OptimizationSortOption.ALGORITHM_ASC: return [asc(lower(algorithmTypes.name)), asc(id)];
-      case OptimizationSortOption.ALGORITHM_DESC: return [desc(lower(algorithmTypes.name)), desc(id)];
+      case OptimizationSortOption.NAME_ASC:
+        return [asc(lower(optimizationResults.name)), asc(id)];
+      case OptimizationSortOption.NAME_DESC:
+        return [desc(lower(optimizationResults.name)), desc(id)];
+      case OptimizationSortOption.DATE_ASC:
+        return [asc(optimizationResults.createdAt), asc(id)];
+      case OptimizationSortOption.PATTERN_ASC:
+        return [asc(lower(patterns.name)), asc(id)];
+      case OptimizationSortOption.PATTERN_DESC:
+        return [desc(lower(patterns.name)), desc(id)];
+      case OptimizationSortOption.FABRIC_ASC:
+        return [asc(lower(sql`coalesce(${fabrics.name}, '')`)), asc(id)];
+      case OptimizationSortOption.FABRIC_DESC:
+        return [desc(lower(sql`coalesce(${fabrics.name}, '')`)), desc(id)];
+      case OptimizationSortOption.ALGORITHM_ASC:
+        return [asc(lower(algorithmTypes.name)), asc(id)];
+      case OptimizationSortOption.ALGORITHM_DESC:
+        return [desc(lower(algorithmTypes.name)), desc(id)];
       case OptimizationSortOption.DATE_DESC:
-      default: return [desc(optimizationResults.createdAt), desc(id)];
+      default:
+        return [desc(optimizationResults.createdAt), desc(id)];
     }
   }
 
   async delete(id: number, userId: number): Promise<void> {
     const [deleted] = await this.db
       .delete(optimizationResults)
-      .where(and(eq(optimizationResults.id, id), eq(optimizationResults.userId, userId)))
+      .where(
+        and(
+          eq(optimizationResults.id, id),
+          eq(optimizationResults.userId, userId),
+        ),
+      )
       .returning({ id: optimizationResults.id });
     if (!deleted) throw new ResourceNotFoundException('Optimization', id);
   }
@@ -291,16 +320,32 @@ export class OptimizationsService {
     const [updated] = await this.db
       .update(optimizationResults)
       .set({ name })
-      .where(and(eq(optimizationResults.id, id), eq(optimizationResults.userId, userId)))
-      .returning({ id: optimizationResults.id, name: optimizationResults.name });
+      .where(
+        and(
+          eq(optimizationResults.id, id),
+          eq(optimizationResults.userId, userId),
+        ),
+      )
+      .returning({
+        id: optimizationResults.id,
+        name: optimizationResults.name,
+      });
     if (!updated) throw new ResourceNotFoundException('Optimization', id);
     return updated;
   }
 
-  async deleteOptimizations(ids: number[], userId: number): Promise<BulkDeleteResponseDto> {
+  async deleteOptimizations(
+    ids: number[],
+    userId: number,
+  ): Promise<BulkDeleteResponseDto> {
     const deleted = await this.db
       .delete(optimizationResults)
-      .where(and(inArray(optimizationResults.id, ids), eq(optimizationResults.userId, userId)))
+      .where(
+        and(
+          inArray(optimizationResults.id, ids),
+          eq(optimizationResults.userId, userId),
+        ),
+      )
       .returning({ id: optimizationResults.id });
     return { deletedIds: deleted.map((row) => row.id) };
   }
@@ -499,7 +544,7 @@ export class OptimizationsService {
     });
     if (!row) throw new ResourceNotFoundException('Optimization', id);
 
-    const pattern = await this.getPatternSummary(row.patternId);
+    const pattern = await this.patternsService.getPatternSummary(row.patternId);
     let fabricMetadata: FabricMetadataDto | undefined;
     let fabric: OptimizerFabricInputDto;
     if (row.customFabricId !== null) {
@@ -580,7 +625,9 @@ export class OptimizationsService {
     };
   }
 
-  async getFilterOptions(userId: number): Promise<OptimizationFilterOptionsDto> {
+  async getFilterOptions(
+    userId: number,
+  ): Promise<OptimizationFilterOptionsDto> {
     const [patternRows, fabricRows, algorithmRows] = await Promise.all([
       // only patterns that appear in the user's optimizations
       this.db
@@ -592,27 +639,45 @@ export class OptimizationsService {
         .orderBy(asc(sql`lower(${patterns.name})`)),
       // all of the user's fabrics, also those with 0 optimizations (like "Satin (0)" in the mockup)
       this.db
-        .select({ id: fabrics.id, name: fabrics.name, count: count(optimizationResults.id) })
+        .select({
+          id: fabrics.id,
+          name: fabrics.name,
+          count: count(optimizationResults.id),
+        })
         .from(fabrics)
         .leftJoin(
           optimizationResults,
-          and(eq(optimizationResults.customFabricId, fabrics.id), eq(optimizationResults.userId, userId)),
+          and(
+            eq(optimizationResults.customFabricId, fabrics.id),
+            eq(optimizationResults.userId, userId),
+          ),
         )
         .where(eq(fabrics.userId, userId))
         .groupBy(fabrics.id, fabrics.name)
         .orderBy(asc(sql`lower(${fabrics.name})`)),
       this.db
-        .select({ id: algorithmTypes.id, name: algorithmTypes.name, count: count(optimizationResults.id) })
+        .select({
+          id: algorithmTypes.id,
+          name: algorithmTypes.name,
+          count: count(optimizationResults.id),
+        })
         .from(algorithmTypes)
         .leftJoin(
           optimizationResults,
-          and(eq(optimizationResults.algorithmId, algorithmTypes.id), eq(optimizationResults.userId, userId)),
+          and(
+            eq(optimizationResults.algorithmId, algorithmTypes.id),
+            eq(optimizationResults.userId, userId),
+          ),
         )
         .where(inArray(algorithmTypes.name, AVAILABLE_ALGORITHMS))
         .groupBy(algorithmTypes.id, algorithmTypes.name)
         .orderBy(asc(algorithmTypes.id)),
     ]);
 
-    return { patterns: patternRows, fabrics: fabricRows, algorithms: algorithmRows };
+    return {
+      patterns: patternRows,
+      fabrics: fabricRows,
+      algorithms: algorithmRows,
+    };
   }
 }

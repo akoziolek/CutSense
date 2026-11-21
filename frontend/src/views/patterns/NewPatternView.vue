@@ -13,9 +13,9 @@ import StepConfig from '@/components/patterns/new/StepConfig.vue'
 import StepPieces from '@/components/patterns/new/StepPieces.vue'
 import StepDetails from '@/components/patterns/new/StepDetails.vue'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
-import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
+import { useUnsavedChangesGuard } from '@/composables/forms/useUnsavedChangesGuard'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
-import { provideWizardNav } from '@/composables/useWizardNav'
+import { provideWizardNav } from '@/composables/forms/useWizardNav'
 
 const { t } = useI18n()
 const titles = computed(() => [
@@ -71,7 +71,9 @@ const step = computed({
 
 provideWizardNav({
   canGoBack: computed(() => step.value > 1),
-  back: () => { step.value = step.value - 1 },
+  back: () => {
+    step.value = step.value - 1
+  },
 })
 
 watch(

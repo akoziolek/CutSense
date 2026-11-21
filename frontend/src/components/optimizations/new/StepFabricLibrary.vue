@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { Shirt } from 'lucide-vue-next'
@@ -9,9 +9,8 @@ import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import FilterSection from '@/components/common/FilterSection.vue'
 import ListFilterPopover from '@/components/common/ListFilterPopover.vue'
 import SelectableResourceList from '@/components/common/SelectableResourceList.vue'
-import type { SortOption } from '@/composables/useListQuery'
-import { api, ApiError } from '@/api/client'
-import type { FabricListItem, FabricSort, NameTag } from '@/types/fabric'
+import type { SortOption } from '@/types/common'
+import type { FabricFilters, FabricListItem, FabricSort } from '@/types/fabric'
 import { formatCardDate } from '@/utils/formatCardDate'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { useRoute, useRouter } from 'vue-router'
@@ -22,8 +21,8 @@ import {
   filtersFromQuery,
   filtersToApiParams,
   filtersToQuery,
-  type FabricFilters,
-} from '@/utils/fabricFilters'
+} from '@/utils/filters/fabricFilters'
+import { useResourceTags } from '@/composables/resources/useResourceTags'
 
 const emit = defineEmits<{
   (e: 'next'): void
@@ -50,24 +49,12 @@ const clearFilters = () =>
     },
   })
 
-const availableTags = ref<NameTag[]>([])
-const tagsLoaded = ref(false)
-const tagsLoading = ref(false)
-const tagsError = ref('')
-const loadTags = async () => {
-  if (tagsLoaded.value || tagsLoading.value) return
-  tagsError.value = ''
-  tagsLoading.value = true
-  try {
-    availableTags.value = await api<NameTag[]>('/fabrics/tags')
-    tagsLoaded.value = true
-  } catch (error) {
-    tagsError.value =
-      error instanceof ApiError ? error.body.message : t('common.errors.tagsLoadFailed')
-  } finally {
-    tagsLoading.value = false
-  }
-}
+const {
+  tags: availableTags,
+  loading: tagsLoading,
+  error: tagLoadError,
+  loadTags: loadAvailableTags,
+} = useResourceTags('/fabrics/tags', 'common.errors.tagsLoadFailed')
 
 const SORT_OPTIONS = computed<SortOption<FabricSort>[]>(() => [
   { value: 'name_asc', label: t('common.sort.nameAscending') },
@@ -108,11 +95,11 @@ const getImage = (fabric: FabricListItem) => fabric.pictureUrl
           :empty-filters="emptyFilters"
           :tags="availableTags"
           :tags-loading="tagsLoading"
-          :tags-error="tagsError"
+          :tags-error="tagLoadError"
           :active="hasActiveFilters"
           :extra-error="areaRangeError"
           @apply="applyFilters"
-          @opened="loadTags"
+          @opened="loadAvailableTags"
         >
           <template #default="{ draft }">
             <FilterSection :title="$t('common.filters.area')" :default-open="false">
@@ -130,7 +117,8 @@ const getImage = (fabric: FabricListItem) => fabric.pictureUrl
                     />
                     <span
                       class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground"
-                    >m²</span>
+                      >m²</span
+                    >
                   </div>
                 </label>
                 <label class="space-y-1 text-xs">
@@ -146,7 +134,8 @@ const getImage = (fabric: FabricListItem) => fabric.pictureUrl
                     />
                     <span
                       class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground"
-                    >m²</span>
+                      >m²</span
+                    >
                   </div>
                 </label>
               </div>
@@ -161,7 +150,9 @@ const getImage = (fabric: FabricListItem) => fabric.pictureUrl
           {{ $t('optimizations.noFabricsDescription') }}
         </p>
         <Button as-child size="sm" class="mt-2 rounded-lg">
-          <RouterLink :to="{ name: 'AddFabric' }">{{ $t('optimizations.addFirstFabric') }}</RouterLink>
+          <RouterLink :to="{ name: 'AddFabric' }">{{
+            $t('optimizations.addFirstFabric')
+          }}</RouterLink>
         </Button>
       </template>
     </SelectableResourceList>

@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useFabricAddingStore } from '@/stores/addingFabricStore'
-import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
+import { useUnsavedChangesGuard } from '@/composables/forms/useUnsavedChangesGuard'
 
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -15,7 +15,7 @@ import StepUpload from '@/components/fabrics/new/StepUpload.vue'
 import StepConfig from '@/components/fabrics/new/StepConfig.vue'
 import StepDetails from '@/components/fabrics/new/StepDetails.vue'
 
-import { provideWizardNav } from '@/composables/useWizardNav'
+import { provideWizardNav } from '@/composables/forms/useWizardNav'
 
 const route = useRoute()
 const router = useRouter()
@@ -63,7 +63,9 @@ const step = computed({
 
 provideWizardNav({
   canGoBack: computed(() => step.value > 1),
-  back: () => { step.value = step.value - 1 },
+  back: () => {
+    step.value = step.value - 1
+  },
 })
 
 watch(

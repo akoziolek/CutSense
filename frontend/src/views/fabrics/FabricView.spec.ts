@@ -3,8 +3,8 @@ import { defineComponent, h, type PropType } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, api } from '@/api/client'
 import i18n from '@/i18n'
-import type { MetaItem } from '@/components/common/DetailsCard.vue'
-import type { NameTag } from '@/types/fabric'
+import type { MetaItem } from '@/types/details'
+import type { NameTag } from '@/types/common'
 import type { Point2D } from '@/types/geometry'
 import FabricView from './FabricView.vue'
 
@@ -55,9 +55,10 @@ const DetailsCardStub = defineComponent({
 })
 
 const ErrorStateStub = defineComponent({
-  props: { title: String, message: String },
-  setup(props, { slots }) {
-    return () => h('section', [h('h2', props.title), h('p', props.message), slots.actions?.()])
+  props: { title: String, message: String, retryLabel: String, backLabel: String, backTo: String },
+  emits: ['retry'],
+  setup(props) {
+    return () => h('section', [h('h2', props.title), h('p', props.message)])
   },
 })
 
@@ -215,9 +216,11 @@ describe('FabricView', () => {
 
     expect(wrapper.text()).toContain('Unable to load fabric')
     expect(wrapper.text()).toContain('Fabric not found')
-    expect(wrapper.find('a[href="/fabrics"]').exists()).toBe(true)
+    const errorState = wrapper.findComponent(ErrorStateStub)
+    expect(errorState.props('backTo')).toBe('/fabrics')
+    expect(errorState.props('retryLabel')).toBe('Try again')
 
-    await wrapper.get('button').trigger('click')
+    errorState.vm.$emit('retry')
     await flushPromises()
 
     expect(apiMock).toHaveBeenCalledTimes(2)

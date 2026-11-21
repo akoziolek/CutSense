@@ -9,7 +9,7 @@ import type {
   EnginePoint,
   EngineResult,
 } from './optimizer-engine.types.js';
-const pt = ([x, y]: OptimizerPointDto): EnginePoint => ({ x, y });
+const pt = ({ x, y }: OptimizerPointDto): EnginePoint => ({ x, y });
 
 export function toEngineInput(
   input: OptimizerInputDto,

@@ -1,15 +1,9 @@
 <script setup lang="ts">
-import { type Component } from 'vue'
 import { Card, CardContent } from '@/components/ui/card'
 import TagsList from '../common/TagsList.vue'
 import { FileText } from 'lucide-vue-next'
-import type { NameTag } from '@/types/fabric'
-
-export interface MetaItem {
-  icon?: Component
-  label?: string
-  value?: string
-}
+import type { NameTag } from '@/types/common'
+import type { MetaItem } from '@/types/details'
 
 withDefaults(
   defineProps<{

@@ -1,0 +1,103 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { CookieOptions, Request, Response } from 'express';
+import { AuthService } from './auth.service.js';
+import { GoogleAuthGuard } from './guards/google-auth.guard.js';
+import { GoogleProfile } from './strategies/google.strategy.js';
+import { RegisterDto } from './dto/register.dto.js';
+import { Public } from '../../common/decorators/auth.decorator.js';
+
+const SESSION_MAX_AGE = 7 * 24 * 3600 * 1000;
+const REGISTRATION_MAX_AGE = 15 * 60 * 1000;
+
+const baseCookieOpts: CookieOptions = {
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production',
+};
+
+const cookieOpts = (maxAge: number): CookieOptions => ({
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production',
+  maxAge,
+});
+
+@Controller('auth')
+@Public()
+export class AuthController {
+  constructor(
+    private readonly auth: AuthService,
+    private readonly config: ConfigService,
+  ) {}
+
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  googleLogin() {}
+
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
+    const front = this.config.getOrThrow<string>('FRONTEND_URL');
+    const profile = req.user as GoogleProfile | null;
+
+    if (!profile) {
+      return res.redirect(`${front}/?error=google_auth_failed`);
+    }
+
+    const result = await this.auth.handleGoogleCallback(profile);
+
+    if (result.status === 'existing') {
+      res.cookie('session', result.sessionToken, cookieOpts(SESSION_MAX_AGE));
+      return res.redirect(`${front}/`);
+    }
+
+    res.cookie(
+      'registration_token',
+      result.registrationToken,
+      cookieOpts(REGISTRATION_MAX_AGE),
+    );
+    return res.redirect(`${front}/?registration=1`);
+  }
+
+  // for nickname screen to check if the registration session is valid
+  @Get('registration-session')
+  registrationSession(@Req() req: Request) {
+    const { email, avatar, name } = this.auth.readRegistrationToken(
+      req.cookies?.registration_token as string | undefined,
+    );
+    return { email, avatar, name };
+  }
+
+  @Post('register')
+  async register(
+    @Req() req: Request,
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { sessionToken, nickname } = await this.auth.register(
+      req.cookies?.registration_token as string | undefined,
+      dto.nickname,
+    );
+    res.clearCookie('registration_token');
+    res.cookie('session', sessionToken, cookieOpts(SESSION_MAX_AGE));
+    return { nickname };
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie('session', baseCookieOpts);
+    res.clearCookie('registration_token', baseCookieOpts);
+  }
+}

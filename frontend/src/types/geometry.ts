@@ -4,6 +4,22 @@ export interface Point2D {
   pctY: number
 }
 
+export interface PointMm {
+  x: number
+  y: number
+}
+
+export interface GeometryOriginMm {
+  minX: number
+  minY: number
+}
+
+export interface GeometryBoundsMm {
+  originMm: GeometryOriginMm
+  widthMm: number
+  heightMm: number
+}
+
 export interface PolygonEdge {
   index: number
   p1: Point2D

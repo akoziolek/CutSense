@@ -5,7 +5,7 @@ import type { RouteLocationRaw } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ArrowRight, X } from 'lucide-vue-next'
-import { useWizardNav } from '@/composables/useWizardNav'
+import { useWizardNav } from '@/composables/forms/useWizardNav'
 
 const props = withDefaults(
   defineProps<{

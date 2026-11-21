@@ -1,24 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { get, set, del } from 'idb-keyval'
-import type { NameTag } from '@/types/fabric'
 import type { Point2D } from '@/types/geometry'
-
-export interface FabricConfig {
-  shapes: Point2D[][]
-  pxPerMm: number
-  threadAngle: number
-  rotation: number
-  imageWidth: number
-  imageHeight: number
-  isConfigured: boolean
-}
-
-export interface FabricDetails {
-  name: string
-  description: string
-  tags: NameTag[]
-}
+import type { FabricDetails, FabricConfig } from '@/types/fabric'
 
 const STORAGE_FILE_KEY = 'adding_fabric_file'
 const STORAGE_CONFIG_KEY = 'adding_fabric_config'

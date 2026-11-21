@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { Eye, EyeOff, Loader2, PanelLeftClose, PanelLeftOpen, Images } from 'lucide-vue-next'
-import type { PatternPhotoData } from '@/stores/addingPatternStore'
+import type { PatternPhotoData } from '@/types/pattern'
 import AppImage from '@/components/common/AppImage.vue'
 
 const props = defineProps<{

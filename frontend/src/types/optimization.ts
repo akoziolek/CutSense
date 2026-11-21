@@ -93,6 +93,7 @@ export interface OptimizationView {
     createdAt?: string
     widthMm: number
     lengthMm: number
+    grainline: number
     boundary: OptimizerPoint[]
   }
   pattern?: {

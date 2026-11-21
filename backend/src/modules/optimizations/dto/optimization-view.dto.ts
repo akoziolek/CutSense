@@ -13,6 +13,7 @@ export interface PatternSummaryDto {
 export interface FabricMetadataDto {
   name: string;
   createdAt: string;
+  pictureUrl?: string;
 }
 
 export class OptimizationFabricViewDto extends OptimizerFabricInputDto {
@@ -21,6 +22,7 @@ export class OptimizationFabricViewDto extends OptimizerFabricInputDto {
 
   @ApiPropertyOptional({ description: 'Date the library fabric was added.' })
   createdAt?: string;
+
 }
 
 export class PlacementDto {
@@ -54,7 +56,9 @@ export class OptimizationViewDto {
   @ApiPropertyOptional({ description: 'Present while the run is cached' })
   runId?: string;
 
-  @ApiPropertyOptional({ description: 'Present once the optimization is saved' })
+  @ApiPropertyOptional({
+    description: 'Present once the optimization is saved',
+  })
   id?: number;
 
   @ApiPropertyOptional()

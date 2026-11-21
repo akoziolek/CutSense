@@ -24,11 +24,12 @@ import {
   Save,
   LogIn,
   Timer,
-  Shapes,
   Download,
   FileText,
   Maximize2,
   Loader2,
+  ArrowUp,
+  Shirt,
 } from 'lucide-vue-next'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { login, useAuth } from '@/stores/authStore'
@@ -392,11 +393,13 @@ watch(
                 <h2 class="text-xl font-bold font-inter tracking-tight text-foreground">
                   {{ t('optimizations.detailsTitle') }}
                 </h2>
-
                 <DetailsCard :meta-items="metaItems">
                   <div class="space-y-3 text-sm">
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <Layers class="h-4 w-4 text-foreground shrink-0" />
+                      <span :title="t('optimizations.fabric')" class="inline-flex shrink-0">
+                        <Layers class="h-4 w-4 text-foreground" />
+                      </span>
+
                       <RouterLink
                         v-if="optimization.fabric.fabricId"
                         :to="`/fabrics/${optimization.fabric.fabricId}`"
@@ -407,11 +410,25 @@ watch(
                           `${t('optimizations.libraryFabric')} #${optimization.fabric.fabricId}`
                         }}
                       </RouterLink>
-                      <span v-else class="font-bold text-foreground font-inter">
-                        {{ t('optimizations.customFabric') }}
+                      <span v-else>
+                        <span class="font-bold text-foreground font-inter">
+                          {{ t('optimizations.customFabric') }}
+                        </span>
+
+                        <span class="text-muted-foreground text-xs">
+                          {{ optimization.fabric.widthMm }} × {{ optimization.fabric.lengthMm }} mm
+                        </span>
                       </span>
-                      <span class="text-muted-foreground text-xs">
-                        {{ optimization.fabric.widthMm }} × {{ optimization.fabric.lengthMm }} mm
+                      <span
+                        v-if="optimization.fabric.grainline != null"
+                        class="inline-flex items-center gap-1 text-muted-foreground text-xs"
+                        :title="t('common.details.grainline')"
+                      >
+                        <ArrowUp
+                          class="h-3.5 w-3.5 shrink-0 text-foreground"
+                          :style="{ transform: `rotate(${optimization.fabric.grainline}deg)` }"
+                        />
+                        <span>{{ optimization.fabric.grainline }}°</span>
                       </span>
                     </div>
 
@@ -419,7 +436,10 @@ watch(
                       v-if="optimization.pattern"
                       class="flex flex-wrap items-center gap-x-3 gap-y-1"
                     >
-                      <Shapes class="h-4 w-4 text-foreground shrink-0" />
+                      <span :title="t('optimizations.pattern')" class="inline-flex shrink-0">
+                        <Shirt class="h-4 w-4 text-foreground" />
+                      </span>
+
                       <RouterLink
                         :to="`/patterns/${optimization.pattern.id}`"
                         class="font-bold font-inter text-foreground hover:underline decoration-1 underline-offset-2 transition-colors hover:text-primary"
@@ -428,7 +448,7 @@ watch(
                       </RouterLink>
 
                       <span v-if="optimization.pattern.size" class="text-xs text-muted-foreground">
-                        {{ t('common.details.size') }}: {{ optimization.pattern.size }}
+                        {{ t('common.details.size') }} {{ optimization.pattern.size }}
                       </span>
                     </div>
                   </div>

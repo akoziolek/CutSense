@@ -345,7 +345,7 @@ onMounted(() => {
               <TagsInput
                 v-slot="{ modelValue: tagItems }"
                 v-model="selectedTagNames"
-                class="w-full flex-col items-start gap-2 p-3 font-inter bg-background! border border-input rounded-md focus-within:ring-2 focus-within:ring-ring"
+                class="w-full flex-col items-start gap-2 p-3 font-inter bg-primary-foreground/85 border border-input rounded-md focus-within:ring-2 focus-within:ring-ring"
               >
                 <div v-if="tagItems.length > 0" class="flex flex-wrap gap-1.5 w-full">
                   <TagsInputItem

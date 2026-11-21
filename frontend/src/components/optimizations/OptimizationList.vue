@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   ArrowDown,
@@ -58,6 +58,13 @@ const emit = defineEmits<{ (e: 'loaded', total: number): void }>()
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
+
+const handleRowClick = (id: number) => {
+  if (selectionMode.value) return
+  if (window.getSelection()?.toString()) return
+  router.push({ name: 'OptimizationDetails', params: { id } })
+}
 
 const PAGE_SIZE = 12
 const COLUMNS: { field: OptimizationSortField; labelKey: string }[] = [
@@ -348,24 +355,21 @@ const handleRename = async (name: string) => {
               :key="item.id"
               :selectable="selectionMode"
               :selected="isSelected(item.id)"
+              class="cursor-pointer"
+              @click="handleRowClick(item.id)"
               @toggle-select="toggleSelect(item.id)"
               @long-press="selectFromGesture(item.id)"
               @contextmenu.prevent="selectFromGesture(item.id)"
             >
               <TableCell class="font-medium">
-                <RouterLink
-                  :to="{ name: 'OptimizationDetails', params: { id: item.id } }"
-                  class="hover:underline"
-                >
-                  {{ item.name }}
-                </RouterLink>
+                {{ item.name }}
               </TableCell>
               <TableCell>{{ formatCardDate(item.createdAt) }}</TableCell>
               <TableCell>{{ item.patternName }}</TableCell>
               <TableCell>{{ item.fabricName ?? t('optimizations.customDimensions') }}</TableCell>
               <TableCell>{{ item.algorithmName }}</TableCell>
               <TableCell>
-                <div class="flex items-center justify-center gap-1">
+                <div class="flex items-center justify-center gap-1" @click.stop>
                   <Button
                     variant="ghost"
                     size="icon"

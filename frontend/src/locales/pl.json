@@ -503,7 +503,9 @@
     "hidePieceLabels": "Ukryj numery elementów",
     "legendPiece": "Element wykroju",
     "legendMirrored": "Odbicie lustrzane",
-    "legendRotated": "Kąt obrotu"
+    "legendRotated": "Kąt obrotu",
+    "widthPlaceholder": "np. 145",
+    "heightPlaceholder": "np. 290"
   },
   "landing": {
     "headline": "Liczy się każdy cm",

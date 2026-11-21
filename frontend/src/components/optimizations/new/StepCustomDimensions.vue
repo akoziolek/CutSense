@@ -33,10 +33,22 @@ const preview = computed(() => {
   return { w: parseCm(store.customWidthCm)!, h: parseCm(store.customHeightCm)! }
 })
 
-const fields = computed(() => [
-  { id: 'fabric-width', label: t('optimizations.width'), model: 'customWidthCm', placeholder: '145' },
-  { id: 'fabric-height', label: t('optimizations.height'), model: 'customHeightCm', placeholder: '290' },
-] as const
+const fields = computed(
+  () =>
+    [
+      {
+        id: 'fabric-width',
+        label: t('optimizations.width'),
+        model: 'customWidthCm',
+        placeholder: t('optimizations.widthPlaceholder'),
+      },
+      {
+        id: 'fabric-height',
+        label: t('optimizations.height'),
+        model: 'customHeightCm',
+        placeholder: t('optimizations.heightPlaceholder'),
+      },
+    ] as const,
 )
 </script>
 
@@ -97,12 +109,13 @@ const fields = computed(() => [
             </div>
           </div>
 
-          <p
-            v-if="widthInvalid || heightInvalid"
-            class="text-xs text-destructive"
-            role="alert"
-          >
-            {{ t('optimizations.sizeRangeError', { min: MIN_FABRIC_SIDE_CM, max: MAX_FABRIC_SIDE_CM }) }}
+          <p v-if="widthInvalid || heightInvalid" class="text-xs text-destructive" role="alert">
+            {{
+              t('optimizations.sizeRangeError', {
+                min: MIN_FABRIC_SIDE_CM,
+                max: MAX_FABRIC_SIDE_CM,
+              })
+            }}
           </p>
           <p class="text-xs text-destructive">{{ t('common.status.requiredField') }}</p>
         </div>

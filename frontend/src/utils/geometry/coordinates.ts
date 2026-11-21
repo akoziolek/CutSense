@@ -1,9 +1,4 @@
-import type {
-  GeometryBoundsMm,
-  GeometryOriginMm,
-  Point2D,
-  PointMm,
-} from '@/types/geometry'
+import type { GeometryBoundsMm, GeometryOriginMm, Point2D, PointMm } from '@/types/geometry'
 
 export function getGeometryBoundsMm(shapes: [number, number][][]): GeometryBoundsMm {
   const points = shapes.flat()
@@ -53,12 +48,7 @@ export function toImagePercent(
   imageWidthMm: number,
   imageHeightMm: number,
 ): Point2D {
-  return toPercentPoint(
-    [pointMm.x, pointMm.y],
-    { minX: 0, minY: 0 },
-    imageWidthMm,
-    imageHeightMm,
-  )
+  return toPercentPoint([pointMm.x, pointMm.y], { minX: 0, minY: 0 }, imageWidthMm, imageHeightMm)
 }
 
 export function toImagePixels(
@@ -79,8 +69,8 @@ export function toImageMm(
   pxPerMm = 1,
 ): PointMm {
   return {
-    x: ((pctX * imageWidthPx) / 100) / pxPerMm,
-    y: (((100 - pctY) * imageHeightPx) / 100) / pxPerMm,
+    x: (pctX * imageWidthPx) / 100 / pxPerMm,
+    y: ((100 - pctY) * imageHeightPx) / 100 / pxPerMm,
   }
 }
 
@@ -108,4 +98,14 @@ export function toImagePercentBoundary(
   }
 
   return points.map((point) => toImagePercent(point, imageWidthMm, imageHeightMm))
+}
+
+export function toFabricPercentBoundary(
+  points: [number, number][],
+  origin: GeometryOriginMm,
+  widthMm: number,
+  heightMm: number,
+): Point2D[] {
+  if (widthMm <= 0 || heightMm <= 0) return []
+  return points.map((point) => toFabricPercent(point, origin, widthMm, heightMm))
 }

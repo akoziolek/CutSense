@@ -8,6 +8,15 @@ export function clampPanOffset(
   }
 }
 
+export function getRulerSteps(zoomLevel: number): {
+  minorStepMm: number
+  majorStepMm: number
+} {
+  if (zoomLevel >= 2.2) return { minorStepMm: 10, majorStepMm: 50 }
+  if (zoomLevel >= 0.9) return { minorStepMm: 50, majorStepMm: 100 }
+  return { minorStepMm: 50, majorStepMm: 200 }
+}
+
 export function buildRulerTicks(params: {
   viewportSizePx: number
   pxPerMm: number
@@ -32,4 +41,26 @@ export function buildRulerTicks(params: {
     }
   }
   return ticks
+}
+
+export function getCrosshairState(params: {
+  clientX: number
+  clientY: number
+  containerRect: { left: number; top: number; width: number; height: number }
+  sheet: { left: number; bottom: number; width: number; height: number }
+  canvasWidthMm: number
+  canvasHeightMm: number
+}) {
+  const { clientX, clientY, containerRect, sheet, canvasWidthMm, canvasHeightMm } = params
+  const x = clientX - containerRect.left
+  const y = clientY - containerRect.top
+
+  return {
+    x,
+    y,
+    mmX: Math.round(((x - sheet.left) / sheet.width) * canvasWidthMm),
+    mmY: Math.round(((sheet.bottom - y) / sheet.height) * canvasHeightMm),
+    flipLeft: x > containerRect.width - 150,
+    flipTop: y > containerRect.height - 48,
+  }
 }

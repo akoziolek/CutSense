@@ -12,12 +12,7 @@ export function getCartesianDistance(
   return Math.hypot(p2.x - p1.x, p2.y - p1.y)
 }
 
-export function getPointDistance(
-  p1: Point2D,
-  p2: Point2D,
-  width = 1,
-  height = 1,
-): number {
+export function getPointDistance(p1: Point2D, p2: Point2D, width = 1, height = 1): number {
   const first = toImagePixels(p1, width, height)
   const second = toImagePixels(p2, width, height)
   return getCartesianDistance(first, second)
@@ -51,6 +46,17 @@ export function getPolygonEdges(
       distanceCm: (getPointDistance(p1, p2, width, height) / pxPerMm / 10).toFixed(1),
     }
   })
+}
+
+export function getPolygonAreaMm2(pts: [number, number][]): number {
+  if (pts.length < 3) return 0
+  let area2 = 0
+  for (let i = 0; i < pts.length; i++) {
+    const [x1, y1] = pts[i]!
+    const [x2, y2] = pts[(i + 1) % pts.length]!
+    area2 += x1 * y2 - x2 * y1
+  }
+  return Math.abs(area2) / 2
 }
 
 export function offsetPolygonMm(

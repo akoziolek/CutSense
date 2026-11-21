@@ -18,19 +18,25 @@ import {
 } from 'lucide-vue-next'
 import type { GeometryOriginMm, Point2D } from '@/types/geometry'
 import type { PlacedPieceViewItem } from '@/types/optimization'
-import { useNonOverlappingLabels } from '@/composables/spatial/useSpatialLabels'
+import {
+  useNonOverlappingLabels,
+  useNonOverlappingPoints,
+} from '@/composables/spatial/useSpatialLabels'
 import { useCanvasViewport } from '@/composables/spatial/useCanvasViewport'
 import {
   toSvgPoints,
   offsetPolygonMm,
   buildRulerTicks,
+  getRulerSteps,
+  getCrosshairState,
   getFabricOriginMm,
+  getPolygonAreaMm2,
   getPolygonCentroidPct,
-  getCartesianDistance,
-  toFabricPercent,
+  getPolygonEdges,
+  getSegmentMidpoint,
+  toFabricPercentBoundary,
 } from '@/utils/geometry'
 
-// TODO - display picture, allow moving shapes?
 const props = withDefaults(
   defineProps<{
     fabricShape?: [number, number][]
@@ -70,15 +76,7 @@ const showPieceNumbers = ref(true)
 
 const selectedPieceId = ref<number | null>(null)
 const hoveredPieceId = ref<number | null>(null)
-
-const cursorCrosshair = ref<{
-  x: number
-  y: number
-  mmX: number
-  mmY: number
-  flipLeft: boolean
-  flipTop: boolean
-} | null>(null)
+const cursorCrosshair = ref<ReturnType<typeof getCrosshairState> | null>(null)
 
 const baseWidthPx = computed(() => (props.isExpanded ? 520 : 360))
 const baseHeightPx = computed(
@@ -91,22 +89,14 @@ const updateCoordinates = (clientX: number, clientY: number) => {
     return
   }
 
-  const wRect = workspaceRef.value.getBoundingClientRect()
-  const relX = clientX - wRect.left
-  const relY = clientY - wRect.top
-
-  cursorCrosshair.value = {
-    x: relX,
-    y: relY,
-    mmX: Math.round(
-      ((relX - sheetMetrics.value.left) / sheetMetrics.value.width) * props.canvasWidthMm,
-    ),
-    mmY: Math.round(
-      ((sheetMetrics.value.bottom - relY) / sheetMetrics.value.height) * props.canvasHeightMm,
-    ),
-    flipLeft: relX > wRect.width - 150,
-    flipTop: relY > wRect.height - 48,
-  }
+  cursorCrosshair.value = getCrosshairState({
+    clientX,
+    clientY,
+    containerRect: workspaceRef.value.getBoundingClientRect(),
+    sheet: sheetMetrics.value,
+    canvasWidthMm: props.canvasWidthMm,
+    canvasHeightMm: props.canvasHeightMm,
+  })
 }
 
 const {
@@ -138,12 +128,9 @@ const {
 const sheetMetrics = computed(() => {
   const width = baseWidthPx.value * zoomLevel.value
   const height = baseHeightPx.value * zoomLevel.value
-  const left = containerSize.value.width / 2 + canvasOffset.value.x - width / 2
-  const bottom = containerSize.value.height / 2 + canvasOffset.value.y + height / 2
-
   return {
-    left,
-    bottom,
+    left: containerSize.value.width / 2 + canvasOffset.value.x - width / 2,
+    bottom: containerSize.value.height / 2 + canvasOffset.value.y + height / 2,
     width,
     height,
     ready: containerSize.value.ready,
@@ -153,14 +140,18 @@ const sheetMetrics = computed(() => {
 const coordinateOriginMm = computed(
   () => props.coordinateOriginMm ?? getFabricOriginMm(props.fabricShape),
 )
-const toPctPoint = (point: [number, number]): Point2D =>
-  toFabricPercent(point, coordinateOriginMm.value, props.canvasWidthMm, props.canvasHeightMm)
 
-const fabricShapePct = computed<Point2D[]>(() => props.fabricShape.map(toPctPoint))
+const fabricShapePct = computed<Point2D[]>(() =>
+  toFabricPercentBoundary(
+    props.fabricShape,
+    coordinateOriginMm.value,
+    props.canvasWidthMm,
+    props.canvasHeightMm,
+  ),
+)
 
 const formatPieceLabel = (piece: PlacedPieceViewItem): string => {
-  const num = piece.pieceNumber ?? piece.id
-  const parts = [`#${num}`]
+  const parts = [`#${piece.pieceNumber ?? piece.id}`]
   if (piece.isMirrored) parts.push('M')
   if (piece.rotationAngle && piece.rotationAngle !== 0) parts.push(`${piece.rotationAngle}°`)
   return parts.join('·')
@@ -168,7 +159,12 @@ const formatPieceLabel = (piece: PlacedPieceViewItem): string => {
 
 const piecesPct = computed(() =>
   props.pieces.map((piece) => {
-    const pctPoints = piece.points.map(toPctPoint)
+    const pctPoints = toFabricPercentBoundary(
+      piece.points,
+      coordinateOriginMm.value,
+      props.canvasWidthMm,
+      props.canvasHeightMm,
+    )
     return {
       id: piece.id,
       patternPieceId: piece.patternPieceId,
@@ -176,6 +172,7 @@ const piecesPct = computed(() =>
       mmPoints: piece.points,
       pctPoints,
       centerPct: getPolygonCentroidPct(pctPoints),
+      areaMm2: getPolygonAreaMm2(piece.points),
     }
   }),
 )
@@ -195,9 +192,7 @@ watch([() => props.canvasWidthMm, () => props.canvasHeightMm], resetView)
 
 const toggleCoordinates = () => {
   showCoordinates.value = !showCoordinates.value
-  if (!showCoordinates.value) {
-    cursorCrosshair.value = null
-  }
+  if (!showCoordinates.value) cursorCrosshair.value = null
 }
 
 const handlePieceClick = (pieceId: number) => {
@@ -206,8 +201,7 @@ const handlePieceClick = (pieceId: number) => {
 }
 
 const handleViewportClick = () => {
-  if (didDrag.value) return
-  if (selectedPieceId.value !== null) {
+  if (!didDrag.value && selectedPieceId.value !== null) {
     selectedPieceId.value = null
   }
 }
@@ -215,40 +209,34 @@ const handleViewportClick = () => {
 const pxPerMmX = computed(() =>
   props.canvasWidthMm > 0 ? (baseWidthPx.value * zoomLevel.value) / props.canvasWidthMm : 1,
 )
-
 const pxPerMmY = computed(() =>
   props.canvasHeightMm > 0 ? (baseHeightPx.value * zoomLevel.value) / props.canvasHeightMm : 1,
 )
 
-const minorStepMm = computed(() => (zoomLevel.value >= 2.2 ? 10 : 50))
-const majorStepMm = computed(() => {
-  if (zoomLevel.value >= 2.2) return 50
-  if (zoomLevel.value >= 0.9) return 100
-  return 200
-})
+const rulerSteps = computed(() => getRulerSteps(zoomLevel.value))
 
-const rulerXTicks = computed(() => {
-  if (!sheetMetrics.value.ready) return []
-  return buildRulerTicks({
-    viewportSizePx: containerSize.value.width,
-    pxPerMm: pxPerMmX.value,
-    originPx: sheetMetrics.value.left,
-    minorStepMm: minorStepMm.value,
-    majorStepMm: majorStepMm.value,
-  })
-})
+const rulerXTicks = computed(() =>
+  sheetMetrics.value.ready
+    ? buildRulerTicks({
+        viewportSizePx: containerSize.value.width,
+        pxPerMm: pxPerMmX.value,
+        originPx: sheetMetrics.value.left,
+        ...rulerSteps.value,
+      })
+    : [],
+)
 
-const rulerYTicks = computed(() => {
-  if (!sheetMetrics.value.ready) return []
-  return buildRulerTicks({
-    viewportSizePx: containerSize.value.height,
-    pxPerMm: pxPerMmY.value,
-    originPx: sheetMetrics.value.bottom,
-    minorStepMm: minorStepMm.value,
-    majorStepMm: majorStepMm.value,
-    invert: true,
-  })
-})
+const rulerYTicks = computed(() =>
+  sheetMetrics.value.ready
+    ? buildRulerTicks({
+        viewportSizePx: containerSize.value.height,
+        pxPerMm: pxPerMmY.value,
+        originPx: sheetMetrics.value.bottom,
+        ...rulerSteps.value,
+        invert: true,
+      })
+    : [],
+)
 
 const handleMouseLeave = () => {
   stopDragging()
@@ -256,48 +244,67 @@ const handleMouseLeave = () => {
   hoveredPieceId.value = null
 }
 
-const getOffsetPolygonPoints = (mmPts: [number, number][], offsetMm: number): string => {
-  if (props.canvasWidthMm <= 0 || props.canvasHeightMm <= 0) {
-    return toSvgPoints(mmPts.map(toPctPoint))
-  }
-  return toSvgPoints(offsetPolygonMm(mmPts, offsetMm).map(toPctPoint))
-}
+const getOffsetPolygonPoints = (mmPts: [number, number][], offsetMm: number): string =>
+  toSvgPoints(
+    toFabricPercentBoundary(
+      offsetPolygonMm(mmPts, offsetMm),
+      coordinateOriginMm.value,
+      props.canvasWidthMm,
+      props.canvasHeightMm,
+    ),
+  )
 
 const hasSelection = computed(() => selectedPieces.value.length > 0)
 const selectedPiecesShapes = computed(() => selectedPieces.value.map((p) => p.pctPoints))
+const selectedPiecesEdges = computed(() =>
+  selectedPieces.value.map((p) =>
+    getPolygonEdges(p.pctPoints, props.canvasWidthMm, props.canvasHeightMm),
+  ),
+)
 
 const { isLabelVisible } = useNonOverlappingLabels({
   shapes: selectedPiecesShapes,
+  edges: selectedPiecesEdges,
   showLabels: hasSelection,
+  quantizeZoom: true,
   widthPx: baseWidthPx,
   heightPx: baseHeightPx,
   zoomLevel,
 })
 
-const labelItems = computed(() => {
-  if (!hasSelection.value) return []
-  return selectedPieces.value.flatMap((piece, shapeIdx) => {
-    const { mmPoints: mmPts, pctPoints: pctPts } = piece
-    if (mmPts.length < 2) return []
+const pieceLabelPoints = computed(() =>
+  piecesPct.value.map((piece) => ({
+    key: piece.id,
+    point: piece.centerPct,
+    weight: piece.areaMm2,
+    isPriority: piece.id === selectedPieceId.value || piece.id === hoveredPieceId.value,
+  })),
+)
 
-    return mmPts.map((p1Mm, edgeIdx) => {
-      const p2Mm = mmPts[(edgeIdx + 1) % mmPts.length]!
-      const p1Pct = pctPts[edgeIdx]!
-      const p2Pct = pctPts[(edgeIdx + 1) % pctPts.length]!
-
-      return {
-        key: `${piece.id}-${edgeIdx}`,
-        shapeIdx,
-        edgeIdx,
-        midX: (p1Pct.pctX + p2Pct.pctX) / 2,
-        midY: (p1Pct.pctY + p2Pct.pctY) / 2,
-        distanceMm: Number(
-          getCartesianDistance({ x: p1Mm[0], y: p1Mm[1] }, { x: p2Mm[0], y: p2Mm[1] }).toFixed(1),
-        ),
-      }
-    })
-  })
+const { isVisible: isPieceLabelVisible } = useNonOverlappingPoints({
+  points: pieceLabelPoints,
+  showLabels: showPieceNumbers,
+  quantizeZoom: true,
+  widthPx: baseWidthPx,
+  heightPx: baseHeightPx,
+  zoomLevel,
 })
+
+const labelItems = computed(() =>
+  selectedPieces.value.flatMap((piece, shapeIdx) =>
+    (selectedPiecesEdges.value[shapeIdx] ?? []).map((edge) => {
+      const mid = getSegmentMidpoint(edge.p1, edge.p2, 100, 100)
+      return {
+        key: `${piece.id}-${edge.index}`,
+        shapeIdx,
+        edgeIdx: edge.index,
+        midX: mid.x,
+        midY: mid.y,
+        distanceCm: edge.distanceCm,
+      }
+    }),
+  ),
+)
 
 const activePatternPieceId = computed(() => {
   const activeId = hoveredPieceId.value ?? selectedPieceId.value
@@ -609,14 +616,15 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
               <div
                 v-for="piece in piecesPct"
                 :key="'num-' + piece.id"
-                class="absolute font-mono font-semibold text-[9.5px] leading-none px-1.5 py-0.5 rounded-xs border shadow-2xs whitespace-nowrap transition-colors"
-                :class="
+                class="absolute font-mono font-semibold text-[9.5px] leading-none px-1.5 py-0.5 rounded-xs border shadow-2xs whitespace-nowrap transition-[opacity,background-color,color,border-color] duration-150"
+                :class="[
+                  isPieceLabelVisible(piece.id) ? 'opacity-100' : 'opacity-0',
                   selectedPieceId === piece.id
                     ? 'bg-brand-green-foreground text-brand-green border-brand-green-foreground'
                     : isSamePatternGroup(piece)
                       ? 'bg-brand-green text-brand-green-foreground border-brand-green-foreground/40'
-                      : 'bg-background/85 text-foreground/90 border-border/70'
-                "
+                      : 'bg-background/85 text-foreground/90 border-border/70',
+                ]"
                 :style="{
                   left: `${piece.centerPct.pctX}%`,
                   top: `${piece.centerPct.pctY}%`,
@@ -631,19 +639,19 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
               v-if="hasSelection"
               class="absolute inset-0 w-full h-full pointer-events-none z-30"
             >
-              <template v-for="lbl in labelItems" :key="lbl.key">
-                <div
-                  v-if="isLabelVisible(lbl.shapeIdx, lbl.edgeIdx)"
-                  class="absolute font-mono font-semibold text-[9px] px-1.5 py-0.5 rounded-full shadow-xs border bg-background/95 text-foreground border-border/80 whitespace-nowrap transition-transform opacity-95"
-                  :style="{
-                    left: `${lbl.midX}%`,
-                    top: `${lbl.midY}%`,
-                    transform: `translate(-50%, -50%) scale(${1 / zoomLevel})`,
-                  }"
-                >
-                  {{ lbl.distanceMm }} mm
-                </div>
-              </template>
+              <div
+                v-for="lbl in labelItems"
+                :key="lbl.key"
+                class="absolute font-mono font-semibold text-[9px] px-1.5 py-0.5 rounded-full shadow-xs border bg-background/95 text-foreground border-border/80 whitespace-nowrap transition-opacity duration-150"
+                :class="isLabelVisible(lbl.shapeIdx, lbl.edgeIdx) ? 'opacity-95' : 'opacity-0'"
+                :style="{
+                  left: `${lbl.midX}%`,
+                  top: `${lbl.midY}%`,
+                  transform: `translate(-50%, -50%) scale(${1 / zoomLevel})`,
+                }"
+              >
+                {{ lbl.distanceCm }} cm
+              </div>
             </div>
           </div>
         </div>

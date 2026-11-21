@@ -65,7 +65,7 @@ onBeforeUnmount(cancelPress)
   <TableRow
     data-resource-card
     class="select-none"
-    :class="selected ? 'bg-brand-violet/40 hover:bg-brand-violet/40' : 'bg-brand-grey/60'"
+    :class="selected ? 'bg-muted-foreground/18 hover:bg-muted-foreground/28' : 'bg-brand-grey/60'"
     :role="selectable ? 'button' : undefined"
     :tabindex="selectable ? 0 : undefined"
     :aria-pressed="selectable ? (selected ?? false) : undefined"

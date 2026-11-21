@@ -366,7 +366,7 @@ const noSpinner =
       </Transition>
     </div>
 
-    <FloatingButton :to="{ name: 'AddFabric' }" />
+    <FloatingButton v-if="!selectionMode" :to="{ name: 'AddFabric' }" />
     <BulkDeleteControls
       base-path="/fabrics"
       noun="fabric"

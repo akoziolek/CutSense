@@ -11,7 +11,6 @@ import {
   Pencil,
   Sparkles,
   Trash2,
-  Upload,
 } from 'lucide-vue-next'
 import ListToolbar from '@/components/common/ListToolbar.vue'
 import ListFilterPopover from '@/components/common/ListFilterPopover.vue'
@@ -54,7 +53,10 @@ import type {
 } from '@/types/optimization'
 import { useOptimizations } from '@/composables/lists/useOptimizations'
 
-const emit = defineEmits<{ (e: 'loaded', total: number): void }>()
+const emit = defineEmits<{
+  (e: 'loaded', total: number): void
+  (e: 'update:selectionMode', value: boolean): void
+}>()
 
 const { t } = useI18n()
 const route = useRoute()
@@ -168,6 +170,7 @@ const { data, showSkeleton, error, refetch } = usePagedList<OptimizationListResp
 })
 
 watch(data, (value) => value && emit('loaded', value.total))
+watch(selectionMode, (value) => emit('update:selectionMode', value))
 
 const target = ref<OptimizationListItem | null>(null)
 const confirmOpen = ref(false)
@@ -324,11 +327,11 @@ const handleRename = async (name: string) => {
         </Button>
       </template>
 
-      <div class="overflow-hidden rounded-xl border border-muted">
+      <div class="overflow-hidden rounded-md border border-muted">
         <Table>
           <TableHeader class="bg-brand-green">
             <TableRow class="hover:bg-transparent">
-              <TableHead v-for="col in COLUMNS" :key="col.field">
+              <TableHead v-for="col in COLUMNS" :key="col.field" class="first:pl-4 sm:first:pl-6">
                 <button
                   type="button"
                   class="inline-flex cursor-pointer items-center gap-1 font-bold font-inter text-foreground"
@@ -343,8 +346,10 @@ const handleRename = async (name: string) => {
                   <ArrowUpDown v-else class="size-3.5 opacity-60" />
                 </button>
               </TableHead>
-              <TableHead class="text-center font-bold font-inter text-foreground">
-                {{ t('optimizations.list.actions') }}
+              <TableHead class="pr-4 sm:pr-6 font-bold font-inter text-foreground">
+                <span class="inline-flex items-center">
+                  {{ t('optimizations.list.actions') }}
+                </span>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -361,15 +366,15 @@ const handleRename = async (name: string) => {
               @long-press="selectFromGesture(item.id)"
               @contextmenu.prevent="selectFromGesture(item.id)"
             >
-              <TableCell class="font-medium">
+              <TableCell class="pl-4 sm:pl-6 font-medium">
                 {{ item.name }}
               </TableCell>
               <TableCell>{{ formatCardDate(item.createdAt) }}</TableCell>
               <TableCell>{{ item.patternName }}</TableCell>
               <TableCell>{{ item.fabricName ?? t('optimizations.customDimensions') }}</TableCell>
               <TableCell>{{ item.algorithmName }}</TableCell>
-              <TableCell>
-                <div class="flex items-center justify-center gap-1" @click.stop>
+              <TableCell class="pr-4 sm:pr-6">
+                <div class="-ml-2 flex items-center gap-1" @click.stop @pointerdown.stop>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -379,16 +384,6 @@ const handleRename = async (name: string) => {
                     @click="requestEdit(item)"
                   >
                     <Pencil class="size-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-8 w-8"
-                    disabled
-                    :title="t('comingSoon')"
-                    :aria-label="t('optimizations.list.export', { name: item.name })"
-                  >
-                    <Upload class="size-4" />
                   </Button>
                   <Button
                     variant="ghost"

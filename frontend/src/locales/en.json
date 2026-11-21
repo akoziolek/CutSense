@@ -67,7 +67,8 @@
       "longPressToSelect": "Long press or right-click a card to select it",
       "deleteItemsTitle": "Delete {count} {noun}?",
       "deleteSuccessTitle": "{noun} deleted",
-      "deleteSuccessDescription": "{count} {noun} deleted together with their optimizations."
+      "deleteSuccessDescription": "{count} {noun} deleted together with their optimizations.",
+      "select": "Select"
     },
     "pagination": {
       "previous": "Previous",
@@ -103,7 +104,8 @@
       "noMatchingTags": "No matching tags",
       "requiredField": "* Required field",
       "foundCount": "{count} found",
-      "stepOf": "Step {current} of {total}"
+      "stepOf": "Step {current} of {total}",
+      "selectedCount": "{count} selected"
     },
     "confirmations": {
       "deleteDescription": "This action cannot be undone and will permanently remove all associated optimizations."

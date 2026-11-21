@@ -8,9 +8,12 @@ import OptimizationList from '@/components/optimizations/OptimizationList.vue'
 import { Button } from '@/components/ui/button'
 import { login, useAuth } from '@/stores/authStore'
 import { useI18n } from 'vue-i18n'
+import { ref } from 'vue'
 
 const { state: auth } = useAuth()
 const { t } = useI18n()
+
+const selectionMode = ref(false)
 </script>
 
 <template>
@@ -18,7 +21,7 @@ const { t } = useI18n()
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-10">
       <PageHeader>{{ t('optimizations.title') }}</PageHeader>
 
-      <OptimizationList v-if="auth.user" />
+      <OptimizationList v-if="auth.user" @update:selection-mode="selectionMode = $event" />
 
       <div v-else class="flex flex-col items-center justify-center gap-2 py-30 text-center">
         <Sparkles class="size-12 text-muted-foreground" />
@@ -41,6 +44,6 @@ const { t } = useI18n()
       </div>
     </div>
 
-    <FloatingButton :to="{ name: 'OptimizationNew' }" />
+    <FloatingButton v-if="!selectionMode" :to="{ name: 'OptimizationNew' }" />
   </GridLayout>
 </template>

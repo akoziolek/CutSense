@@ -67,7 +67,8 @@
       "longPressToSelect": "Przytrzymaj lub kliknij prawym przyciskiem kartę, aby ją zaznaczyć",
       "deleteItemsTitle": "Usunąć {count}: {noun}?",
       "deleteSuccessTitle": "Usunięto: {noun}",
-      "deleteSuccessDescription": "Usunięto {count}: {noun} wraz z powiązanymi optymalizacjami."
+      "deleteSuccessDescription": "Usunięto {count}: {noun} wraz z powiązanymi optymalizacjami.",
+      "select": "Zaznacz"
     },
     "filters": {
       "detailed": "Filtry szczegółowe",
@@ -96,7 +97,8 @@
       "noMatchingTags": "Brak pasujących tagów",
       "requiredField": "* Pole wymagane",
       "foundCount": "Znaleziono: {count}",
-      "stepOf": "Krok {current} z {total}"
+      "stepOf": "Krok {current} z {total}",
+      "selectedCount": "Zaznaczono: {count}"
     },
     "confirmations": {
       "deleteDescription": "Tej operacji nie można cofnąć. Spowoduje ona trwałe usunięcie powiązanych optymalizacji."

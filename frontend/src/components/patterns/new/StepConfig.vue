@@ -31,7 +31,6 @@ const analysisError = ref('')
 
 const currentPhotoConfig = computed(() => patternStore.photoConfigs[activePhotoIndex.value] || null)
 const currentShapes = computed(() => currentPhotoConfig.value?.shapes || [])
-const currentHiddenShapes = computed(() => currentPhotoConfig.value?.hiddenShapes || [])
 
 let isSyncing = false
 let currentSyncedPhotoIndex = 0
@@ -389,7 +388,6 @@ onMounted(() => {
           v-model:canvas-offset="canvasOffset"
           :image-url="patternStore.previewUrls[activePhotoIndex]"
           :shapes="allWorkspaceShapes"
-          :hidden-shapes="currentHiddenShapes"
           :active-shape-index="activeShapeIndex"
           :hovered-shape-index="hoveredShapeIndex"
           :all-shapes-edges="allShapesEdges"
@@ -402,7 +400,6 @@ onMounted(() => {
           :is-move-mode="isMoveMode"
           :is-dragging-canvas="isDraggingCanvas"
           :is-interactive-dragging="isInteractiveDragging"
-          :show-label-toggle="false"
           :drawing-points="drawingPoints"
           :is-near-start-point="isNearStartPoint"
           @activate-shape="handleActivateShape"

@@ -18,7 +18,7 @@ const model = defineModel<T>({ required: true })
       <Button
         variant="outline"
         size="sm"
-        class="gap-2 py-4 data-[state=open]:bg-brand-pink hover:text-primary font-inter"
+        class="gap-2 py-4.5 data-[state=open]:bg-brand-pink hover:text-primary font-inter"
       >
         <ArrowDownAZ class="size-4" />
         {{ $t('common.actions.sort') }}

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { Eye, EyeOff, Loader2, PanelLeftClose, PanelLeftOpen, Images } from 'lucide-vue-next'
+import { Loader2, PanelLeftClose, PanelLeftOpen, Images } from 'lucide-vue-next'
 import type { PatternPhotoData } from '@/types/pattern'
 import AppImage from '@/components/common/AppImage.vue'
 
@@ -14,7 +14,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'selectPhotoAndShape', photoIdx: number, shapeIdx: number): void
-  (e: 'toggleVisibility', photoIdx: number, shapeIdx: number): void
   (e: 'hoverShape', shapeIdx: number | null): void
 }>()
 
@@ -156,28 +155,6 @@ const handlePhotoHeaderClick = (photoIdx: number) => {
               @mouseleave="emit('hoverShape', null)"
             >
               <span class="truncate">{{ $t('patterns.piece', { number: shapeIdx + 1 }) }}</span>
-
-              <button
-                type="button"
-                class="p-1 rounded-md transition-colors cursor-pointer"
-                :class="
-                  props.activePhotoIndex === photoIdx && props.activeShapeIndex === shapeIdx
-                    ? 'hover:bg-white/20 text-black'
-                    : 'hover:bg-black/10 text-muted-foreground hover:text-foreground'
-                "
-                :title="
-                  props.photoConfigs[photoIdx]?.hiddenShapes?.[shapeIdx]
-                    ? $t('patterns.showLengthLabels')
-                    : $t('patterns.hideLengthLabels')
-                "
-                @click.stop="emit('toggleVisibility', photoIdx, shapeIdx)"
-              >
-                <EyeOff
-                  v-if="props.photoConfigs[photoIdx]?.hiddenShapes?.[shapeIdx]"
-                  class="w-3.5 h-3.5 opacity-60"
-                />
-                <Eye v-else class="w-3.5 h-3.5" />
-              </button>
             </div>
           </div>
         </div>

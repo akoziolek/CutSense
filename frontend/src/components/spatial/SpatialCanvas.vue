@@ -8,7 +8,6 @@ const props = withDefaults(
   defineProps<{
     imageUrl?: string | null
     shapes: Point2D[][]
-    hiddenShapes?: boolean[]
     activeShapeIndex?: number | null
     hoveredShapeIndex?: number | null
     allShapesEdges?: PolygonEdge[][]
@@ -29,7 +28,6 @@ const props = withDefaults(
   }>(),
   {
     imageUrl: null,
-    hiddenShapes: () => [],
     activeShapeIndex: null,
     hoveredShapeIndex: null,
     allShapesEdges: () => [],
@@ -96,7 +94,6 @@ const cursorClass = computed(() => {
 const { isLabelVisible } = useNonOverlappingLabels({
   shapes: toRef(props, 'shapes'),
   edges: toRef(props, 'allShapesEdges'),
-  hiddenShapes: toRef(props, 'hiddenShapes'),
   activeShapeIndex: toRef(props, 'activeShapeIndex'),
   selectedEdgeIndex: toRef(props, 'selectedEdgeIndex'),
   onlyActiveShape: true,
@@ -393,13 +390,7 @@ defineExpose({
               @click.stop.prevent
             />
 
-            <template
-              v-if="
-                props.showLabels &&
-                shapeIdx === props.activeShapeIndex &&
-                (!props.hiddenShapes?.length || !props.hiddenShapes[shapeIdx])
-              "
-            >
+            <template v-if="props.showLabels && shapeIdx === props.activeShapeIndex">
               <template
                 v-for="edge in props.allShapesEdges[shapeIdx] || []"
                 :key="'label-' + shapeIdx + '-' + edge.index"

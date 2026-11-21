@@ -7,7 +7,6 @@ const props = withDefaults(
     activeTool: 'select' | 'pan'
     isMoveMode?: boolean
     showLabels?: boolean
-    showLabelToggle?: boolean
     canDelete?: boolean
   }>(),
   {
@@ -64,7 +63,6 @@ const emit = defineEmits<{
 
     <!-- Toggle Labels -->
     <Button
-      v-if="props.showLabelToggle"
       type="button"
       size="icon"
       variant="ghost"

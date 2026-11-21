@@ -41,7 +41,6 @@ function filterNonOverlapping<K extends string | number>(
 export function useNonOverlappingLabels(options: {
   shapes: Ref<Point2D[][]>
   edges?: Ref<PolygonEdge[][] | undefined>
-  hiddenShapes?: Ref<boolean[] | undefined>
   activeShapeIndex?: Ref<number | null | undefined>
   selectedEdgeIndex?: Ref<number | null | undefined>
   onlyActiveShape?: boolean
@@ -70,7 +69,6 @@ export function useNonOverlappingLabels(options: {
     const candidates: SpatialCandidate<string>[] = []
 
     const pushShapeCandidates = (shape: Point2D[], shapeIdx: number) => {
-      if (options.hiddenShapes?.value?.[shapeIdx]) return
 
       const shapeEdges = options.edges?.value?.[shapeIdx]
       if (shapeEdges && shapeEdges.length > 0) {

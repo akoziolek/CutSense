@@ -133,7 +133,8 @@
       "area": "Area",
       "visibility": "Visibility",
       "size": "Size",
-      "author": "Author"
+      "author": "Author",
+      "grainline": "Grainline"
     },
     "form": {
       "required": "* Required field",

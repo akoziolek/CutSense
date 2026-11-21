@@ -126,7 +126,8 @@
       "area": "Powierzchnia",
       "visibility": "Widoczność",
       "size": "Rozmiar",
-      "author": "Autor"
+      "author": "Autor",
+      "grainline": "Kierunek nitki"
     },
     "form": {
       "required": "* Pole wymagane",

@@ -5,6 +5,7 @@ import { useFabricAddingStore } from '@/stores/addingFabricStore'
 import { toPostgisBoundary } from '@/utils/geometry'
 import type { FabricFormPayload } from '@/types/fabric'
 import type { Point2D } from '@/types/geometry'
+import { toast } from 'vue-sonner'
 
 interface ShapeAnalysisResponse {
   shapes: Point2D[][]
@@ -102,10 +103,12 @@ export function useCreateFabric() {
         method: 'POST',
         body: formData,
       })
+      toast.success(t('fabrics.savedToast'))
       await fabricStore.resetWizard()
       return createdFabric.id
     } catch (error) {
       console.error('Failed to create fabric:', error)
+      toast.error(t('fabrics.saveErrorToast'))
       submitError.value = error instanceof ApiError ? error.body.message : t('fabrics.saveError')
       return null
     } finally {

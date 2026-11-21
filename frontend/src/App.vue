@@ -24,7 +24,8 @@ watch(
   <!-- TODO - why is the auth backdrop so dark? -->
   <AuthModal />
   <Toaster
-    position="top-right"
+    position="bottom-center"
+    :offset="{bottom: '40px'}"
     :toast-options="{
       classes: {
         toast: 'bg-background text-foreground shadow-lg rounded-md',

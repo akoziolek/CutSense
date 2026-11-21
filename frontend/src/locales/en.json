@@ -270,7 +270,11 @@
     "sortNewest": "Newest first",
     "sortOldest": "Oldest first",
     "sortSmallest": "Smallest first",
-    "sortBiggest": "Biggest first"
+    "sortBiggest": "Biggest first",
+    "editedToast": "Fabric updated",
+    "updateErrorToast": "Failed to update the fabric",
+    "savedToast": "Fabric saved",
+    "saveErrorToast": "Failed to save the fabric"
   },
   "patterns": {
     "name": "Pattern name",
@@ -353,7 +357,11 @@
       "title": "Pattern pieces ({count})",
       "showDimensions": "Show dimensions",
       "empty": "This pattern has no pieces."
-    }
+    },
+    "updateToast": "Pattern updated",
+    "updateErrorToast": "Failed to update the pattern",
+    "savedToast": "Pattern saved",
+    "saveErrorToast": "Failed to save the pattern"
   },
   "optimizations": {
     "addFirstFabric": "Add your first fabric",

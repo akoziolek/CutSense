@@ -270,7 +270,11 @@
     "sortNewest": "Od najnowszych",
     "sortOldest": "Od najstarszych",
     "sortSmallest": "Od najmniejszych",
-    "sortBiggest": "Od największych"
+    "sortBiggest": "Od największych",
+    "editedToast": "Zaktualizowano tkaninę",
+    "updateErrorToast": "Nie udało się zaktualizować tkaniny",
+    "savedToast": "Dodano tkaninę",
+    "saveErrorToast": "Nie udało się zapisać tkaniny"
   },
   "patterns": {
     "name": "Nazwa wykroju",
@@ -352,7 +356,11 @@
       "title": "Elementy wykroju ({count})",
       "showDimensions": "Pokaż wymiary",
       "empty": "Ten wykrój nie zawiera żadnych elementów."
-    }
+    },
+    "editedToast": "Zaktualizowano wykrój",
+    "updateErrorToast": "Nie udało się zaktualizować wykroju",
+    "savedToast": "Dodano wykrój",
+    "saveErrorToast": "Nie udało się zapisać wykroju"
   },
   "optimizations": {
     "addFirstFabric": "Dodaj pierwszą tkaninę",

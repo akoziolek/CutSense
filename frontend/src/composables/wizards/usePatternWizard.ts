@@ -5,6 +5,7 @@ import { usePatternAddingStore } from '@/stores/addingPatternStore'
 import { PATTERN_SIZE, PATTERN_VISIBILITY, type PatternFormPayload } from '@/types/pattern'
 import { toImageMm } from '@/utils/geometry'
 import type { Point2D } from '@/types/geometry'
+import { toast } from 'vue-sonner'
 
 interface ShapeAnalysisResponse {
   shapes: Point2D[][]
@@ -186,10 +187,12 @@ export function useCreatePattern() {
         body: formData,
       })
 
+      toast.success(t('patterns.savedToast'))
       await patternStore.resetWizard()
       return createdPattern.id
     } catch (error) {
       console.error('Failed to create pattern:', error)
+      toast.error(t('patterns.saveErrorToast'))
       submitError.value = error instanceof ApiError ? error.body.message : t('patterns.saveError')
       return null
     } finally {

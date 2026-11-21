@@ -4,6 +4,7 @@ import { api, ApiError } from '@/api/client'
 import { useAuth } from '@/stores/authStore'
 import { PATTERN_SIZE, PATTERN_VISIBILITY, type PatternFormPayload } from '@/types/pattern'
 import type { NameTag } from '@/types/common'
+import { toast } from 'vue-sonner'
 
 export interface EditablePattern {
   id: number
@@ -104,9 +105,11 @@ export function usePatternEdit() {
           visibility: payload.visibility,
         }),
       })
+      toast.success(t('patterns.updateToast'))
       return true
     } catch (e) {
       console.error('Failed to update pattern:', e)
+      toast.error(t('patterns.updateErrorToast'))
       submitError.value = e instanceof ApiError ? e.body.message : t('patterns.updateFailed')
       return false
     } finally {

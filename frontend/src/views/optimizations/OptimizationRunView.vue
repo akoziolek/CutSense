@@ -444,9 +444,15 @@ watch(
                   <StatCard
                     :label="t('optimizations.remainingFabric')"
                     :value="formatAreaM2(optimization.stats.remainingFabricArea)"
-                    :subtext="`${optimization.stats.remainingFabricPercentage}% ${t('optimizations.ofTotalFabric')}`"
                     :icon="RulerDimensionLine"
-                  />
+                  >
+                    <template #subtext>
+                      <span class="font-semibold text-foreground">
+                        {{ optimization.stats.remainingFabricPercentage }}%
+                      </span>
+                      {{ t('optimizations.ofTotalFabric') }}
+                    </template>
+                  </StatCard>
 
                   <StatCard
                     :label="t('optimizations.waste')"
@@ -454,7 +460,7 @@ watch(
                     :icon="Scissors"
                   >
                     <template #subtext>
-                      <span class="font-semibold text-destructive">
+                      <span class="font-semibold text-foreground">
                         {{ optimization.stats.wastePercentage }}%
                       </span>
                       {{ t('optimizations.ofTotalFabric') }}

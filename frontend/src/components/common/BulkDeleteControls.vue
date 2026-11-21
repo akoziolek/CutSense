@@ -87,11 +87,11 @@ const cancel = () => {
         type="button"
         variant="ghost"
         size="sm"
-        data-testid="bulk-delete" 
-        class="h-8 sm:h-9 gap-1.5 rounded-lg px-3 cursor-pointer font-medium font-inter border-2 border-destructive/90 bg-destructive/75 hover:bg-destructive/80! text-primary-foreground hover:text-primary-foreground"
+        data-testid="bulk-delete"
+        class="h-8 sm:h-9 gap-1.5 border-2 !border-warning-foreground !bg-warning !text-warning-foreground px-5 rounded-md font-semibold font-inter shadow-md hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
         @click="requestDelete"
       >
-        <Trash2 class="size-4" />
+        <Trash2 class="size-4 stroke-[2.2]" />
         <span>{{ $t('common.actions.delete') }}</span>
       </Button>
     </div>

@@ -156,7 +156,6 @@ export class OptimizationViewMapper {
       seamAllowanceMm: src.seamAllowanceMm,
       cuttingAllowanceMm: src.cuttingAllowanceMm,
       wasSuccessful: src.result.wasSuccessful,
-      minLengthMm: src.result.minLength,
       executionTime: src.result.executionTime,
       stats: src.result.stats,
       placements: src.result.positions.flatMap((pos) => {

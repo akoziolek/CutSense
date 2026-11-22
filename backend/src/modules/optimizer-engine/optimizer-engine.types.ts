@@ -51,7 +51,6 @@ export interface NestingStats {
 
 export interface EngineResult {
   wasSuccessful: boolean;
-  minLength: number;
   executionTime: number;
   stats: NestingStats;
   positions: EnginePosition[];

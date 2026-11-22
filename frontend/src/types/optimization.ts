@@ -108,7 +108,6 @@ export interface OptimizationView {
   seamAllowanceMm: number
   cuttingAllowanceMm: number
   wasSuccessful: boolean
-  minLengthMm: number
   executionTime: number // ms
   stats: OptimizationStats
   placements: OptimizationPlacement[]
@@ -120,7 +119,6 @@ export interface OptimizationListItem extends NamedItem {
   patternName: string
   fabricName?: string
   algorithmName: string
-  minLengthMm: number
 }
 
 export type OptimizationListResponse = PaginatedResponse<OptimizationListItem>

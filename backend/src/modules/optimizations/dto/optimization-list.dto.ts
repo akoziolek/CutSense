@@ -16,9 +16,6 @@ export class OptimizationListItemDto {
   @ApiProperty({ example: 'Flowy shirt' })
   patternName!: string;
 
-  @ApiProperty({ description: 'Used fabric length in millimeters', example: 1830 })
-  minLengthMm!: number;
-
   @ApiPropertyOptional({ description: 'Library fabric name; omitted for custom dimensions', example: 'Silk' })
   fabricName?: string;
 

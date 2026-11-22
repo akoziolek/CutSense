@@ -229,7 +229,6 @@ export class OptimizationsService {
           patternName: patterns.name,
           algorithmName: algorithmTypes.name,
           fabricName: fabrics.name,
-          minLengthMm: optimizationResults.minLengthMm,
         })
         .from(optimizationResults)
         .innerJoin(patterns, eq(patterns.id, optimizationResults.patternId))
@@ -262,7 +261,6 @@ export class OptimizationsService {
         patternName: row.patternName,
         fabricName: row.fabricName ?? undefined,
         algorithmName: row.algorithmName,
-        minLengthMm: row.minLengthMm,
       })),
       total,
       page,
@@ -490,7 +488,6 @@ export class OptimizationsService {
             fabricLength: isLibrary ? null : input.fabric.lengthMm,
             seamAllowance: input.seamAllowanceMm,
             cuttingAllowance: input.cuttingAllowanceMm,
-            minLengthMm: Math.round(result.minLength),
             spentTime: Math.round(result.executionTime),
             usableScrapsArea: Math.round(stats.usableScrapsArea),
             usableScrapsPercentage: Math.round(stats.usableScrapsPercentage),
@@ -587,7 +584,6 @@ export class OptimizationsService {
       seamAllowanceMm: row.seamAllowance,
       cuttingAllowanceMm: row.cuttingAllowance,
       wasSuccessful: true,
-      minLengthMm: row.minLengthMm,
       executionTime: row.spentTime,
       stats: {
         usableScrapsArea: row.usableScrapsArea,

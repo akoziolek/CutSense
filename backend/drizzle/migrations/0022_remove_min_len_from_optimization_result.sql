@@ -1,0 +1,1 @@
+ALTER TABLE "optimization_results" DROP COLUMN "min_length_mm";

@@ -105,9 +105,6 @@ export class OptimizationViewDto {
   @ApiProperty()
   wasSuccessful!: boolean;
 
-  @ApiProperty({ description: 'Used fabric length in millimeters' })
-  minLengthMm!: number;
-
   @ApiProperty({ description: 'Optimizer execution time in milliseconds' })
   executionTime!: number;
 

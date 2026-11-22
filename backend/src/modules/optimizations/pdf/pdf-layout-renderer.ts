@@ -81,11 +81,10 @@ export function drawSummaryCoverPage(
   );
 
   const statsY = margin + 38;
-  const usedLengthM = (view.minLengthMm / 1000).toFixed(2);
   doc.font('Helvetica').fontSize(9).fillColor(PDF_PALETTE.inkPrimary);
   drawSafeText(
     doc,
-    `Used length: ${usedLengthM} m   |   Remaining: ${view.stats.remainingFabricPercentage}%   |   Usable scraps: ${view.stats.usableScrapsPercentage}%   |   Waste: ${view.stats.wastePercentage}%`,
+    `Remaining: ${view.stats.remainingFabricPercentage}%   |   Usable scraps: ${view.stats.usableScrapsPercentage}%   |   Waste: ${view.stats.wastePercentage}%`,
     margin,
     statsY,
   );

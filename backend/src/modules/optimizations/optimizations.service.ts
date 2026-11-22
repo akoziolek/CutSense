@@ -50,6 +50,7 @@ import {
 import {
   OPTIMIZER_ENGINE,
   type OptimizerEngine,
+  type EngineResult,
 } from '../optimizer-engine/optimizer-engine.types.js';
 import {
   fromEngineResult,
@@ -66,6 +67,7 @@ import { OptimizationViewMapper } from './optimization-view.mapper.js';
 import { OptimizationFilterOptionsDto } from './dto/optimization-filter-options.dto.js';
 import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 import { assertValidOptimizationRequest } from './optimization-request.validator.js';
+import { UpdateRunPlacementsDto } from './dto/update-run-placement.dto.js';
 
 @Injectable()
 export class OptimizationsService {
@@ -675,5 +677,66 @@ export class OptimizationsService {
       fabrics: fabricRows,
       algorithms: algorithmRows,
     };
+  }
+
+  async updateRunPlacements(
+    runId: string,
+    dto: UpdateRunPlacementsDto,
+    currentUserId?: number,
+  ): Promise<OptimizationViewDto> {
+    const run = await this.findRun(runId, currentUserId);
+
+    if (run.savedId !== undefined) {
+      throw new RequestValidationException(
+        'Saved optimizations cannot be modified.',
+      );
+    }
+
+    if (!run.result.wasSuccessful) {
+      throw new RequestValidationException(
+        'Only a successful optimization run can be modified.',
+      );
+    }
+
+    const seenIndices = new Set<number>();
+    for (const item of dto.placements) {
+      if (seenIndices.has(item.index)) {
+        throw new RequestValidationException(
+          `Duplicate placement index: ${item.index}.`,
+        );
+      }
+      if (item.index < 0 || item.index >= run.result.positions.length) {
+        throw new RequestValidationException(
+          `Placement index ${item.index} is out of bounds.`,
+        );
+      }
+      seenIndices.add(item.index);
+    }
+
+    const updatesByIndex = new Map(
+      dto.placements.map((item) => [item.index, { x: item.x, y: item.y }]),
+    );
+
+    const updatedPositions = run.result.positions.map((pos, index) => {
+      const patch = updatesByIndex.get(index);
+      if (!patch) return pos;
+
+      return {
+        ...pos,
+        x: patch.x,
+        y: patch.y,
+      };
+    });
+
+    // TODO: Call dedicated engine endpoint to recalculate  layout stats
+    // (usableScraps, waste, remainingFabric) after manual placement changes.
+    const updatedResult: EngineResult = {
+      ...run.result,
+      positions: updatedPositions,
+    };
+
+    await this.runs.updateResult(run.id, updatedResult);
+
+    return this.getRun(runId, currentUserId);
   }
 }

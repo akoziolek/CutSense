@@ -24,7 +24,9 @@ export class OptimizationRunsStore {
 
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
-  async put(run: Pick<StoredRun, 'userId' | 'input' | 'result'>): Promise<string> {
+  async put(
+    run: Pick<StoredRun, 'userId' | 'input' | 'result'>,
+  ): Promise<string> {
     const id = randomUUID();
     await this.db.insert(optimizationRuns).values({
       id,
@@ -40,7 +42,12 @@ export class OptimizationRunsStore {
     const [row] = await this.db
       .select()
       .from(optimizationRuns)
-      .where(and(eq(optimizationRuns.id, id), gt(optimizationRuns.expiresAt, new Date())))
+      .where(
+        and(
+          eq(optimizationRuns.id, id),
+          gt(optimizationRuns.expiresAt, new Date()),
+        ),
+      )
       .limit(1);
     if (!row) return undefined;
     return {
@@ -55,16 +62,28 @@ export class OptimizationRunsStore {
   }
 
   async evictExpired(): Promise<number> {
-      try {
-        const result = await this.db
-          .delete(optimizationRuns)
-          .where(lt(optimizationRuns.expiresAt, new Date()))
-          .returning({ id: optimizationRuns.id });
-        
-        return result.length;
-      } catch (e) {
-        this.logger.warn(`Could not evict expired runs: ${String(e)}`);
-        return 0;
-      }
+    try {
+      const result = await this.db
+        .delete(optimizationRuns)
+        .where(lt(optimizationRuns.expiresAt, new Date()))
+        .returning({ id: optimizationRuns.id });
+
+      return result.length;
+    } catch (e) {
+      this.logger.warn(`Could not evict expired runs: ${String(e)}`);
+      return 0;
     }
+  }
+
+  async updateResult(id: string, result: EngineResult): Promise<void> {
+    await this.db
+      .update(optimizationRuns)
+      .set({ result })
+      .where(
+        and(
+          eq(optimizationRuns.id, id),
+          gt(optimizationRuns.expiresAt, new Date()),
+        ),
+      );
+  }
 }

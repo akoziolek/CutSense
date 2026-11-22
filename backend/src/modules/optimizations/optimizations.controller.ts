@@ -48,6 +48,7 @@ import {
   OptimizationPdfService,
   type OptimizationPdfFormat,
 } from './pdf/optimization-pdf.service.js';
+import { UpdateRunPlacementsDto } from './dto/update-run-placement.dto.js';
 
 enum PdfFormatParam {
   A4 = 'a4',
@@ -157,6 +158,29 @@ export class OptimizationController {
     @OptionalUser() user?: AuthUser,
   ): Promise<OptimizationViewDto> {
     return this.optimizationsService.getRun(runId, user?.id);
+  }
+
+  @Patch('runs/:runId/placements')
+  @OptionalAuth()
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Update piece positions in an unsaved optimization run',
+  })
+  @ApiParam({ name: 'runId', type: String })
+  @ApiBody({ type: UpdateRunPlacementsDto })
+  @ApiOkResponse({ type: OptimizationViewDto })
+  @ApiBadRequestResponse({
+    description: 'Invalid placement indices or run cannot be modified.',
+  })
+  @ApiNotFoundResponse({
+    description: 'The run expired, does not exist or belongs to someone else.',
+  })
+  updateRunPlacements(
+    @Param('runId', ParseUUIDPipe) runId: string,
+    @Body() dto: UpdateRunPlacementsDto,
+    @OptionalUser() user?: AuthUser,
+  ): Promise<OptimizationViewDto> {
+    return this.optimizationsService.updateRunPlacements(runId, dto, user?.id);
   }
 
   @Post('runs/:runId/save')

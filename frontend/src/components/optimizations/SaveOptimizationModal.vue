@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import BaseModal from '@/components/common/BaseModal.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { formatCardDate } from '@/utils/formatCardDate'
+import { formatCardDate } from '@/utils/formatData'
 
 const MAX_NAME_LENGTH = 35
 
@@ -44,7 +44,9 @@ const submit = () => {
   <BaseModal
     :open="open"
     :title="title ?? t('optimizations.saveTitle', 'Save optimization')"
-    :description="description ?? t('optimizations.saveDescription', 'Give this result a name to find it later.')"
+    :description="
+      description ?? t('optimizations.saveDescription', 'Give this result a name to find it later.')
+    "
     :confirm-label="confirmLabel ?? t('optimizations.save', 'Save')"
     :cancel-label="t('common.actions.cancel', 'Cancel')"
     show-cancel
@@ -60,12 +62,7 @@ const submit = () => {
         {{ t('optimizations.nameLabel') }}
       </Label>
       <div class="relative">
-        <Input
-          id="optimization-name"
-          v-model="name"
-          :maxlength="MAX_NAME_LENGTH"
-          class="pr-14"
-        />
+        <Input id="optimization-name" v-model="name" :maxlength="MAX_NAME_LENGTH" class="pr-14" />
         <span
           class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground"
         >

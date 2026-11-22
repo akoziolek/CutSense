@@ -15,7 +15,7 @@ import {
   PATTERN_SIZE,
   type PatternSort,
 } from '@/types/pattern'
-import { formatCardDate } from '@/utils/formatCardDate'
+import { formatCardDate } from '@/utils/formatData'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { useRoute, useRouter } from 'vue-router'
 import {

@@ -36,7 +36,7 @@ import { useListQuery } from '@/composables/lists/useListQuery'
 import type { SortOption } from '@/types/common'
 import { usePagedList } from '@/composables/lists/usePagedList'
 import { useSelection } from '@/composables/lists/useSelection'
-import { formatCardDate } from '@/utils/formatCardDate'
+import { formatCardDate } from '@/utils/formatData'
 import {
   countActiveFilters,
   emptyFilters,

@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { FabricFilters, FabricSort } from '@/types/fabric'
-import { formatCardDate } from '@/utils/formatCardDate'
+import { formatCardDate } from '@/utils/formatData'
 import { useFavouriteToggle } from '@/composables/resources/useFavouriteToggle'
 import { SearchX } from 'lucide-vue-next'
 import {

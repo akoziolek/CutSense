@@ -91,10 +91,13 @@ export interface OptimizationView {
     fabricId?: number
     name?: string
     createdAt?: string
-    widthMm: number
-    lengthMm: number
+    widthMm?: number
+    lengthMm?: number
     grainline: number
     boundary: OptimizerPoint[]
+    pictureUrl?: string
+    imageWidthMm?: number
+    imageHeightMm?: number
   }
   pattern?: {
     id: number

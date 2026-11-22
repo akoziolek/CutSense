@@ -93,26 +93,12 @@ export class OptimizationViewMapper {
 
   static libraryFabric(raw: {
     id: number;
-    widthMm: number;
-    lengthMm: number;
     grainline: number;
     boundary: OptimizerPointDto[];
   }): OptimizerFabricInputDto {
     const pts = this.toOptimizerPoints(raw.boundary);
-    if (pts.length === 0) {
-      return {
-        fabricId: raw.id,
-        widthMm: raw.widthMm,
-        lengthMm: raw.lengthMm,
-        grainline: raw.grainline,
-        boundary: [],
-      };
-    }
-
     return {
       fabricId: raw.id,
-      widthMm: raw.widthMm,
-      lengthMm: raw.lengthMm,
       grainline: raw.grainline,
       boundary: pts,
     };
@@ -122,8 +108,15 @@ export class OptimizationViewMapper {
     return {
       name: raw.name,
       createdAt: raw.createdAt,
+      ...(raw.pictureUrl ? { pictureUrl: raw.pictureUrl } : {}),
+      ...(raw.imageWidthMm !== undefined
+        ? { imageWidthMm: raw.imageWidthMm }
+        : {}),
+      ...(raw.imageHeightMm !== undefined
+        ? { imageHeightMm: raw.imageHeightMm }
+        : {}),
     };
-  }
+  } 
 
   static sourceFromInput(
     input: OptimizerInputDto,

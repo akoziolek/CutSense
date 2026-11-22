@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -30,6 +30,7 @@ import {
   getRulerSteps,
   getCrosshairState,
   getFabricOriginMm,
+  getGeometryBoundsMm,
   getPolygonAreaMm2,
   getPolygonCentroidPct,
   getPolygonEdges,
@@ -43,6 +44,8 @@ const props = withDefaults(
     pieces?: PlacedPieceViewItem[]
     coordinateOriginMm?: GeometryOriginMm
     photoUrl?: string | null
+    photoWidthMm?: number | null
+    photoHeightMm?: number | null
     canvasWidthMm?: number
     canvasHeightMm?: number
     seamAllowanceMm?: number
@@ -53,6 +56,8 @@ const props = withDefaults(
     fabricShape: () => [],
     pieces: () => [],
     photoUrl: null,
+    photoWidthMm: null,
+    photoHeightMm: null,
     canvasWidthMm: 1000,
     canvasHeightMm: 1250,
     seamAllowanceMm: 10,
@@ -150,6 +155,59 @@ const fabricShapePct = computed<Point2D[]>(() =>
   ),
 )
 
+const getOffsetPolygonPoints = (mmPts: [number, number][], offsetMm: number): string =>
+  toSvgPoints(
+    toFabricPercentBoundary(
+      offsetPolygonMm(mmPts, offsetMm),
+      coordinateOriginMm.value,
+      props.canvasWidthMm,
+      props.canvasHeightMm,
+    ),
+  )
+
+const piecesClipId = `pieces-clip-${useId()}`
+const hasActivePhoto = computed(() => Boolean(props.photoUrl && showPhoto.value))
+const photoRectPct = computed(() => {
+  let minX = 0
+  let minY = 0
+  let maxX = props.canvasWidthMm
+  let maxY = props.canvasHeightMm
+
+  if (props.photoWidthMm && props.photoHeightMm) {
+    minX = 0
+    minY = 0
+    maxX = props.photoWidthMm
+    maxY = props.photoHeightMm
+  } else if (props.fabricShape.length > 0) {
+    const bounds = getGeometryBoundsMm([props.fabricShape])
+    minX = bounds.originMm.minX
+    minY = bounds.originMm.minY
+    maxX = bounds.originMm.minX + bounds.widthMm
+    maxY = bounds.originMm.minY + bounds.heightMm
+  }
+
+  const [topLeft, bottomRight] = toFabricPercentBoundary(
+    [
+      [minX, maxY],
+      [maxX, minY],
+    ],
+    coordinateOriginMm.value,
+    props.canvasWidthMm,
+    props.canvasHeightMm,
+  )
+
+  if (!topLeft || !bottomRight) {
+    return { x: 0, y: 0, width: 100, height: 100 }
+  }
+
+  return {
+    x: topLeft.pctX,
+    y: topLeft.pctY,
+    width: Math.max(0, bottomRight.pctX - topLeft.pctX),
+    height: Math.max(0, bottomRight.pctY - topLeft.pctY),
+  }
+})
+
 const formatPieceLabel = (piece: PlacedPieceViewItem): string => {
   const parts = [`#${piece.pieceNumber ?? piece.id}`]
   if (piece.isMirrored) parts.push('M')
@@ -165,12 +223,20 @@ const piecesPct = computed(() =>
       props.canvasWidthMm,
       props.canvasHeightMm,
     )
+    const totalAllowanceMm = props.seamAllowanceMm + props.cuttingAllowanceMm
+
     return {
       id: piece.id,
       patternPieceId: piece.patternPieceId,
       label: formatPieceLabel(piece),
-      mmPoints: piece.points,
       pctPoints,
+      svgPoints: toSvgPoints(pctPoints),
+      seamAllowanceSvgPoints:
+        props.seamAllowanceMm > 0
+          ? getOffsetPolygonPoints(piece.points, props.seamAllowanceMm)
+          : '',
+      cuttingAllowanceSvgPoints:
+        props.cuttingAllowanceMm > 0 ? getOffsetPolygonPoints(piece.points, totalAllowanceMm) : '',
       centerPct: getPolygonCentroidPct(pctPoints),
       areaMm2: getPolygonAreaMm2(piece.points),
     }
@@ -243,16 +309,6 @@ const handleMouseLeave = () => {
   cursorCrosshair.value = null
   hoveredPieceId.value = null
 }
-
-const getOffsetPolygonPoints = (mmPts: [number, number][], offsetMm: number): string =>
-  toSvgPoints(
-    toFabricPercentBoundary(
-      offsetPolygonMm(mmPts, offsetMm),
-      coordinateOriginMm.value,
-      props.canvasWidthMm,
-      props.canvasHeightMm,
-    ),
-  )
 
 const hasSelection = computed(() => selectedPieces.value.length > 0)
 const selectedPiecesShapes = computed(() => selectedPieces.value.map((p) => p.pctPoints))
@@ -521,18 +577,21 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
               width: `${baseWidthPx}px`,
             }"
           >
-            <img
-              v-if="photoUrl && showPhoto"
-              :src="photoUrl"
-              :alt="t('optimizations.fabricTextureAlt')"
-              class="absolute inset-0 h-full w-full object-cover pointer-events-none opacity-40 mix-blend-multiply rounded"
-            />
-
             <svg
               viewBox="0 0 100 100"
               preserveAspectRatio="none"
               class="absolute inset-0 h-full w-full pointer-events-none z-10 overflow-visible"
             >
+              <defs v-if="photoUrl && piecesPct.length > 0">
+                <clipPath :id="piecesClipId" clipPathUnits="userSpaceOnUse">
+                  <polygon
+                    v-for="piece in piecesPct"
+                    :key="'clip-' + piece.id"
+                    :points="piece.svgPoints"
+                  />
+                </clipPath>
+              </defs>
+
               <polygon
                 v-if="fabricShapePct.length > 2"
                 :points="toSvgPoints(fabricShapePct)"
@@ -540,13 +599,14 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
                 vector-effect="non-scaling-stroke"
               />
 
-              <g v-if="showAllowances" class="pointer-events-none">
+              <g
+                v-if="showAllowances && (seamAllowanceMm > 0 || cuttingAllowanceMm > 0)"
+                class="pointer-events-none"
+              >
                 <g v-for="piece in piecesPct" :key="'allow-' + piece.id">
                   <polygon
-                    v-if="cuttingAllowanceMm > 0"
-                    :points="
-                      getOffsetPolygonPoints(piece.mmPoints, seamAllowanceMm + cuttingAllowanceMm)
-                    "
+                    v-if="piece.cuttingAllowanceSvgPoints"
+                    :points="piece.cuttingAllowanceSvgPoints"
                     class="fill-background/45 stroke-foreground/45 stroke-[0.9]"
                     stroke-dasharray="4 3"
                     stroke-linejoin="bevel"
@@ -554,14 +614,27 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
                   />
 
                   <polygon
-                    v-if="seamAllowanceMm > 0"
-                    :points="getOffsetPolygonPoints(piece.mmPoints, seamAllowanceMm)"
+                    v-if="piece.seamAllowanceSvgPoints"
+                    :points="piece.seamAllowanceSvgPoints"
                     class="fill-muted/40 stroke-foreground/20 stroke-[0.8]"
                     stroke-linejoin="bevel"
                     vector-effect="non-scaling-stroke"
                   />
                 </g>
               </g>
+
+              <image
+                v-if="photoUrl && piecesPct.length > 0"
+                :href="photoUrl"
+                :x="photoRectPct.x"
+                :y="photoRectPct.y"
+                :width="photoRectPct.width"
+                :height="photoRectPct.height"
+                preserveAspectRatio="none"
+                :clip-path="`url(#${piecesClipId})`"
+                class="transition-opacity duration-150"
+                :class="showPhoto ? 'opacity-100' : 'opacity-0'"
+              />
 
               <g
                 v-for="piece in piecesPct"
@@ -572,14 +645,20 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
                 @click.stop="handlePieceClick(piece.id)"
               >
                 <polygon
-                  :points="toSvgPoints(piece.pctPoints)"
+                  :points="piece.svgPoints"
                   class="transition-colors duration-150"
                   :class="[
                     selectedPieceId === piece.id
-                      ? 'fill-brand-green stroke-brand-green-foreground stroke-[1.75]'
+                      ? hasActivePhoto
+                        ? 'fill-brand-green/50 stroke-brand-green-foreground stroke-[1.75]'
+                        : 'fill-brand-green stroke-brand-green-foreground stroke-[1.75]'
                       : isSamePatternGroup(piece)
-                        ? 'fill-brand-green/50 stroke-brand-green stroke-[1.5]'
-                        : 'fill-muted-foreground/20 stroke-foreground/55 stroke-1',
+                        ? hasActivePhoto
+                          ? 'fill-brand-green/35 stroke-brand-green stroke-[1.5]'
+                          : 'fill-brand-green/50 stroke-brand-green stroke-[1.5]'
+                        : hasActivePhoto
+                          ? 'fill-transparent stroke-foreground/65 stroke-1'
+                          : 'fill-muted-foreground/20 stroke-foreground/55 stroke-1',
                   ]"
                   stroke-linejoin="round"
                   vector-effect="non-scaling-stroke"

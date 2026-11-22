@@ -14,6 +14,8 @@ export interface FabricMetadataDto {
   name: string;
   createdAt: string;
   pictureUrl?: string;
+  imageWidthMm?: number;
+  imageHeightMm?: number;
 }
 
 export class OptimizationFabricViewDto extends OptimizerFabricInputDto {
@@ -23,6 +25,16 @@ export class OptimizationFabricViewDto extends OptimizerFabricInputDto {
   @ApiPropertyOptional({ description: 'Date the library fabric was added.' })
   createdAt?: string;
 
+  @ApiPropertyOptional({
+    description: 'Presigned URL of the library fabric photo.',
+  })
+  pictureUrl?: string;
+
+  @ApiPropertyOptional({ description: 'Full photo width in millimeters.' })
+  imageWidthMm?: number;
+
+  @ApiPropertyOptional({ description: 'Full photo height in millimeters.' })
+  imageHeightMm?: number;
 }
 
 export class PlacementDto {

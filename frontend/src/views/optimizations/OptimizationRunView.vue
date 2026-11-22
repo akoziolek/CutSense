@@ -95,9 +95,9 @@ const normalizedLayout = computed(() => {
       ? boundary.map(({ x, y }) => [x, y])
       : [
           [0, 0],
-          [opt.fabric.widthMm, 0],
-          [opt.fabric.widthMm, opt.fabric.lengthMm],
-          [0, opt.fabric.lengthMm],
+          [opt.fabric.widthMm ?? 0, 0],
+          [opt.fabric.widthMm ?? 0, opt.fabric.lengthMm ?? 0],
+          [0, opt.fabric.lengthMm ?? 0],
         ]
 
   const pieceTypeNumberById = new Map<number, number>()
@@ -378,7 +378,9 @@ watch(
                 :canvas-height-mm="normalizedLayout.heightMm"
                 :seam-allowance-mm="optimization.seamAllowanceMm"
                 :cutting-allowance-mm="optimization.cuttingAllowanceMm"
-                :photo-url="null"
+                :photo-url="optimization.fabric.pictureUrl ?? null"
+                :photo-width-mm="optimization.fabric.imageWidthMm ?? null"
+                :photo-height-mm="optimization.fabric.imageHeightMm ?? null"
               />
             </div>
 

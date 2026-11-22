@@ -18,8 +18,8 @@ export function toEngineInput(
   const fabric: EngineFabric =
     input.fabric.fabricId === undefined
       ? {
-          width: input.fabric.widthMm,
-          length: input.fabric.lengthMm,
+          width: input.fabric.widthMm!,
+          length: input.fabric.lengthMm!,
         }
       : {
           boundary: input.fabric.boundary.map(pt),

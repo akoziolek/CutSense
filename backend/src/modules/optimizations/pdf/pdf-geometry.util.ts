@@ -35,11 +35,15 @@ export function getFabricPolygon(
 ): [number, number][] {
   const boundary = view.fabric.boundary ?? [];
   if (boundary.length >= 3) return toTuplePolygon(boundary);
+
+  const widthMm = view.fabric.widthMm ?? 0;
+  const lengthMm = view.fabric.lengthMm ?? 0;
+
   return [
     [0, 0],
-    [view.fabric.widthMm, 0],
-    [view.fabric.widthMm, view.fabric.lengthMm],
-    [0, view.fabric.lengthMm],
+    [widthMm, 0],
+    [widthMm, lengthMm],
+    [0, lengthMm],
   ];
 }
 
@@ -236,7 +240,7 @@ export function buildTileGridPlan(
   const { cols, rows, nonEmpty } = useLandscape ? landscape : portrait;
 
   const activeCells = new Map<string, number>();
-  let pageCounter = 1; 
+  let pageCounter = 1;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const key = `${r}:${c}`;

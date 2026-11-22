@@ -4,14 +4,20 @@ import { PointDto } from '../../../common/geometry/point.dto.js';
 export type OptimizerPointDto = PointDto;
 
 export class OptimizerFabricInputDto {
-  @ApiPropertyOptional({ description: 'Library fabric ID; omitted for custom dimensions.' })
+  @ApiPropertyOptional({
+    description: 'Library fabric ID; omitted for custom dimensions.',
+  })
   fabricId?: number;
 
-  @ApiProperty({ description: 'Fabric width in millimeters.' })
-  widthMm!: number;
+  @ApiPropertyOptional({
+    description: 'Fabric width in millimeters for regular fabrics.',
+  })
+  widthMm?: number;
 
-  @ApiProperty({ description: 'Fabric length in millimeters.' })
-  lengthMm!: number;
+  @ApiPropertyOptional({
+    description: 'Fabric length in millimeters for regular fabrics.',
+  })
+  lengthMm?: number;
 
   @ApiProperty({ description: 'Fabric grainline in degrees.' })
   grainline!: number;
@@ -56,7 +62,9 @@ export class OptimizerPieceInputDto {
   @ApiProperty({ description: 'Allowed direction in degrees.' })
   direction!: number;
 
-  @ApiProperty({ description: 'Whether the piece may also be turned by 180 degrees.' })
+  @ApiProperty({
+    description: 'Whether the piece may also be turned by 180 degrees.',
+  })
   twoWay!: boolean;
 }
 

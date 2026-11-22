@@ -279,7 +279,8 @@ const pxPerMmY = computed(() =>
   props.canvasHeightMm > 0 ? (baseHeightPx.value * zoomLevel.value) / props.canvasHeightMm : 1,
 )
 
-const rulerSteps = computed(() => getRulerSteps(zoomLevel.value))
+const rulerXSteps = computed(() => getRulerSteps(pxPerMmX.value, 26))
+const rulerYSteps = computed(() => getRulerSteps(pxPerMmY.value, 14))
 
 const rulerXTicks = computed(() =>
   sheetMetrics.value.ready
@@ -287,7 +288,7 @@ const rulerXTicks = computed(() =>
         viewportSizePx: containerSize.value.width,
         pxPerMm: pxPerMmX.value,
         originPx: sheetMetrics.value.left,
-        ...rulerSteps.value,
+        ...rulerXSteps.value,
       })
     : [],
 )
@@ -298,7 +299,7 @@ const rulerYTicks = computed(() =>
         viewportSizePx: containerSize.value.height,
         pxPerMm: pxPerMmY.value,
         originPx: sheetMetrics.value.bottom,
-        ...rulerSteps.value,
+        ...rulerYSteps.value,
         invert: true,
       })
     : [],

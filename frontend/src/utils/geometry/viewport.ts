@@ -8,13 +8,35 @@ export function clampPanOffset(
   }
 }
 
-export function getRulerSteps(zoomLevel: number): {
+export function getRulerSteps(
+  pxPerMm: number,
+  minMajorSpacingPx = 48,
+): {
   minorStepMm: number
   majorStepMm: number
 } {
-  if (zoomLevel >= 2.2) return { minorStepMm: 10, majorStepMm: 50 }
-  if (zoomLevel >= 0.9) return { minorStepMm: 50, majorStepMm: 100 }
-  return { minorStepMm: 50, majorStepMm: 200 }
+  const rawStepMm = Math.max(10, minMajorSpacingPx / pxPerMm)
+
+  const magnitude = 10 ** Math.floor(Math.log10(rawStepMm))
+  const normalized = rawStepMm / magnitude
+
+  let majorStepMm: number
+  const subdivisions: number = 5
+
+  if (normalized <= 1) {
+    majorStepMm = magnitude
+  } else if (normalized <= 2) {
+    majorStepMm = 2 * magnitude
+  } else if (normalized <= 5) {
+    majorStepMm = 5 * magnitude
+  } else {
+    majorStepMm = 10 * magnitude
+  }
+
+  return {
+    majorStepMm,
+    minorStepMm: Math.max(1, majorStepMm / subdivisions),
+  }
 }
 
 export function buildRulerTicks(params: {

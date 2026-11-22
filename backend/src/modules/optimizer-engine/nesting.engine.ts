@@ -25,32 +25,41 @@ const nesting = createRequire(import.meta.url)('@cut-sense/nesting-engine') as {
 };
 
 const TIMEOUT_MS = 60_000;
-const MAX_QUEUED = 10;
+const MAX_QUEUED = 40;
 
 @Injectable()
 export class NestingEngine implements OptimizerEngine {
   private readonly logger = new Logger(NestingEngine.name);
-  private readonly limit = pLimit(2); // the engine is CPU-bound
+  private readonly limit = pLimit(2);
 
-  async run({
-    fabric,
-    pieces,
-    algorithmId,
-  }: EngineInput): Promise<EngineResult> {
-    return this.runInPool(() => nesting.execute(fabric, pieces, algorithmId));
+  async run(input: EngineInput): Promise<EngineResult> {
+    const [result] = await this.runMany([input]);
+    return result!;
+  }
+
+  async runMany(inputs: EngineInput[]): Promise<EngineResult[]> {
+    this.assertCapacity(inputs.length);
+    return Promise.all(
+      inputs.map(({ fabric, pieces, algorithmId }) =>
+        this.schedule(() => nesting.execute(fabric, pieces, algorithmId)),
+      ),
+    );
   }
 
   async calcMinimum({ width, pieces }: CalcMinimumInput): Promise<number> {
-    return this.runInPool(() => nesting.calcMinimum(width, pieces));
+    this.assertCapacity(1);
+    return this.schedule(() => nesting.calcMinimum(width, pieces));
   }
 
-  private async runInPool<T>(task: () => Promise<T>): Promise<T> {
-    if (this.limit.pendingCount >= MAX_QUEUED) {
+  private assertCapacity(jobs: number): void {
+    if (this.limit.pendingCount + jobs > MAX_QUEUED) {
       throw new ServiceUnavailableException(
         'The optimizer is busy. Try again in a moment.',
       );
     }
+  }
 
+  private schedule<T>(task: () => Promise<T>): Promise<T> {
     return this.limit(async () => {
       let timer: NodeJS.Timeout | undefined;
       try {
@@ -58,8 +67,7 @@ export class NestingEngine implements OptimizerEngine {
           task(),
           new Promise<never>((_, reject) => {
             timer = setTimeout(
-              () =>
-                reject(new ExternalServiceException('Optimizer timed out.')),
+              () => reject(new ExternalServiceException('Optimizer timed out.')),
               TIMEOUT_MS,
             );
           }),

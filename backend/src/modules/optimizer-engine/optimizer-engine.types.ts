@@ -69,6 +69,7 @@ export type ViewStats = Omit<
 
 export interface OptimizerEngine {
   run(input: EngineInput): Promise<EngineResult>;
+  runMany(inputs: EngineInput[]): Promise<EngineResult[]>;
   calcMinimum(input: CalcMinimumInput): Promise<number>;
 }
 

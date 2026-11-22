@@ -10,7 +10,7 @@ export interface StoredRun {
   id: string;
   userId: number | null;
   input: OptimizerInputDto;
-  result: EngineResult;
+  results: EngineResult[];
   expiresAt: number;
   savedId?: number;
   savedName?: string;
@@ -24,13 +24,13 @@ export class OptimizationRunsStore {
 
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
-  async put(run: Pick<StoredRun, 'userId' | 'input' | 'result'>): Promise<string> {
+  async put(run: Pick<StoredRun, 'userId' | 'input' | 'results'>): Promise<string> {
     const id = randomUUID();
     await this.db.insert(optimizationRuns).values({
       id,
       userId: run.userId,
       input: run.input,
-      result: run.result,
+      results: run.results,
       expiresAt: new Date(Date.now() + TTL_MS),
     });
     return id;
@@ -47,7 +47,7 @@ export class OptimizationRunsStore {
       id: row.id,
       userId: row.userId,
       input: row.input,
-      result: row.result,
+      results: row.results,
       expiresAt: row.expiresAt.getTime(),
       savedId: row.savedId ?? undefined,
       savedName: row.savedName ?? undefined,

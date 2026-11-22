@@ -50,6 +50,23 @@ export class PlacementDto {
   polygon!: PointDto[];
 }
 
+export class OptimizationLayoutViewDto {
+  @ApiProperty({ type: OptimizationFabricViewDto })
+  fabric!: OptimizationFabricViewDto;
+
+  @ApiProperty()
+  wasSuccessful!: boolean;
+
+  @ApiProperty({ description: 'Used fabric length in millimeters' })
+  minLengthMm!: number;
+
+  @ApiProperty({ type: 'object', additionalProperties: { type: 'number' } })
+  stats!: ViewStats;
+
+  @ApiProperty({ type: [PlacementDto] })
+  placements!: PlacementDto[];
+}
+
 export class OptimizationViewDto {
   @ApiPropertyOptional({ description: 'Present while the run is cached' })
   runId?: string;
@@ -65,9 +82,6 @@ export class OptimizationViewDto {
 
   @ApiProperty()
   algorithmName!: string;
-
-  @ApiProperty({ type: OptimizationFabricViewDto })
-  fabric!: OptimizationFabricViewDto;
 
   @ApiPropertyOptional({
     type: 'object',
@@ -86,18 +100,12 @@ export class OptimizationViewDto {
   @ApiProperty()
   cuttingAllowanceMm!: number;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'True only when every layout was successful' })
   wasSuccessful!: boolean;
 
-  @ApiProperty({ description: 'Used fabric length in millimeters' })
-  minLengthMm!: number;
-
-  @ApiProperty({ description: 'Optimizer execution time in milliseconds' })
+  @ApiProperty({ description: 'Total optimizer execution time in milliseconds' })
   executionTime!: number;
 
-  @ApiProperty({ type: 'object', additionalProperties: { type: 'number' } })
-  stats!: ViewStats;
-
-  @ApiProperty({ type: [PlacementDto] })
-  placements!: PlacementDto[];
+  @ApiProperty({ type: [OptimizationLayoutViewDto], description: 'One layout per fabric' })
+  layouts!: OptimizationLayoutViewDto[];
 }

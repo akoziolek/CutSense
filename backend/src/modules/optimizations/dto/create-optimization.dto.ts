@@ -14,10 +14,47 @@ import {
 } from 'class-validator';
 import {
   MAX_CUTTING_ALLOWANCE_MM,
+  MAX_FABRICS,
   MAX_FABRIC_SIDE_MM,
   MAX_PIECE_COPIES,
   MAX_SEAM_ALLOWANCE_MM,
 } from '../optimizations.constants.js';
+
+export class OptimizationFabricDto {
+  @ApiPropertyOptional({
+    description:
+      "Fabric from the current user's library. Guests must provide custom dimensions instead.",
+    example: 9,
+  })
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  fabricId?: number;
+
+  @ApiPropertyOptional({
+    description: 'Custom fabric width in millimeters. Requires lengthMm, excludes fabricId.',
+    minimum: 1,
+    maximum: MAX_FABRIC_SIDE_MM,
+    example: 1450,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(MAX_FABRIC_SIDE_MM)
+  widthMm?: number;
+
+  @ApiPropertyOptional({
+    description: 'Custom fabric length in millimeters. Requires widthMm, excludes fabricId.',
+    minimum: 1,
+    maximum: MAX_FABRIC_SIDE_MM,
+    example: 2900,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(MAX_FABRIC_SIDE_MM)
+  lengthMm?: number;
+}
 
 export class OptimizationPieceDto {
   @ApiProperty({ description: 'ID of a piece of the selected pattern', example: 101 })
@@ -46,6 +83,17 @@ export class OptimizationPieceDto {
   @ApiProperty({ description: 'Whether the piece may also be turned by 180 degrees', example: false })
   @IsBoolean()
   twoWay!: boolean;
+
+  @ApiProperty({
+    description: 'Index into `fabrics` of the fabric this piece is cut from',
+    minimum: 0,
+    maximum: MAX_FABRICS - 1,
+    example: 0,
+  })
+  @IsInt()
+  @Min(0)
+  @Max(MAX_FABRICS - 1)
+  fabricIndex!: number;
 }
 
 export class CreateOptimizationDto {
@@ -59,39 +107,17 @@ export class CreateOptimizationDto {
   @IsPositive()
   algorithmId!: number;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description:
-      "Fabric from the current user's library. Guests must provide custom dimensions instead.",
-    example: 9,
+      'Fabrics the pieces are cut from. Every fabric gets its own layout and needs at least one piece. A library fabric can appear only once.',
+    type: [OptimizationFabricDto],
   })
-  @IsOptional()
-  @IsInt()
-  @IsPositive()
-  fabricId?: number;
-
-  @ApiPropertyOptional({
-    description: 'Custom fabric width in millimeters. Requires fabricLengthMm, excludes fabricId.',
-    minimum: 1,
-    maximum: MAX_FABRIC_SIDE_MM,
-    example: 1450,
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(MAX_FABRIC_SIDE_MM)
-  fabricWidthMm?: number;
-
-  @ApiPropertyOptional({
-    description: 'Custom fabric length in millimeters. Requires fabricWidthMm, excludes fabricId.',
-    minimum: 1,
-    maximum: MAX_FABRIC_SIDE_MM,
-    example: 2900,
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(MAX_FABRIC_SIDE_MM)
-  fabricLengthMm?: number;
+  @IsArray()
+  @ArrayMinSize(1, { message: 'At least one fabric is required' })
+  @ArrayMaxSize(MAX_FABRICS)
+  @ValidateNested({ each: true })
+  @Type(() => OptimizationFabricDto)
+  fabrics!: OptimizationFabricDto[];
 
   @ApiProperty({ description: 'Seam allowance in millimeters', minimum: 0, maximum: MAX_SEAM_ALLOWANCE_MM, example: 5 })
   @IsInt()
@@ -107,7 +133,7 @@ export class CreateOptimizationDto {
 
   @ApiProperty({
     description:
-      'Configuration of the pattern pieces. A piece may be listed more than once to give copies different settings.',
+      'Configuration of the pattern pieces. A piece may be listed more than once to give copies different settings or fabrics.',
     type: [OptimizationPieceDto],
   })
   @IsArray()
@@ -116,4 +142,7 @@ export class CreateOptimizationDto {
   @ValidateNested({ each: true })
   @Type(() => OptimizationPieceDto)
   pieces!: OptimizationPieceDto[];
+  fabricId: undefined;
+  fabricWidthMm: number;
+  fabricLengthMm: number;
 }

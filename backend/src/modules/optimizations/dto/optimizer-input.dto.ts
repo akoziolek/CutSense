@@ -4,16 +4,20 @@ import { PointDto } from '../../../common/geometry/point.dto.js';
 export type OptimizerPointDto = PointDto;
 
 export class OptimizerFabricInputDto {
-  @ApiPropertyOptional({ description: 'Library fabric ID; omitted for custom dimensions.' })
+  @ApiPropertyOptional({ 
+    description: 'Library fabric ID; omitted for custom dimensions.' })
   fabricId?: number;
 
-  @ApiProperty({ description: 'Fabric width in millimeters.' })
+  @ApiProperty({ 
+    description: 'Fabric width in millimeters.' })
   widthMm!: number;
 
-  @ApiProperty({ description: 'Fabric length in millimeters.' })
+  @ApiProperty({ 
+    description: 'Fabric length in millimeters.' })
   lengthMm!: number;
 
-  @ApiProperty({ description: 'Fabric grainline in degrees.' })
+  @ApiProperty({ 
+    description: 'Fabric grainline in degrees.' })
   grainline!: number;
 
   @ApiProperty({
@@ -31,7 +35,8 @@ export class OptimizerFabricInputDto {
 }
 
 export class OptimizerPieceInputDto {
-  @ApiProperty({ description: 'ID of the source pattern piece.' })
+  @ApiProperty({ 
+    description: 'ID of the source pattern piece.' })
   patternPieceId!: number;
 
   @ApiProperty({
@@ -41,10 +46,12 @@ export class OptimizerPieceInputDto {
   })
   boundary!: OptimizerPointDto[];
 
-  @ApiProperty({ description: 'Number of normal copies.' })
+  @ApiProperty({ 
+    description: 'Number of normal copies.' })
   normalCount!: number;
 
-  @ApiProperty({ description: 'Number of mirrored copies.' })
+  @ApiProperty({ 
+    description: 'Number of mirrored copies.' })
   mirroredCount!: number;
 
   @ApiProperty({
@@ -53,32 +60,47 @@ export class OptimizerPieceInputDto {
   })
   grainline!: number;
 
-  @ApiProperty({ description: 'Allowed direction in degrees.' })
+  @ApiProperty({ 
+    description: 'Allowed direction in degrees.' })
   direction!: number;
 
-  @ApiProperty({ description: 'Whether the piece may also be turned by 180 degrees.' })
+  @ApiProperty({ 
+    description: 'Whether the piece may also be turned by 180 degrees.' })
   twoWay!: boolean;
+
+  @ApiProperty({ 
+    description: 'Index into `fabrics` of the fabric this piece is cut from.' })
+  fabricIndex!: number;
 }
 
 export class OptimizerInputDto {
-  @ApiProperty({ description: 'Source pattern ID.' })
+  @ApiProperty({ 
+    description: 'Source pattern ID.' })
   patternId!: number;
 
-  @ApiProperty({ description: 'Selected algorithm ID.' })
+  @ApiProperty({ 
+    description: 'Selected algorithm ID.' })
   algorithmId!: number;
 
-  @ApiProperty({ description: 'Selected algorithm name.' })
+  @ApiProperty({ 
+    description: 'Selected algorithm name.' })
   algorithmName!: string;
 
-  @ApiProperty({ type: OptimizerFabricInputDto })
-  fabric!: OptimizerFabricInputDto;
+  @ApiProperty({ 
+    type: [OptimizerFabricInputDto], 
+    description: 'One entry per layout.' })
+  fabrics!: OptimizerFabricInputDto[];
 
-  @ApiProperty({ description: 'Seam allowance in millimeters.' })
+  @ApiProperty({ 
+    description: 'Seam allowance in millimeters.' })
   seamAllowanceMm!: number;
 
-  @ApiProperty({ description: 'Cutting allowance in millimeters.' })
+  @ApiProperty({ 
+    description: 'Cutting allowance in millimeters.' })
   cuttingAllowanceMm!: number;
 
-  @ApiProperty({ type: [OptimizerPieceInputDto] })
+  @ApiProperty({ 
+    type: [OptimizerPieceInputDto] })
   pieces!: OptimizerPieceInputDto[];
+  fabric: any;
 }

@@ -6,6 +6,7 @@ import type {
 import { withoutClosingPoint } from '../../common/geometry/shapes-geometry.js';
 import type {
   OptimizationViewDto,
+  OptimizationLayoutViewDto,
   FabricMetadataDto,
   PatternSummaryDto,
   PlacementDto,
@@ -16,15 +17,19 @@ import type {
 } from '../optimizer-engine/optimizer-engine.types.js';
 import { placePiece } from '../../common/geometry/shapes-geometry.js';
 
-export interface ViewSource {
-  algorithmName: string;
+export interface LayoutSource {
   fabric: OptimizerFabricInputDto;
   fabricMetadata?: FabricMetadataDto;
+  result: EngineResult;
+}
+
+export interface ViewSource {
+  algorithmName: string;
   pattern?: PatternSummaryDto;
   seamAllowanceMm: number;
   cuttingAllowanceMm: number;
   geometry: Map<number, { boundary: OptimizerPointDto[]; grainline: number }>;
-  result: EngineResult;
+  layouts: LayoutSource[];
 }
 
 export type ViewExtra = Partial<
@@ -125,19 +130,14 @@ export class OptimizationViewMapper {
     };
   }
 
-  static sourceFromInput(
+ static sourceFromInput(
     input: OptimizerInputDto,
-    result: EngineResult,
+    results: EngineResult[],
     pattern?: PatternSummaryDto,
-    fabricMetadata?: FabricMetadataDto,
+    fabricMetadata: (FabricMetadataDto | undefined)[] = [],
   ): ViewSource {
     return {
       algorithmName: input.algorithmName,
-      fabric: {
-        ...input.fabric,
-        boundary: this.toOptimizerPoints(input.fabric.boundary),
-      },
-      fabricMetadata,
       pattern,
       seamAllowanceMm: input.seamAllowanceMm,
       cuttingAllowanceMm: input.cuttingAllowanceMm,
@@ -150,29 +150,39 @@ export class OptimizationViewMapper {
           },
         ]),
       ),
-      result,
+      // `results` has the same order as `input.fabrics`
+      layouts: input.fabrics.map((fabric, index) => ({
+        fabric: { ...fabric, boundary: this.toOptimizerPoints(fabric.boundary) },
+        fabricMetadata: fabricMetadata[index],
+        result: results[index]!,
+      })),
     };
   }
 
   static toView(src: ViewSource, extra: ViewExtra): OptimizationViewDto {
-    return {
-      ...extra,
-      algorithmName: src.algorithmName,
-      fabric: { ...src.fabric, ...src.fabricMetadata },
-      ...(src.pattern ? { pattern: src.pattern } : {}),
-      seamAllowanceMm: src.seamAllowanceMm,
-      cuttingAllowanceMm: src.cuttingAllowanceMm,
-      wasSuccessful: src.result.wasSuccessful,
-      minLengthMm: src.result.minLength,
-      executionTime: src.result.executionTime,
-      stats: src.result.stats,
-      placements: src.result.positions.flatMap((pos) => {
+    const layouts: OptimizationLayoutViewDto[] = src.layouts.map((layout) => ({
+      fabric: { ...layout.fabric, ...layout.fabricMetadata },
+      wasSuccessful: layout.result.wasSuccessful,
+      minLengthMm: layout.result.minLength,
+      stats: layout.result.stats,
+      placements: layout.result.positions.flatMap((pos) => {
         const piece = src.geometry.get(pos.id);
         if (!piece) return [];
         return [
-          this.placeOne(piece, pos, pos.x, pos.y, src.fabric.grainline ?? 0),
+          this.placeOne(piece, pos, pos.x, pos.y, layout.fabric.grainline ?? 0),
         ];
       }),
+    }));
+
+    return {
+      ...extra,
+      algorithmName: src.algorithmName,
+      ...(src.pattern ? { pattern: src.pattern } : {}),
+      seamAllowanceMm: src.seamAllowanceMm,
+      cuttingAllowanceMm: src.cuttingAllowanceMm,
+      wasSuccessful: layouts.every((l) => l.wasSuccessful),
+      executionTime: src.layouts.reduce((sum, l) => sum + l.result.executionTime, 0),
+      layouts,
     };
   }
 

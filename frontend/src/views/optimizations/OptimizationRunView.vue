@@ -2,6 +2,7 @@
 import { ref, watch, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DetailsCard from '@/components/common/DetailsCard.vue'
@@ -34,7 +35,7 @@ import {
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { login, useAuth } from '@/stores/authStore'
 import { useDeleteResource } from '@/composables/resources/useDeleteResource'
-import { getGeometryBoundsMm } from '@/utils/geometry'
+import { getGeometryBoundsMm, type PlacementInvalidReason } from '@/utils/geometry'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +43,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useOptimizationRun } from '@/composables/optimization/useOptimizationRun'
+import { formatAreaM2 } from '@/utils/formatData'
 
 const route = useRoute()
 const router = useRouter()
@@ -74,8 +76,6 @@ const {
 onMounted(() => {
   useOptimizationAddingStore().reset()
 })
-
-const formatAreaM2 = (areaMm2: number) => `${(areaMm2 / 1_000_000).toFixed(2).replace('.', ',')} m²`
 
 const normalizedLayout = computed(() => {
   const opt = optimization.value
@@ -115,6 +115,7 @@ const normalizedLayout = computed(() => {
     return [
       {
         id: index + 1,
+        index,
         patternPieceId: placement.patternPieceId,
         pieceNumber: pieceTypeNumberById.get(placement.patternPieceId) ?? index + 1,
         isMirrored: placement.isMirrored,
@@ -124,7 +125,11 @@ const normalizedLayout = computed(() => {
     ]
   })
 
-  const bounds = getGeometryBoundsMm([fabricBoundary, ...pieces.map((piece) => piece.points)])
+  const fabricBounds = getGeometryBoundsMm([fabricBoundary])
+  const bounds =
+    fabricBounds.widthMm > 0 && fabricBounds.heightMm > 0
+      ? fabricBounds
+      : getGeometryBoundsMm([fabricBoundary, ...pieces.map((piece) => piece.points)])
 
   return {
     fabricBoundary,
@@ -168,11 +173,16 @@ const {
   saveError,
   isRenaming,
   renameError,
+  canUndo,
+  canRedo,
   clearSkeletonTimer,
   fetchOptimization,
   downloadPdf: handleDownloadPdf,
   saveOptimization,
   renameOptimization,
+  movePlacement,
+  undoPlacement,
+  redoPlacement,
 } = useOptimizationRun(isSavedRoute, resourceId)
 
 const handleSave = async (name: string) => {
@@ -191,6 +201,32 @@ const handleRename = async (name: string) => {
 const openEdit = () => {
   renameError.value = ''
   isEditOpen.value = true
+}
+
+const handleMovePiece = async ({
+  index,
+  deltaXMm,
+  deltaYMm,
+}: {
+  index: number
+  deltaXMm: number
+  deltaYMm: number
+}) => {
+  const current = optimization.value?.placements?.[index]
+  if (!current || optimization.value?.isSaved) return
+
+  const nextX = Number((current.x + deltaXMm).toFixed(2))
+  const nextY = Number((current.y + deltaYMm).toFixed(2))
+
+  await movePlacement(index, nextX, nextY)
+}
+
+const handleInvalidMove = ({ reason }: { reason: PlacementInvalidReason }) => {
+  toast.warning(
+    reason === 'out_of_bounds'
+      ? t('optimizations.pieceOutOfBounds')
+      : t('optimizations.pieceOverlaps'),
+  )
 }
 
 watch(
@@ -371,6 +407,9 @@ watch(
               </h2>
               <OptimizationPreview
                 v-model:is-expanded="isCanvasExpanded"
+                :editable="!optimization.isSaved"
+                :can-undo="canUndo"
+                :can-redo="canRedo"
                 :fabric-shape="normalizedLayout.fabricBoundary"
                 :pieces="normalizedLayout.pieces"
                 :coordinate-origin-mm="normalizedLayout.coordinateOriginMm"
@@ -381,6 +420,10 @@ watch(
                 :photo-url="optimization.fabric.pictureUrl ?? null"
                 :photo-width-mm="optimization.fabric.imageWidthMm ?? null"
                 :photo-height-mm="optimization.fabric.imageHeightMm ?? null"
+                @move-piece="handleMovePiece"
+                @invalid-move="handleInvalidMove"
+                @undo="undoPlacement"
+                @redo="redoPlacement"
               />
             </div>
 

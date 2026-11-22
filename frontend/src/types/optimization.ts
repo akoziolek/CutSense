@@ -74,10 +74,11 @@ export interface OptimizationPlacement {
 
 export interface PlacedPieceViewItem {
   id: number
-  patternPieceId?: number
+  index: number
+  patternPieceId: number
   pieceNumber?: number
-  isMirrored?: boolean
-  rotationAngle?: number
+  isMirrored: boolean
+  rotationAngle: number
   points: [number, number][]
 }
 

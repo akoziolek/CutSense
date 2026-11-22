@@ -1,6 +1,19 @@
-import { Clipper, JoinType, EndType, type Path64, type Point64 } from 'clipper2-ts'
+import { Clipper, FillRule, JoinType, EndType, type Path64, type Point64 } from 'clipper2-ts'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
 import { toImagePixels } from './coordinates'
+
+const CLIPPER_SCALE = 1000
+const PLACEMENT_AREA_TOLERANCE_MM2 = 0.25 //0,5 mm x 0,5 mm
+
+// needed for clipper lib
+const toPath64 = (mmPts: [number, number][]): Path64 =>
+  mmPts.map(([x, y]): Point64 => ({
+    x: Math.round(x * CLIPPER_SCALE),
+    y: Math.round(y * CLIPPER_SCALE),
+  }))
+
+const fromPaths64 = (paths: Path64[]): [number, number][][] =>
+  paths.map((path) => path.map((pt) => [pt.x / CLIPPER_SCALE, pt.y / CLIPPER_SCALE]))
 
 export const toSvgPoints = (points: Point2D[]): string =>
   points.map((p) => `${p.pctX},${p.pctY}`).join(' ')
@@ -66,16 +79,10 @@ export function offsetPolygonMm(
 ): [number, number][] {
   if (mmPts.length < 3 || offsetMm <= 0) return mmPts
 
-  const scale = 1000
-  const rawPath: Path64 = mmPts.map(([x, y]): Point64 => ({
-    x: Math.round(x * scale),
-    y: Math.round(y * scale),
-  }))
-
-  const simplified = Clipper.simplifyPath(rawPath, 0.1 * scale)
+  const simplified = Clipper.simplifyPath(toPath64(mmPts), 0.1 * CLIPPER_SCALE)
   const inflated = Clipper.inflatePaths(
     [simplified],
-    offsetMm * scale,
+    offsetMm * CLIPPER_SCALE,
     JoinType.Miter,
     EndType.Polygon,
     miterLimit,
@@ -84,7 +91,58 @@ export function offsetPolygonMm(
   const resultPath = inflated[0]
   if (!resultPath || resultPath.length < 3) return mmPts
 
-  return resultPath.map((pt: Point64) => [pt.x / scale, pt.y / scale])
+  return resultPath.map((pt: Point64) => [pt.x / CLIPPER_SCALE, pt.y / CLIPPER_SCALE])
+}
+
+export type PlacementInvalidReason = 'out_of_bounds' | 'overlap'
+
+export interface PlacementValidationResult {
+  valid: boolean
+  reason?: PlacementInvalidReason
+}
+
+export function validatePiecePlacement(params: {
+  movingPoints: [number, number][]
+  otherPiecesPoints: [number, number][][]
+  fabricBoundary: [number, number][]
+  totalAllowanceMm: number
+}): PlacementValidationResult {
+  if (params.movingPoints.length < 3) return { valid: true }
+
+  const movingExpanded = offsetPolygonMm(params.movingPoints, params.totalAllowanceMm)
+  const movingPath = toPath64(movingExpanded)
+
+  if (params.fabricBoundary.length >= 3) {
+    const outsideFabricPaths = Clipper.difference(
+      [movingPath],
+      [toPath64(params.fabricBoundary)],
+      FillRule.NonZero,
+    )
+    const outsideAreaMm2 = fromPaths64(outsideFabricPaths).reduce(
+      (sum, poly) => sum + getPolygonAreaMm2(poly),
+      0,
+    )
+    if (outsideAreaMm2 > PLACEMENT_AREA_TOLERANCE_MM2) {
+      return { valid: false, reason: 'out_of_bounds' }
+    }
+  }
+
+  const otherPiecesPaths = params.otherPiecesPoints
+    .filter((pts) => pts.length >= 3)
+    .map((pts) => toPath64(offsetPolygonMm(pts, params.totalAllowanceMm)))
+
+  if (otherPiecesPaths.length > 0) {
+    const overlapPiecesPaths = Clipper.intersect([movingPath], otherPiecesPaths, FillRule.NonZero)
+    const overlapAreaMm2 = fromPaths64(overlapPiecesPaths).reduce(
+      (sum, poly) => sum + getPolygonAreaMm2(poly),
+      0,
+    )
+    if (overlapAreaMm2 > PLACEMENT_AREA_TOLERANCE_MM2) {
+      return { valid: false, reason: 'overlap' }
+    }
+  }
+
+  return { valid: true }
 }
 
 export const getPolygonCentroidPct = (pts: Point2D[]): Point2D => {

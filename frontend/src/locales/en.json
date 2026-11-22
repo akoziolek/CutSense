@@ -506,7 +506,9 @@
     "legendMirrored": "Mirrored",
     "legendRotated": "Rotation angle",
     "widthPlaceholder": "e.g. 145",
-    "heightPlaceholder": "e.g. 290"
+    "heightPlaceholder": "e.g. 290",
+    "pieceOutOfBounds": "Piece must stay inside the fabric boundary.",
+    "pieceOverlaps": "Piece cannot overlap another piece or its allowance."
   },
   "landing": {
     "headline": "Every centimeter counts",

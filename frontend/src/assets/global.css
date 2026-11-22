@@ -258,7 +258,7 @@ html [data-sonner-toaster] [data-sonner-toast][data-type='error'] {
 }
 
 html [data-sonner-toaster] [data-sonner-toast][data-type='warning'] {
-  --normal-text: var(--Pink-600);
+  --normal-text: var(--Red-500);
 }
 
 html [data-sonner-toaster] [data-sonner-toast][data-type='info'] {

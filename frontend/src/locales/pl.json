@@ -505,7 +505,9 @@
     "legendMirrored": "Odbicie lustrzane",
     "legendRotated": "Kąt obrotu",
     "widthPlaceholder": "np. 145",
-    "heightPlaceholder": "np. 290"
+    "heightPlaceholder": "np. 290",
+    "pieceOutOfBounds": "Element musi pozostać w obszarze tkaniny.",
+    "pieceOverlaps": "Element nie może nachodzić na inne."
   },
   "landing": {
     "headline": "Liczy się każdy cm",

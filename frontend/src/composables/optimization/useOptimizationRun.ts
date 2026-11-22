@@ -1,8 +1,9 @@
-import { ref, type ComputedRef } from 'vue'
+import { ref, toRaw, type ComputedRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { api, ApiError, apiBlob } from '@/api/client'
 import type { OptimizationView } from '@/types/optimization'
+import { useSpatialHistory } from '@/composables/spatial/useSpatialHistory'
 
 export function useOptimizationRun(
   isSavedRoute: ComputedRef<boolean>,
@@ -22,7 +23,17 @@ export function useOptimizationRun(
   const isRenaming = ref(false)
   const renameError = ref('')
 
+  const {
+    canUndo,
+    canRedo,
+    recordAction,
+    undo: undoHistory,
+    redo: redoHistory,
+    clear: clearHistory,
+  } = useSpatialHistory()
+
   let skeletonTimer: ReturnType<typeof setTimeout> | null = null
+  let placementSyncQueue: Promise<void> = Promise.resolve()
 
   const clearSkeletonTimer = () => {
     if (skeletonTimer) {
@@ -37,6 +48,7 @@ export function useOptimizationRun(
       : `/optimizations/runs/${encodeURIComponent(resourceId.value)}`
 
     clearSkeletonTimer()
+    clearHistory()
     optimization.value = null
     error.value = ''
     isNotFound.value = false
@@ -62,6 +74,69 @@ export function useOptimizationRun(
         clearSkeletonTimer()
       }
     }
+  }
+
+  const applyAndSyncPlacement = (index: number, x: number, y: number): Promise<boolean> => {
+    const opt = optimization.value
+    if (!opt || isSavedRoute.value || opt.isSaved) return Promise.resolve(false)
+
+    const target = opt.placements[index]
+    if (!target) return Promise.resolve(false)
+
+    const previous = structuredClone(toRaw(opt))
+    const dx = x - target.x
+    const dy = y - target.y
+
+    target.x = x
+    target.y = y
+    target.polygon = target.polygon.map((pt) => ({
+      x: pt.x + dx,
+      y: pt.y + dy,
+    }))
+
+    const runId = resourceId.value
+    const task = placementSyncQueue.then(async () => {
+      try {
+        const updated = await api<OptimizationView>(
+          `/optimizations/runs/${encodeURIComponent(runId)}/placements`,
+          {
+            method: 'PATCH',
+            body: JSON.stringify({ placements: [{ index, x, y }] }),
+          },
+        )
+        optimization.value = updated
+        return true
+      } catch (e) {
+        optimization.value = previous
+        toast.error(e instanceof ApiError ? e.body.message : t('optimizations.updateFailed'))
+        return false
+      }
+    })
+
+    placementSyncQueue = task.then(() => undefined)
+    return task
+  }
+
+  const movePlacement = async (index: number, nextX: number, nextY: number): Promise<boolean> => {
+    const target = optimization.value?.placements?.[index]
+    if (!target) return false
+
+    const prevX = target.x
+    const prevY = target.y
+    if (prevX === nextX && prevY === nextY) return true
+
+    const ok = await applyAndSyncPlacement(index, nextX, nextY)
+    if (ok) {
+      recordAction({
+        undo: () => {
+          void applyAndSyncPlacement(index, prevX, prevY)
+        },
+        redo: () => {
+          void applyAndSyncPlacement(index, nextX, nextY)
+        },
+      })
+    }
+    return ok
   }
 
   const downloadPdf = async (format: 'a4' | 'actual') => {
@@ -109,6 +184,7 @@ export function useOptimizationRun(
         method: 'POST',
         body: JSON.stringify({ name }),
       })
+      clearHistory()
       toast.success(t('optimizations.savedToast'))
       return id
     } catch (e) {
@@ -160,10 +236,15 @@ export function useOptimizationRun(
     saveError,
     isRenaming,
     renameError,
+    canUndo,
+    canRedo,
     clearSkeletonTimer,
     fetchOptimization,
     downloadPdf,
     saveOptimization,
     renameOptimization,
+    movePlacement,
+    undoPlacement: undoHistory,
+    redoPlacement: redoHistory,
   }
 }

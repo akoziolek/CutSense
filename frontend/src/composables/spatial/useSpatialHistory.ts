@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 export interface SpatialHistoryAction {
   undo: () => void
@@ -8,6 +8,9 @@ export interface SpatialHistoryAction {
 export function useSpatialHistory() {
   const history = ref<SpatialHistoryAction[]>([])
   const historyIndex = ref(0)
+
+  const canUndo = computed(() => historyIndex.value > 0)
+  const canRedo = computed(() => historyIndex.value < history.value.length)
 
   const recordAction = (action: SpatialHistoryAction) => {
     if (historyIndex.value < history.value.length) {
@@ -31,9 +34,17 @@ export function useSpatialHistory() {
     return true
   }
 
+  const clear = () => {
+    history.value = []
+    historyIndex.value = 0
+  }
+
   return {
+    canUndo,
+    canRedo,
     recordAction,
     undo,
     redo,
+    clear,
   }
 }

@@ -52,6 +52,7 @@ import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 import { StoragePaths, StorageService } from '../storage/storage.service.js';
 import { NestingEngine } from '../optimizer-engine/nesting.engine.js';
 import type { EnginePiece } from '../optimizer-engine/optimizer-engine.types.js';
+import { resolveRequiredFabricWidthMm } from '../../common/geometry/shapes-geometry.js';
 
 // identity ids start at 1, so this never matches a favourite row (used for guests)
 const NO_USER_ID = 0;
@@ -478,8 +479,13 @@ export class PatternsService {
     pieces: EnginePiece[],
   ): Promise<void> {
     try {
+      const effectiveWidthMm = resolveRequiredFabricWidthMm(
+        pieces,
+        REFERENCE_FABRIC_WIDTH_MM,
+      );
+
       const minLengthMm = await this.nestingEngine.calcMinimum({
-        width: REFERENCE_FABRIC_WIDTH_MM,
+        width: effectiveWidthMm,
         pieces,
       });
 
@@ -487,7 +493,7 @@ export class PatternsService {
         .update(patterns)
         .set({
           minFabricLengthMM: minLengthMm,
-          minFabricWidthMM: REFERENCE_FABRIC_WIDTH_MM,
+          minFabricWidthMM: effectiveWidthMm,
         })
         .where(eq(patterns.id, patternId));
     } catch (error) {
@@ -496,7 +502,7 @@ export class PatternsService {
       );
     }
   }
-
+  
   async getPatternTags(): Promise<PatternTagDto[]> {
     const tags = await this.db.query.tagsForPatterns.findMany({
       columns: { id: true, name: true },

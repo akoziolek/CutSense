@@ -341,8 +341,8 @@
     "detectingBoundaries": "Wykrywanie granic elementów wykroju ze zdjęcia nr {number}...",
     "analysisFailed": "Nie udało się przeanalizować granic zdjęcia. Dostosuj je ręcznie.",
     "noSheetsToDisplay": "Brak arkuszy wykroju do wyświetlenia",
-    "minLength": "Min. długość materiału",
-    "minLengthValue": "{lengthM}\u00A0m × {widthM}\u00A0m",
+    "minLength": "Min. rozmiar materiału",
+    "minLengthValue": "{widthM}\u00A0m × {lengthM}\u00A0m",
     "calculating": "Obliczanie...",
     "calculationUnavailable": "Obliczenie niedostępne",
     "pieceList": {

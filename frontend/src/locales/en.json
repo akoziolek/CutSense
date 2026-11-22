@@ -342,8 +342,8 @@
     "detectingBoundaries": "Detecting pattern piece boundaries from photo #{number}...",
     "analysisFailed": "Could not analyze photo boundary. Please adjust manually.",
     "noSheetsToDisplay": "No pattern sheets to display",
-    "minLength": "Min. fabric length",
-    "minLengthValue": "{lengthM}\u00A0m × {widthM}\u00A0m",
+    "minLength": "Min. fabric size",
+    "minLengthValue": "{widthM}\u00A0m × {lengthM}\u00A0m",
     "calculating": "Calculating...",
     "calculationUnavailable": "Calculation unavailable",
     "pieceList": {

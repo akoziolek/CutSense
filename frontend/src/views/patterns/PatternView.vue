@@ -187,13 +187,13 @@ watch(
           />
         </template>
 
-<template #actions>
+        <template #actions>
           <div class="flex shrink-0 items-center gap-2">
             <Button
               v-if="pattern"
               type="button"
               variant="outline"
-              class="inline-flex! h-9! w-fit! shrink-0! flex-row! cursor-pointer items-center! justify-center! gap-1.5! rounded-full! border-2! border-foreground/70! bg-background! px-3.5! text-sm! font-medium! whitespace-nowrap! text-foreground! hover:bg-brand-pink! hover:text-brand-pink-foreground! hover:border-brand-pink!"
+              class="inline-flex! h-9! w-fit! shrink-0! flex-row! cursor-pointer items-center! justify-center! gap-1.5! rounded-lg! border-2! border-foreground/70! bg-background! px-3.5! text-sm! font-medium! whitespace-nowrap! text-foreground! hover:bg-brand-pink! hover:text-brand-pink-foreground! hover:border-foreground/70!"
               @click="optimize"
             >
               <Puzzle class="size-4 shrink-0" />

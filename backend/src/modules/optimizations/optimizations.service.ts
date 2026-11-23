@@ -66,6 +66,11 @@ import { OptimizationViewMapper } from './optimization-view.mapper.js';
 import { OptimizationFilterOptionsDto } from './dto/optimization-filter-options.dto.js';
 import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 import { assertValidOptimizationRequest } from './optimization-request.validator.js';
+import { SaveOptimizationGroupDto } from './dto/save-optimization-group.dto.js';
+import { randomUUID } from 'crypto';
+import { ResourceConflictException } from '../../common/exceptions/resource-conflict.exception.js';
+
+type Tx = Parameters<Parameters<DrizzleDB['transaction']>[0]>[0];
 
 @Injectable()
 export class OptimizationsService {
@@ -199,8 +204,20 @@ export class OptimizationsService {
     } = query;
     assertDateRange(createdFrom, createdTo);
     const term = likeTerm(query.q);
+
+    const idList = (list: number[]) =>
+      sql.join(
+        list.map((i) => sql`${i}`),
+        sql`, `,
+      );
+
+    // a group is shown once, as its first saved row; standalone rows have no group_id
+    const isRepresentative = sql`(${optimizationResults.groupId} is null or ${optimizationResults.id} = (
+      select min(m.id) from optimization_results m where m.group_id = ${optimizationResults.groupId}))`;
+
     const where = and(
       eq(optimizationResults.userId, userId),
+      isRepresentative,
       term ? ilike(optimizationResults.name, term) : undefined,
       createdFrom
         ? gte(optimizationResults.createdAt, new Date(createdFrom))
@@ -211,8 +228,12 @@ export class OptimizationsService {
       patternIds?.length
         ? inArray(optimizationResults.patternId, patternIds)
         : undefined,
+      // matches when any fabric of the group is selected
       fabricIds?.length
-        ? inArray(optimizationResults.customFabricId, fabricIds)
+        ? sql`exists (select 1 from optimization_results m
+            where (m.id = ${optimizationResults.id}
+                   or (m.group_id is not null and m.group_id = ${optimizationResults.groupId}))
+              and m.custom_fabric_id in (${idList(fabricIds)}))`
         : undefined,
       algorithmIds?.length
         ? inArray(optimizationResults.algorithmId, algorithmIds)
@@ -223,6 +244,7 @@ export class OptimizationsService {
       this.db
         .select({
           id: optimizationResults.id,
+          groupId: optimizationResults.groupId,
           name: optimizationResults.name,
           createdAt: optimizationResults.createdAt,
           patternId: optimizationResults.patternId,
@@ -245,25 +267,57 @@ export class OptimizationsService {
       this.db.select({ total: count() }).from(optimizationResults).where(where),
     ]);
 
-    const covers = await this.patternsService.getPatternCovers(
-      rows.map((r) => r.patternId),
-      userId,
-    );
-    const coverByPatternId = new Map(
-      covers.map((c) => [c.patternId, c.imageUrl]),
-    );
+    // all members of the groups on this page, to sum lengths and list fabrics
+    const groupIds = [
+      ...new Set(rows.flatMap((r) => (r.groupId ? [r.groupId] : []))),
+    ];
+    const members = groupIds.length
+      ? await this.db
+          .select({
+            id: optimizationResults.id,
+            groupId: optimizationResults.groupId,
+            minLengthMm: optimizationResults.minLengthMm,
+            fabricName: fabrics.name,
+          })
+          .from(optimizationResults)
+          .leftJoin(fabrics, eq(fabrics.id, optimizationResults.customFabricId))
+          .where(
+            and(
+              eq(optimizationResults.userId, userId),
+              inArray(optimizationResults.groupId, groupIds),
+            ),
+          )
+          .orderBy(asc(optimizationResults.id))
+      : [];
+
+    const membersByGroup = new Map<string, typeof members>();
+    for (const member of members) {
+      membersByGroup.set(member.groupId!, [
+        ...(membersByGroup.get(member.groupId!) ?? []),
+        member,
+      ]);
+    }
 
     return {
-      items: rows.map((row) => ({
-        id: row.id,
-        name: row.name,
-        createdAt: row.createdAt.toISOString(),
-        patternId: row.patternId,
-        patternName: row.patternName,
-        fabricName: row.fabricName ?? undefined,
-        algorithmName: row.algorithmName,
-        minLengthMm: row.minLengthMm,
-      })),
+      items: rows.map((row) => {
+        const list = (row.groupId && membersByGroup.get(row.groupId)) || [
+          { id: row.id, minLengthMm: row.minLengthMm, fabricName: row.fabricName },
+        ];
+        const names = list.flatMap((m) => (m.fabricName ? [m.fabricName] : []));
+
+        return {
+          id: row.id,
+          name: row.name,
+          createdAt: row.createdAt.toISOString(),
+          patternId: row.patternId,
+          patternName: row.patternName,
+          fabricName: names.length ? names.join(', ') : undefined,
+          fabricCount: list.length,
+          memberIds: list.map((m) => m.id),
+          algorithmName: row.algorithmName,
+          minLengthMm: list.reduce((sum, m) => sum + m.minLengthMm, 0),
+        };
+      }),
       total,
       page,
       limit,
@@ -299,55 +353,49 @@ export class OptimizationsService {
     }
   }
 
-  async delete(id: number, userId: number): Promise<void> {
-    const [deleted] = await this.db
-      .delete(optimizationResults)
-      .where(
-        and(
-          eq(optimizationResults.id, id),
-          eq(optimizationResults.userId, userId),
-        ),
-      )
-      .returning({ id: optimizationResults.id });
-    if (!deleted) throw new ResourceNotFoundException('Optimization', id);
+  private inGroupOf(id: number, userId: number): SQL {
+    return and(
+      eq(optimizationResults.userId, userId),
+      sql`(${optimizationResults.id} = ${id} or (${optimizationResults.groupId} is not null
+        and ${optimizationResults.groupId} = (select g.group_id from optimization_results g where g.id = ${id})))`,
+    )!;
   }
 
-  async rename(
-    id: number,
-    name: string,
-    userId: number,
-  ): Promise<{ id: number; name: string }> {
-    const [updated] = await this.db
+  async delete(id: number, userId: number): Promise<void> {
+    const deleted = await this.db
+      .delete(optimizationResults)
+      .where(this.inGroupOf(id, userId))
+      .returning({ id: optimizationResults.id });
+    if (deleted.length === 0) throw new ResourceNotFoundException('Optimization', id);
+  }
+
+  async rename(id: number, name: string, userId: number): Promise<{ id: number; name: string }> {
+    const updated = await this.db
       .update(optimizationResults)
       .set({ name })
-      .where(
-        and(
-          eq(optimizationResults.id, id),
-          eq(optimizationResults.userId, userId),
-        ),
-      )
-      .returning({
-        id: optimizationResults.id,
-        name: optimizationResults.name,
-      });
-    if (!updated) throw new ResourceNotFoundException('Optimization', id);
-    return updated;
+      .where(this.inGroupOf(id, userId))
+      .returning({ id: optimizationResults.id, name: optimizationResults.name });
+    const row = updated.find((r) => r.id === id);
+    if (!row) throw new ResourceNotFoundException('Optimization', id);
+    return row;
   }
 
-  async deleteOptimizations(
-    ids: number[],
-    userId: number,
-  ): Promise<BulkDeleteResponseDto> {
+  async deleteOptimizations(ids: number[], userId: number): Promise<BulkDeleteResponseDto> {
+    const idList = sql.join(ids.map((i) => sql`${i}`), sql`, `);
     const deleted = await this.db
       .delete(optimizationResults)
       .where(
         and(
-          inArray(optimizationResults.id, ids),
           eq(optimizationResults.userId, userId),
+          sql`(${optimizationResults.id} in (${idList}) or (${optimizationResults.groupId} is not null
+            and ${optimizationResults.groupId} in (
+              select g.group_id from optimization_results g
+              where g.id in (${idList}) and g.user_id = ${userId})))`,
         ),
       )
       .returning({ id: optimizationResults.id });
-    return { deletedIds: deleted.map((row) => row.id) };
+    // report only what the user selected, siblings go with their group
+    return { deletedIds: deleted.map((r) => r.id).filter((id) => ids.includes(id)) };
   }
 
   async prepareOptimization(
@@ -435,25 +483,49 @@ export class OptimizationsService {
     };
   }
 
-  async save(
-    runId: string,
-    dto: SaveOptimizationDto,
-    currentUserId: number,
-  ): Promise<{ id: number }> {
+  async save(runId: string, dto: SaveOptimizationDto, currentUserId: number): Promise<{ id: number }> {
     const run = await this.findRun(runId, currentUserId);
     if (run.savedId !== undefined) return { id: run.savedId };
     if (!run.result.wasSuccessful) {
-      throw new RequestValidationException(
-        'Only a successful optimization can be saved.',
-      );
+      throw new RequestValidationException('Only a successful optimization can be saved.');
     }
-    return { id: await this.persistRun(run, dto.name, currentUserId) };
+    const [id] = await this.saveRuns([run], dto.name, currentUserId, null);
+    return { id: id! };
+  }
+
+  async saveGroup(dto: SaveOptimizationGroupDto, userId: number): Promise<{ id: number; ids: number[] }> {
+    const runs = await Promise.all(dto.runIds.map((runId) => this.findRun(runId, userId)));
+    if (runs.some((r) => r.savedId !== undefined)) {
+      throw new ResourceConflictException('These runs were already saved.');
+    }
+    if (runs.some((r) => !r.result.wasSuccessful)) {
+      throw new RequestValidationException('Only successful optimizations can be saved.');
+    }
+    if (runs.some((r) => r.input.patternId !== runs[0]!.input.patternId)) {
+      throw new RequestValidationException('All runs must use the same pattern.');
+    }
+    const ids = await this.saveRuns(runs, dto.name, userId, runs.length > 1 ? randomUUID() : null);
+    return { id: ids[0]!, ids };
+  }
+
+  private async saveRuns(runs: StoredRun[], name: string, userId: number, groupId: string | null): Promise<number[]> {
+    try {
+      return await this.db.transaction(async (tx) => {
+        const ids: number[] = [];
+        for (const run of runs) ids.push(await this.persistRun(tx, run, name, userId, groupId));
+        return ids;
+      });
+    } catch (e) {
+      const err = ((e as { cause?: unknown }).cause ?? e) as { code?: string };
+      if (err.code === '23503') {
+        throw new ResourceNotFoundException('Pattern', runs[0]!.input.patternId);
+      }
+      throw e;
+    }
   }
 
   private async persistRun(
-    run: StoredRun,
-    name: string,
-    userId: number,
+    tx: Tx, run: StoredRun, name: string, userId: number, groupId: string | null,
   ): Promise<number> {
     const { input, result } = run;
     const { stats } = result;
@@ -463,75 +535,62 @@ export class OptimizationsService {
       { isSaved: false },
     );
 
-    try {
-      return await this.db.transaction(async (tx) => {
-        const [locked] = await tx
-          .select({
-            userId: optimizationRuns.userId,
-            savedId: optimizationRuns.savedId,
-          })
-          .from(optimizationRuns)
-          .where(eq(optimizationRuns.id, run.id))
-          .for('update');
-        if (!locked || (locked.userId !== null && locked.userId !== userId)) {
-          throw new ResourceNotFoundException('Optimization run', run.id);
-        }
-        if (locked.savedId !== null) return locked.savedId;
-
-        const [created] = await tx
-          .insert(optimizationResults)
-          .values({
-            name,
-            userId,
-            patternId: input.patternId,
-            algorithmId: input.algorithmId,
-            customFabricId: input.fabric.fabricId ?? null,
-            fabricWidth: isLibrary ? null : input.fabric.widthMm,
-            fabricLength: isLibrary ? null : input.fabric.lengthMm,
-            seamAllowance: input.seamAllowanceMm,
-            cuttingAllowance: input.cuttingAllowanceMm,
-            minLengthMm: Math.round(result.minLength),
-            spentTime: Math.round(result.executionTime),
-            usableScrapsArea: Math.round(stats.usableScrapsArea),
-            usableScrapsPercentage: Math.round(stats.usableScrapsPercentage),
-            wasteScrapsArea: Math.round(stats.wasteArea),
-            wasteScrapsPercentage: Math.round(stats.wastePercentage),
-            remainingFabricArea: Math.round(stats.remainingFabricArea),
-            remainingAreaPercentage: Math.round(
-              stats.remainingFabricPercentage,
-            ),
-          })
-          .returning({ id: optimizationResults.id });
-
-        if (!created)
-          throw new Error('Optimization insert did not return a row.');
-
-        if (placements.length > 0) {
-          await tx.insert(placedPieces).values(
-            placements.map((p) => ({
-              patternPieceId: p.patternPieceId,
-              optimizationResultId: created.id,
-              rotationAngle:
-                (p.rotationAngle + (p.isFlipped180 ? 180 : 0)) % 360,
-              isMirrored: p.isMirrored,
-              placement: { x: p.x, y: p.y },
-            })),
-          );
-        }
-
-        await tx
-          .update(optimizationRuns)
-          .set({ savedId: created.id, savedName: name, userId })
-          .where(eq(optimizationRuns.id, run.id));
-
-        return created.id;
-      });
-    } catch (e) {
-      const err = ((e as { cause?: unknown }).cause ?? e) as { code?: string };
-      if (err.code === '23503')
-        throw new ResourceNotFoundException('Pattern', input.patternId);
-      throw e;
+    const [locked] = await tx
+      .select({ userId: optimizationRuns.userId, savedId: optimizationRuns.savedId })
+      .from(optimizationRuns)
+      .where(eq(optimizationRuns.id, run.id))
+      .for('update');
+    if (!locked || (locked.userId !== null && locked.userId !== userId)) {
+      throw new ResourceNotFoundException('Optimization run', run.id);
     }
+    if (locked.savedId !== null) {
+      if (groupId) throw new ResourceConflictException('These runs were already saved.');
+      return locked.savedId;
+    }
+
+    const [created] = await tx
+      .insert(optimizationResults)
+      .values({
+        name,
+        userId,
+        groupId,
+        patternId: input.patternId,
+        algorithmId: input.algorithmId,
+        customFabricId: input.fabric.fabricId ?? null,
+        fabricWidth: isLibrary ? null : input.fabric.widthMm,
+        fabricLength: isLibrary ? null : input.fabric.lengthMm,
+        seamAllowance: input.seamAllowanceMm,
+        cuttingAllowance: input.cuttingAllowanceMm,
+        minLengthMm: Math.round(result.minLength),
+        spentTime: Math.round(result.executionTime),
+        usableScrapsArea: Math.round(stats.usableScrapsArea),
+        usableScrapsPercentage: Math.round(stats.usableScrapsPercentage),
+        wasteScrapsArea: Math.round(stats.wasteArea),
+        wasteScrapsPercentage: Math.round(stats.wastePercentage),
+        remainingFabricArea: Math.round(stats.remainingFabricArea),
+        remainingAreaPercentage: Math.round(stats.remainingFabricPercentage),
+      })
+      .returning({ id: optimizationResults.id });
+    if (!created) throw new Error('Optimization insert did not return a row.');
+
+    if (placements.length > 0) {
+      await tx.insert(placedPieces).values(
+        placements.map((p) => ({
+          patternPieceId: p.patternPieceId,
+          optimizationResultId: created.id,
+          rotationAngle: (p.rotationAngle + (p.isFlipped180 ? 180 : 0)) % 360,
+          isMirrored: p.isMirrored,
+          placement: { x: p.x, y: p.y },
+        })),
+      );
+    }
+
+    await tx
+      .update(optimizationRuns)
+      .set({ savedId: created.id, savedName: name, userId })
+      .where(eq(optimizationRuns.id, run.id));
+
+    return created.id;
   }
 
   async getSaved(id: number, userId: number): Promise<OptimizationViewDto> {

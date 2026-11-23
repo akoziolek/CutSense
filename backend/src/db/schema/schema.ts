@@ -319,6 +319,7 @@ export const optimizationResults = pgTable(
     algorithmId: bigint('algorithm_id', { mode: 'number' })
       .notNull()
       .references(() => algorithmTypes.id, { onDelete: 'restrict' }),
+    groupId: uuid('group_id'),
     fabricWidth: integer('fabric_width'),
     fabricLength: integer('fabric_length'),
     customFabricId: bigint('custom_fabric_id', { mode: 'number' }).references(
@@ -350,6 +351,7 @@ export const optimizationResults = pgTable(
     index('optimization_results_algorithm_id_idx').on(table.algorithmId),
     index('optimization_results_custom_fabric_id_idx').on(table.customFabricId),
     index('optimization_user_created_idx').on(table.userId, table.createdAt),
+    index('optimization_results_group_id_idx').on(table.groupId),
   ],
 );
 

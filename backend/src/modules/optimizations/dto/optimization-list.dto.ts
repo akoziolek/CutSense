@@ -16,11 +16,24 @@ export class OptimizationListItemDto {
   @ApiProperty({ example: 'Flowy shirt' })
   patternName!: string;
 
-  @ApiProperty({ description: 'Used fabric length in millimeters', example: 1830 })
+  @ApiProperty({ description: 'Used fabric length in millimeters, summed over the whole group', example: 1830 })
   minLengthMm!: number;
 
-  @ApiPropertyOptional({ description: 'Library fabric name; omitted for custom dimensions', example: 'Silk' })
+  @ApiPropertyOptional({
+    description: 'Library fabric names joined with ", "; omitted when only custom dimensions were used',
+    example: 'Silk, Linen',
+  })
   fabricName?: string;
+
+  @ApiProperty({ description: 'Number of fabrics in the optimization', example: 2 })
+  fabricCount!: number;
+
+  @ApiProperty({
+    type: [Number],
+    description: 'IDs of all saved optimizations in the group (just this one when standalone)',
+    example: [12, 13],
+  })
+  memberIds!: number[];
 
   @ApiProperty({ example: 'Bottom-Left Decreasing' })
   algorithmName!: string;

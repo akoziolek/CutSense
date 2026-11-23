@@ -18,6 +18,7 @@ import {
 import {
   ApiBadRequestResponse,
   ApiBody,
+  ApiConflictResponse,
   ApiCookieAuth,
   ApiNoContentResponse,
   ApiNotFoundResponse,
@@ -48,6 +49,7 @@ import {
   OptimizationPdfService,
   type OptimizationPdfFormat,
 } from './pdf/optimization-pdf.service.js';
+import { SaveOptimizationGroupDto } from './dto/save-optimization-group.dto.js';
 
 enum PdfFormatParam {
   A4 = 'a4',
@@ -187,6 +189,31 @@ export class OptimizationController {
     @CurrentUser() user: AuthUser,
   ): Promise<{ id: number }> {
     return this.optimizationsService.save(runId, dto, user.id);
+  }
+
+  @Post('runs/save-group')
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Save several runs as one optimization',
+    description:
+      'Saves one run per fabric in a single transaction. The saved optimizations share a name and are listed, renamed and deleted together.',
+  })
+  @ApiBody({ type: SaveOptimizationGroupDto })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: { id: { type: 'number' }, ids: { type: 'array', items: { type: 'number' } } },
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Invalid body, an unsuccessful run, or runs of different patterns.' })
+  @ApiNotFoundResponse({ description: 'A run expired, does not exist or belongs to someone else.' })
+  @ApiConflictResponse({ description: 'A run was already saved.' })
+  saveGroup(
+    @Body() dto: SaveOptimizationGroupDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<{ id: number; ids: number[] }> {
+    return this.optimizationsService.saveGroup(dto, user.id);
   }
 
   @Get()

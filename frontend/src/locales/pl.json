@@ -132,7 +132,7 @@
     "form": {
       "required": "* Pole wymagane",
       "descriptionPlaceholder": "Wpisz skład, gramaturę lub przeznaczenie...",
-      "searchOrAddTags": "Szukaj tagów lub dodaj nowe..."
+      "searchOrAddTags": "Szukaj tagów..."
     },
     "upload": {
       "clickToUpload": "Kliknij, aby przesłać",
@@ -308,7 +308,7 @@
     "selectSize": "Wybierz rozmiar",
     "visibility": "Widoczność",
     "descriptionPlaceholder": "Wpisz skład, gramaturę lub przeznaczenie...",
-    "searchOrAddTags": "Szukaj tagów lub dodaj nowe...",
+    "searchOrAddTags": "Szukaj tagów...",
     "imageProcessError": "Nie udało się przetworzyć obrazu.",
     "imageProcessDescription": "Spróbuj ponownie później lub ręcznie dostosuj domyślny kształt.",
     "tagLoadError": "Nie udało się wczytać tagów wykrojów. Spróbuj ponownie.",

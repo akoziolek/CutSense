@@ -139,7 +139,7 @@
     "form": {
       "required": "* Required field",
       "descriptionPlaceholder": "Enter composition, weight, or intended use...",
-      "searchOrAddTags": "Search or add tags..."
+      "searchOrAddTags": "Search tags..."
     },
     "upload": {
       "clickToUpload": "Click to upload",
@@ -308,7 +308,7 @@
     "selectSize": "Select size",
     "visibility": "Visibility",
     "descriptionPlaceholder": "Enter composition, weight, or intended use...",
-    "searchOrAddTags": "Search or add tags...",
+    "searchOrAddTags": "Search tags...",
     "imageProcessError": "We couldn't process this image.",
     "imageProcessDescription": "Try again later or adjust the default shape manually.",
     "tagLoadError": "Could not load pattern tags. Please try again.",

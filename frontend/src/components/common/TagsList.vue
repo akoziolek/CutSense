@@ -2,10 +2,14 @@
 import { Badge } from '@/components/ui/badge'
 import { Tag } from 'lucide-vue-next'
 import type { NameTag } from '@/types/common'
+import { useI18n } from 'vue-i18n'
+import { localizedText } from '@/utils/localizedText'
 
 defineProps<{
   tags: NameTag[]
 }>()
+
+const { locale } = useI18n()
 </script>
 
 <template>
@@ -20,7 +24,7 @@ defineProps<{
         variant="secondary"
         class="rounded-md px-2.5 py-0.5 text-xs font-inter bg-brand-grey hover:shadow-xs border-muted text-foreground"
       >
-        {{ tag.name }}
+        {{ localizedText(tag.name, locale) }}
       </Badge>
     </div>
     <div

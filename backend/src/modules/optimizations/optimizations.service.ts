@@ -38,7 +38,7 @@ import type {
   OptimizationViewDto,
 } from './dto/optimization-view.dto.js';
 import {
-  AVAILABLE_ALGORITHMS,
+  AVAILABLE_ALGORITHM_IDS,
   DEFAULT_CUTTING_ALLOWANCE_MM,
   DEFAULT_SEAM_ALLOWANCE_MM,
   ENGINE_ALGORITHM_IDS,
@@ -88,7 +88,7 @@ export class OptimizationsService {
 
   async getAlgorithms(): Promise<AlgorithmDto[]> {
     const rows = await this.db.query.algorithmTypes.findMany({
-      where: inArray(algorithmTypes.name, AVAILABLE_ALGORITHMS),
+      where: inArray(algorithmTypes.id, AVAILABLE_ALGORITHM_IDS),
       columns: { id: true, name: true, description: true },
       orderBy: (algorithm, { asc }) => [asc(algorithm.id)],
     });
@@ -133,6 +133,7 @@ export class OptimizationsService {
         result,
         pattern,
         fabricMetadata,
+        await this.getAlgorithmName(input.algorithmId),
       ),
       { runId, isSaved: false },
     );
@@ -146,6 +147,9 @@ export class OptimizationsService {
     const source = OptimizationViewMapper.sourceFromInput(
       run.input,
       run.result,
+      undefined,
+      undefined,
+      await this.getAlgorithmName(run.input.algorithmId),
     );
     source.fabricMetadata = await this.getFabricMetadata(
       run.input.fabric.fabricId,
@@ -245,7 +249,6 @@ export class OptimizationsService {
         .offset((page - 1) * limit),
       this.db.select({ total: count() }).from(optimizationResults).where(where),
     ]);
-
     const covers = await this.patternsService.getPatternCovers(
       rows.map((r) => r.patternId),
       userId,
@@ -290,9 +293,9 @@ export class OptimizationsService {
       case OptimizationSortOption.FABRIC_DESC:
         return [desc(lower(sql`coalesce(${fabrics.name}, '')`)), desc(id)];
       case OptimizationSortOption.ALGORITHM_ASC:
-        return [asc(lower(algorithmTypes.name)), asc(id)];
+        return [asc(sql`lower(${algorithmTypes.name}->>'en')`), asc(id)];
       case OptimizationSortOption.ALGORITHM_DESC:
-        return [desc(lower(algorithmTypes.name)), desc(id)];
+        return [desc(sql`lower(${algorithmTypes.name}->>'en')`), desc(id)];
       case OptimizationSortOption.DATE_DESC:
       default:
         return [desc(optimizationResults.createdAt), desc(id)];
@@ -370,9 +373,9 @@ export class OptimizationsService {
     const algorithm = await this.db.query.algorithmTypes.findFirst({
       where: and(
         eq(algorithmTypes.id, dto.algorithmId),
-        inArray(algorithmTypes.name, AVAILABLE_ALGORITHMS),
+        inArray(algorithmTypes.id, AVAILABLE_ALGORITHM_IDS),
       ),
-      columns: { id: true, name: true },
+      columns: { id: true },
     });
     if (!algorithm) {
       throw new RequestValidationException(
@@ -425,7 +428,7 @@ export class OptimizationsService {
       input: {
         patternId: dto.patternId,
         algorithmId: algorithm.id,
-        algorithmName: algorithm.name,
+        algorithmName: this.getEngineAlgorithmName(algorithm.id),
         fabric,
         seamAllowanceMm: dto.seamAllowanceMm,
         cuttingAllowanceMm: dto.cuttingAllowanceMm,
@@ -667,7 +670,7 @@ export class OptimizationsService {
             eq(optimizationResults.userId, userId),
           ),
         )
-        .where(inArray(algorithmTypes.name, AVAILABLE_ALGORITHMS))
+        .where(inArray(algorithmTypes.id, AVAILABLE_ALGORITHM_IDS))
         .groupBy(algorithmTypes.id, algorithmTypes.name)
         .orderBy(asc(algorithmTypes.id)),
     ]);
@@ -677,6 +680,29 @@ export class OptimizationsService {
       fabrics: fabricRows,
       algorithms: algorithmRows,
     };
+  }
+
+  private getEngineAlgorithmName(algorithmId: number): string {
+    const algorithm = Object.entries(ENGINE_ALGORITHM_IDS).find(
+      ([, id]) => id === algorithmId,
+    );
+    if (!algorithm) {
+      throw new RequestValidationException(
+        'The selected algorithm is not available.',
+      );
+    }
+    return algorithm[0];
+  }
+
+  private async getAlgorithmName(algorithmId: number) {
+    const algorithm = await this.db.query.algorithmTypes.findFirst({
+      where: eq(algorithmTypes.id, algorithmId),
+      columns: { name: true },
+    });
+    if (!algorithm) {
+      throw new ResourceNotFoundException('Algorithm', algorithmId);
+    }
+    return algorithm.name;
   }
 
   async updateRunPlacements(

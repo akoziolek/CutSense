@@ -52,13 +52,14 @@ import type {
   OptimizationSortField,
 } from '@/types/optimization'
 import { useOptimizations } from '@/composables/lists/useOptimizations'
+import { localizedText } from '@/utils/localizedText'
 
 const emit = defineEmits<{
   (e: 'loaded', total: number): void
   (e: 'update:selectionMode', value: boolean): void
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -293,7 +294,7 @@ const handleRename = async (name: string) => {
                     :for="`filter-algorithm-${algorithm.id}`"
                     class="cursor-pointer text-xs font-normal"
                   >
-                    {{ algorithm.name }}
+                    {{ localizedText(algorithm.name, locale) }}
                   </Label>
                 </div>
               </div>
@@ -372,7 +373,7 @@ const handleRename = async (name: string) => {
               <TableCell>{{ formatCardDate(item.createdAt) }}</TableCell>
               <TableCell>{{ item.patternName }}</TableCell>
               <TableCell>{{ item.fabricName ?? t('optimizations.customDimensions') }}</TableCell>
-              <TableCell>{{ item.algorithmName }}</TableCell>
+              <TableCell>{{ localizedText(item.algorithmName, locale) }}</TableCell>
               <TableCell class="pr-4 sm:pr-6">
                 <div class="-ml-2 flex items-center gap-1" @click.stop @pointerdown.stop>
                   <Button

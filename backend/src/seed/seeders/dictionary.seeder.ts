@@ -9,27 +9,30 @@ export async function seedDictionaries(db: any) {
   await db
     .insert(schema.algorithmTypes)
     .values(algorithmSeeds)
-    .onConflictDoNothing({ target: schema.algorithmTypes.name });
+    .onConflictDoNothing();
 
   await db
     .insert(schema.tagsForPatterns)
     .values(patternTagNames.map((name) => ({ name })))
-    .onConflictDoNothing({ target: schema.tagsForPatterns.name });
+    .onConflictDoNothing();
 
   await db
     .insert(schema.tagsForFabrics)
     .values(fabricTagNames.map((name) => ({ name })))
-    .onConflictDoNothing({ target: schema.tagsForFabrics.name });
+    .onConflictDoNothing();
 
-  await db.insert(schema.users).values(
-    Array.from({ length: 10 }, (_, i) => ({
-      googleId: `google-seed-id-${i + 1}`,
-      email: `user${i + 1}@example.com`,
-      name: `User${i + 1}`,
-      surname: `Test`,
-      nickname: `user_${i + 1}`,
-    })),
-  );
+  await db
+    .insert(schema.users)
+    .values(
+      Array.from({ length: 10 }, (_, i) => ({
+        googleId: `google-seed-id-${i + 1}`,
+        email: `user${i + 1}@example.com`,
+        name: `User${i + 1}`,
+        surname: `Test`,
+        nickname: `user_${i + 1}`,
+      })),
+    )
+    .onConflictDoNothing();
 
   const [users, patternTagRows, fabricTagRows] = await Promise.all([
     db.select({ id: schema.users.id }).from(schema.users),

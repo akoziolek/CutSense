@@ -15,9 +15,10 @@ import type {
   EngineResult,
 } from '../optimizer-engine/optimizer-engine.types.js';
 import { placePiece } from '../../common/geometry/shapes-geometry.js';
+import type { LocalizedText } from '../../db/schema/schema.js';
 
 export interface ViewSource {
-  algorithmName: string;
+  algorithmName: LocalizedText;
   fabric: OptimizerFabricInputDto;
   fabricMetadata?: FabricMetadataDto;
   pattern?: PatternSummaryDto;
@@ -123,9 +124,13 @@ export class OptimizationViewMapper {
     result: EngineResult,
     pattern?: PatternSummaryDto,
     fabricMetadata?: FabricMetadataDto,
+    algorithmName: LocalizedText = {
+      pl: input.algorithmName,
+      en: input.algorithmName,
+    },
   ): ViewSource {
     return {
-      algorithmName: input.algorithmName,
+      algorithmName,
       fabric: {
         ...input.fabric,
         boundary: this.toOptimizerPoints(input.fabric.boundary),

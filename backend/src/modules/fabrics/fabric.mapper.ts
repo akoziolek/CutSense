@@ -5,6 +5,7 @@ import { PointDto } from '../../common/geometry/point.dto.js';
 import { withoutClosingPoint } from '../../common/geometry/shapes-geometry.js';
 import { FabricGeometryDto } from './dto/fabric-geometry.dto.js';
 import type { FabricSummaryDto } from './dto/fabric-summary.dto.js';
+import type { LocalizedText } from '../../db/schema/schema.js';
 
 interface FabricWithTags {
   id: number;
@@ -19,7 +20,7 @@ interface FabricWithTags {
   tags: {
     tag: {
       id: number;
-      name: string;
+      name: LocalizedText;
     };
   }[];
   boundary: PointDto[];

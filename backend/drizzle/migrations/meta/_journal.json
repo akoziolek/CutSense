@@ -162,6 +162,13 @@
       "when": 1795372566131,
       "tag": "0022_remove_min_len_from_optimization_result",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795462803279,
+      "tag": "0023_add_localized_text",
+      "breakpoints": true
     }
   ]
 }

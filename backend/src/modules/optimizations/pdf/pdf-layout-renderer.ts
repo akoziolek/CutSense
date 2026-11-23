@@ -73,9 +73,10 @@ export function drawSummaryCoverPage(
   drawSafeText(doc, title, margin, margin);
 
   doc.font('Helvetica').fontSize(9).fillColor(PDF_PALETTE.inkSecondary);
+  // TODO use lang send from frontend
   drawSafeText(
     doc,
-    `Algorithm: ${view.algorithmName}   |   Fabric: ${Math.round(fabricBounds.width)} x ${Math.round(fabricBounds.height)} mm   |   Allowances: ${view.seamAllowanceMm} / ${view.cuttingAllowanceMm} mm`,
+    `Algorithm: ${view.algorithmName.en}   |   Fabric: ${Math.round(fabricBounds.width)} x ${Math.round(fabricBounds.height)} mm   |   Allowances: ${view.seamAllowanceMm} / ${view.cuttingAllowanceMm} mm`,
     margin,
     margin + 20,
   );

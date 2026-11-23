@@ -4,6 +4,7 @@ import { api, ApiError } from '@/api/client'
 import { usePatternAddingStore } from '@/stores/addingPatternStore'
 import { PATTERN_SIZE, PATTERN_VISIBILITY, type PatternFormPayload } from '@/types/pattern'
 import { toImageMm } from '@/utils/geometry'
+import { localizedText } from '@/utils/localizedText'
 import type { Point2D } from '@/types/geometry'
 import { toast } from 'vue-sonner'
 
@@ -85,7 +86,7 @@ export function usePatternBoundaryAnalysis() {
 }
 
 export function useCreatePattern() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const patternStore = usePatternAddingStore()
 
   const isSubmitting = ref(false)
@@ -176,7 +177,10 @@ export function useCreatePattern() {
       formData.append('name', payload.name)
       formData.append('size', payload.size)
       formData.append('description', payload.description ?? '')
-      formData.append('tags', JSON.stringify(payload.tags.map((tag) => tag.name)))
+      formData.append(
+        'tags',
+        JSON.stringify(payload.tags.map((tag) => localizedText(tag.name, locale.value))),
+      )
       formData.append('visibility', payload.visibility)
       formData.append('images', JSON.stringify(imageDimensions))
       formData.append('pieces', JSON.stringify(validPieces))

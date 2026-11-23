@@ -9,6 +9,8 @@ import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import type { OptimizationAlgorithm } from '@/types/optimization'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { useRunOptimization } from '@/composables/wizards/useOptimizationWizard'
+import { useI18n } from 'vue-i18n'
+import { localizedText } from '@/utils/localizedText'
 
 const emit = defineEmits<{
   (e: 'next'): void
@@ -16,6 +18,7 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const { locale } = useI18n()
 const store = useOptimizationAddingStore()
 const {
   algorithms,
@@ -28,9 +31,8 @@ const {
 } = useRunOptimization()
 
 const getAlgorithmIcon = (algorithm: OptimizationAlgorithm): Component => {
-  const key = algorithm.name.toLowerCase()
-  if (key.includes('rotation')) return RotateCw
-  if (key.includes('decreasing')) return ArrowDownWideNarrow
+  if (algorithm.id === 1) return ArrowDownWideNarrow
+  if (algorithm.id === 2) return RotateCw
   return Sparkles
 }
 
@@ -76,8 +78,8 @@ const handleSubmit = async () => {
         v-for="algorithm in algorithms"
         :key="algorithm.id"
         class="h-full w-full"
-        :title="algorithm.name"
-        :description="algorithm.description"
+        :title="localizedText(algorithm.name, locale)"
+        :description="algorithm.description ? localizedText(algorithm.description, locale) : undefined"
         :selected="store.algorithmId === algorithm.id"
         @select="store.selectAlgorithm(algorithm.id)"
       >

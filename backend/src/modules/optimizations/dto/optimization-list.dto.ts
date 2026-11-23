@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import type { LocalizedText } from '../../../db/schema/schema.js';
 
 export class OptimizationListItemDto {
   @ApiProperty({ example: 1 })
@@ -19,8 +20,10 @@ export class OptimizationListItemDto {
   @ApiPropertyOptional({ description: 'Library fabric name; omitted for custom dimensions', example: 'Silk' })
   fabricName?: string;
 
-  @ApiProperty({ example: 'Bottom-Left Decreasing' })
-  algorithmName!: string;
+  @ApiProperty({
+    example: { pl: 'Szybki i prosty', en: 'Quick and Simple' },
+  })
+  algorithmName!: LocalizedText;
 }
 
 export class OptimizationListResponseDto {

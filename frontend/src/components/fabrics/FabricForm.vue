@@ -31,10 +31,11 @@ import FormFloatingActions from '../forms/FormFloatingActions.vue'
 import Skeleton from '../ui/skeleton/Skeleton.vue'
 import type { NameTag } from '@/types/common'
 import { useResourceTags } from '@/composables/resources/useResourceTags.ts'
+import { localizedText } from '@/utils/localizedText'
 
 const MAX_NAME_LENGTH = 35
 const MAX_DESC_LENGTH = 400
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const emit = defineEmits<{
   (e: 'submit', payload: FabricFormPayload): void
@@ -70,7 +71,14 @@ const {
   loadTags: loadAvailableTags,
 } = useResourceTags('/fabrics/tags', 'fabrics.tagLoadError')
 
-const selectedTagNames = ref<string[]>(props.tags ? props.tags.map((tag) => tag.name) : [])
+const selectedTagNames = ref<string[]>(
+  props.tags ? props.tags.map((tag) => localizedText(tag.name, locale.value)) : [],
+)
+
+const addTagAliases = (map: Map<string, NameTag>, tag: NameTag) => {
+  map.set(tag.name.pl.toLowerCase(), tag)
+  map.set(tag.name.en.toLowerCase(), tag)
+}
 
 const knownTagsMap = computed(() => {
   const map = new Map<string, NameTag>()
@@ -78,14 +86,14 @@ const knownTagsMap = computed(() => {
   if (Array.isArray(props.tags)) {
     props.tags.forEach((tag) => {
       if (typeof tag === 'object' && tag && tag.name) {
-        map.set(tag.name.toLowerCase(), tag)
+        addTagAliases(map, tag)
       }
     })
   }
 
   availableTags.value.forEach((tag) => {
     if (tag && tag.name) {
-      map.set(tag.name.toLowerCase(), tag)
+      addTagAliases(map, tag)
     }
   })
 
@@ -95,7 +103,10 @@ const knownTagsMap = computed(() => {
 const selectedTags = computed<NameTag[]>(() => {
   return selectedTagNames.value.map((name) => {
     const lower = name.toLowerCase()
-    return knownTagsMap.value.get(lower) || { id: -1, name }
+    return knownTagsMap.value.get(lower) || {
+      id: -1,
+      name: { pl: name, en: name },
+    }
   })
 })
 
@@ -106,7 +117,9 @@ const { contains } = useFilter({ sensitivity: 'base' })
 const filteredTags = computed(() =>
   searchTerm.value === ''
     ? availableTags.value
-    : availableTags.value.filter((tag) => contains(tag.name, searchTerm.value)),
+    : availableTags.value.filter((tag) =>
+        contains(localizedText(tag.name, locale.value), searchTerm.value),
+      ),
 )
 
 const handleEnterKey = () => {
@@ -114,11 +127,18 @@ const handleEnterKey = () => {
   if (!trimmed) return
 
   const existingTag = availableTags.value.find(
-    (t) => t.name.toLowerCase() === trimmed.toLowerCase(),
+    (tag) =>
+      localizedText(tag.name, locale.value).toLowerCase() ===
+        trimmed.toLowerCase() ||
+      tag.name.pl.toLowerCase() === trimmed.toLowerCase() ||
+      tag.name.en.toLowerCase() === trimmed.toLowerCase(),
   )
 
-  if (existingTag && !selectedTagNames.value.includes(existingTag.name)) {
-    selectedTagNames.value = [...selectedTagNames.value, existingTag.name]
+  const existingTagName = existingTag
+    ? localizedText(existingTag.name, locale.value)
+    : undefined
+  if (existingTagName && !selectedTagNames.value.includes(existingTagName)) {
+    selectedTagNames.value = [...selectedTagNames.value, existingTagName]
     searchTerm.value = ''
     open.value = false
   }
@@ -151,7 +171,9 @@ watch(
     if (newDesc !== description.value) {
       description.value = newDesc
     }
-    const parsedNames = newTags ? newTags.map((tag) => tag.name) : []
+    const parsedNames = newTags
+      ? newTags.map((tag) => localizedText(tag.name, locale.value))
+      : []
     if (JSON.stringify(parsedNames) !== JSON.stringify(selectedTagNames.value)) {
       selectedTagNames.value = parsedNames
     }
@@ -160,6 +182,12 @@ watch(
   },
   { deep: true },
 )
+
+watch(locale, () => {
+  selectedTagNames.value = selectedTags.value.map((tag) =>
+    localizedText(tag.name, locale.value),
+  )
+})
 
 watch([fabricName, description, selectedTagNames], () => {
   if (isSyncingFromProps) return
@@ -305,11 +333,11 @@ onMounted(() => {
               <ListboxItem
                 v-for="item in filteredTags"
                 :key="item.id"
-                :value="item.name"
+                :value="localizedText(item.name, locale)"
                 class="data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-inter outline-hidden select-none"
                 @select="searchTerm = ''"
               >
-                <span>{{ item.name }}</span>
+                <span>{{ localizedText(item.name, locale) }}</span>
 
                 <ListboxItemIndicator class="ml-auto inline-flex items-center justify-center">
                   <CheckIcon class="h-4 w-4 text-primary" />

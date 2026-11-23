@@ -1,4 +1,5 @@
 import type { ApiErrorBody } from '@/types/api'
+import i18n from '@/i18n'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 const API_BASE = `${API_URL}/v1`
@@ -16,6 +17,9 @@ export const UNAUTHORIZED_EVENT = 'auth:unauthorized'
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers)
+  if (!headers.has('Accept-Language')) {
+    headers.set('Accept-Language', String(i18n.global.locale.value))
+  }
   if (!(init.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
@@ -40,9 +44,15 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export async function apiBlob(path: string, init: RequestInit = {}): Promise<Blob> {
+  const headers = new Headers(init.headers)
+  if (!headers.has('Accept-Language')) {
+    headers.set('Accept-Language', String(i18n.global.locale.value))
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     credentials: 'include',
+    headers,
   })
 
   if (!res.ok) {

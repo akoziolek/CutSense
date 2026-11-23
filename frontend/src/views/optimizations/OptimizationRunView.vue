@@ -2,6 +2,7 @@
 import { ref, watch, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { localizedText } from '@/utils/localizedText'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DetailsCard from '@/components/common/DetailsCard.vue'
@@ -44,7 +45,7 @@ import { useOptimizationRun } from '@/composables/optimization/useOptimizationRu
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { state: auth } = useAuth()
 
 // the same view serves an unsaved run (/optimizations/run/:runId) and a saved result (/optimizations/:id)
@@ -140,7 +141,7 @@ const metaItems = computed<MetaItem[]>(() =>
         {
           icon: Sparkles,
           label: t('optimizations.algorithm'),
-          value: optimization.value.algorithmName,
+          value: localizedText(optimization.value.algorithmName, locale.value),
         },
         {
           icon: Scissors,

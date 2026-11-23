@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import type { LocalizedText } from '../../../db/schema/schema.js';
 
 export class FabricTagDto {
   @ApiProperty({
@@ -8,8 +9,8 @@ export class FabricTagDto {
   id!: number;
 
   @ApiProperty({
-    description: 'Tag name',
-    example: 'cotton',
+    description: 'Tag name in Polish and English.',
+    example: { pl: 'bawełna', en: 'cotton' },
   })
-  name!: string;
+  name!: LocalizedText;
 }

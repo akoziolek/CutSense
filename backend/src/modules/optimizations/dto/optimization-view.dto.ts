@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import type { LocalizedText } from '../../../db/schema/schema.js';
 import { OptimizerFabricInputDto } from './optimizer-input.dto.js';
 import type { ViewStats } from '../../optimizer-engine/optimizer-engine.types.js';
 import { PointDto } from '../../../common/geometry/point.dto.js';
@@ -64,7 +65,7 @@ export class OptimizationViewDto {
   isSaved!: boolean;
 
   @ApiProperty()
-  algorithmName!: string;
+  algorithmName!: LocalizedText;
 
   @ApiProperty({ type: OptimizationFabricViewDto })
   fabric!: OptimizationFabricViewDto;

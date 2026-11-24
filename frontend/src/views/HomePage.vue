@@ -14,6 +14,7 @@ import type { OptimizationListItem } from '@/types/optimization'
 import type { PatternListItem } from '@/types/pattern'
 import type { FabricListItem } from '@/types/fabric'
 import { useDashboardStatistics } from '@/composables/home/useDashboardStatistics'
+import { optimizationRoute } from '@/utils/optimizationRoute'
 
 interface QuickActionItem {
   label: string
@@ -124,12 +125,7 @@ const statCards = computed<StatCardItem[]>(() => {
           empty-description="Run an optimization and save the result to find it here."
           :empty-cta-label="t('home.actions.newOptimization')"
           empty-cta-to="/optimizations/new"
-          :get-item-to="
-            (item: OptimizationListItem) => ({
-              name: 'OptimizationDetails',
-              params: { id: item.id },
-            })
-          "
+          :get-item-to="(item: OptimizationListItem) => optimizationRoute(item)"
           :get-meta="
             (item: OptimizationListItem) =>
               [formatCardDate(item.createdAt), item.patternName].filter(Boolean).join(' · ')

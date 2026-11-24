@@ -83,26 +83,34 @@ export function useRunOptimization() {
     }
   }
 
-  const runOptimization = async (): Promise<string | number | null> => {
+  const runOptimization = async (): Promise<string[] | null> => {
     if (isSubmitting.value) return null
-    const payload = store.toPayload()
-    if (!payload || !store.canSubmit) {
+    const payloads = store.toPayloads()
+    if (!payloads) {
       submitError.value = t('optimizations.incompleteConfiguration')
       return null
     }
 
     submitError.value = ''
     isSubmitting.value = true
+    const runIds: string[] = []
     try {
-      const view = await api<OptimizationView>('/optimizations/run', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      })
+      for (const [index, payload] of payloads.entries()) {
+        try {
+          const view = await api<OptimizationView>('/optimizations/run', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          })
+          if (view.runId) runIds.push(view.runId)
+        } catch (e) {
+          const message =
+            e instanceof ApiError ? e.body.message : t('optimizations.prepareFailed')
+          submitError.value = payloads.length > 1 ? `Fabric ${index + 1}: ${message}` : message
+          return null
+        }
+      }
       store.markSubmitted()
-      return view.runId ?? null
-    } catch (e) {
-      submitError.value = e instanceof ApiError ? e.body.message : t('optimizations.prepareFailed')
-      return null
+      return runIds
     } finally {
       isSubmitting.value = false
     }

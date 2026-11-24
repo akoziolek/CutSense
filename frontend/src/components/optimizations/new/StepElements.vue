@@ -130,7 +130,7 @@ onMounted(load)
     <FormFloatingActions
       :cancel-label="$t('common.actions.cancel')"
       :next-label="$t('common.actions.next')"
-      :disabled="isLoading || !!loadError || !store.canSubmit"
+      :disabled="isLoading || !!loadError || !store.elementsValid"
       @cancel="emit('cancel')"
       @next="emit('next')"
     />

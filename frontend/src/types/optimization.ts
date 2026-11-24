@@ -8,8 +8,6 @@ export interface OptimizationFilters extends BaseFilters {
   algorithmIds: number[]
 }
 
-export type FabricSource = 'custom' | 'library'
-
 export type SelectedItem = NamedItem
 
 export interface OptimizationAlgorithm extends NamedItem {
@@ -40,6 +38,15 @@ export interface OptimizationPieceConfig {
   twoWay: boolean
 }
 
+export type PoolFabric =
+  | { key: string; source: 'custom'; widthCm: string; heightCm: string }
+  | { key: string; source: 'library'; fabricId: number; name: string }
+
+export interface WizardPieceConfig extends OptimizationPieceConfig {
+  fabricKey: string | null
+}
+
+// one request body per fabric
 export interface CreateOptimizationPayload {
   patternId: number
   algorithmId: number
@@ -115,6 +122,8 @@ export interface OptimizationListItem extends NamedItem {
   patternId: number
   patternName: string
   fabricName?: string
+  fabricCount: number
+  memberIds: number[]
   algorithmName: string
   minLengthMm: number
 }

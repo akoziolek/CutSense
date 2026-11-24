@@ -16,6 +16,7 @@ const PatternsPage = () => import('../views/patterns/PatternsView.vue')
 const NewPatternPage = () => import('../views/patterns/NewPatternView.vue')
 const PatternEditPage = () => import('../views/patterns/PatternEditView.vue')
 const OptimizationRunPage = () => import('../views/optimizations/OptimizationRunView.vue')
+const OptimizationGroupPage = () => import('../views/optimizations/OptimizationGroupView.vue')
 const OptimizationsPage = () => import('../views/optimizations/OptimizationsView.vue')
 const NewOptimizationPage = () => import('../views/optimizations/NewOptimizationView.vue')
 
@@ -62,6 +63,13 @@ const routes = [
     path: '/optimizations/run/:runId',
     name: 'OptimizationRun',
     component: OptimizationRunPage,
+    meta: { isPublic: true },
+  },
+  {
+    // ?runs=<runId>,<runId> for unsaved runs, ?ids=<id>,<id> for a saved group
+    path: '/optimizations/group',
+    name: 'OptimizationGroup',
+    component: OptimizationGroupPage,
     meta: { isPublic: true },
   },
   {

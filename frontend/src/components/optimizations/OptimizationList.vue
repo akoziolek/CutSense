@@ -53,6 +53,7 @@ import type {
   OptimizationSortField,
 } from '@/types/optimization'
 import { useOptimizations } from '@/composables/lists/useOptimizations'
+import { optimizationRoute } from '@/utils/optimizationRoute'
 
 const emit = defineEmits<{ (e: 'loaded', total: number): void }>()
 
@@ -353,10 +354,7 @@ const handleRename = async (name: string) => {
               @contextmenu.prevent="selectFromGesture(item.id)"
             >
               <TableCell class="font-medium">
-                <RouterLink
-                  :to="{ name: 'OptimizationDetails', params: { id: item.id } }"
-                  class="hover:underline"
-                >
+                <RouterLink :to="optimizationRoute(item)" class="hover:underline">
                   {{ item.name }}
                 </RouterLink>
               </TableCell>

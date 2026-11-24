@@ -6,17 +6,15 @@ import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StepCounter from '@/components/forms/StepCounter.vue'
 import DiscardChangesModal from '@/components/forms/DiscardChangesModal.vue'
-import StepFabricSource from '@/components/optimizations/new/StepFabricSource.vue'
-import StepCustomDimensions from '@/components/optimizations/new/StepCustomDimensions.vue'
-import StepFabricLibrary from '@/components/optimizations/new/StepFabricLibrary.vue'
 import StepPatternLibrary from '@/components/optimizations/new/StepPatternLibrary.vue'
-import StepAlgorithm from '@/components/optimizations/new/StepAlgorithm.vue'
 import StepElements from '@/components/optimizations/new/StepElements.vue'
+import StepFabrics from '@/components/optimizations/new/StepFabrics.vue'
+import StepAlgorithm from '@/components/optimizations/new/StepAlgorithm.vue'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { useUnsavedChangesGuard } from '@/composables/forms/useUnsavedChangesGuard'
 import { provideWizardNav } from '@/composables/forms/useWizardNav'
 
-const TOTAL_STEPS = 5
+const TOTAL_STEPS = 4
 
 const route = useRoute()
 const router = useRouter()
@@ -30,10 +28,9 @@ const { isCancelModalOpen, handleCancel, confirmExit } = useUnsavedChangesGuard(
 })
 
 const maxStep = computed(() => {
-  if (!store.fabricSource) return 1
-  if (!store.isFabricConfigured) return 2
-  if (!store.pattern) return 3
-  return store.canSubmit ? 5 : 4
+  if (!store.pattern) return 1
+  if (!store.elementsValid) return 2
+  return store.piecesAssigned ? 4 : 3
 })
 
 const validStep = computed(() => {
@@ -66,22 +63,15 @@ watch(
   { immediate: true },
 )
 
-const title = computed(() => {
-  switch (step.value) {
-    case 1:
-      return t('optimizations.fabricSource')
-    case 2:
-      return store.fabricSource === 'custom'
-        ? t('optimizations.customDimensions')
-        : t('optimizations.fabricLibrary')
-    case 3:
-      return t('optimizations.patternLibrary')
-    case 4:
-      return t('optimizations.elements')
-    default:
-      return t('optimizations.strategy')
-  }
-})
+const title = computed(
+  () =>
+    [
+      t('optimizations.patternLibrary'),
+      t('optimizations.elements'),
+      t('common.navigation.fabrics'),
+      t('optimizations.strategy'),
+    ][step.value - 1],
+)
 </script>
 
 <template>
@@ -93,20 +83,9 @@ const title = computed(() => {
         </template>
       </PageHeader>
 
-      <StepFabricSource v-if="step === 1" @next="step = 2" @cancel="handleCancel" />
-
-      <template v-else-if="step === 2">
-        <!-- TODO input in M? -->
-        <StepCustomDimensions
-          v-if="store.fabricSource === 'custom'"
-          @next="step = 3"
-          @cancel="handleCancel"
-        />
-        <StepFabricLibrary v-else @next="step = 3" @cancel="handleCancel" />
-      </template>
-
-      <StepPatternLibrary v-else-if="step === 3" @next="step = 4" @cancel="handleCancel" />
-      <StepElements v-else-if="step === 4" @next="step = 5" @cancel="handleCancel" />
+      <StepPatternLibrary v-if="step === 1" @next="step = 2" @cancel="handleCancel" />
+      <StepElements v-else-if="step === 2" @next="step = 3" @cancel="handleCancel" />
+      <StepFabrics v-else-if="step === 3" @next="step = 4" @cancel="handleCancel" />
       <StepAlgorithm v-else @cancel="handleCancel" />
     </div>
 

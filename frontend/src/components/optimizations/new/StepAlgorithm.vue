@@ -37,10 +37,14 @@ const getAlgorithmIcon = (algorithm: OptimizationAlgorithm): Component => {
 onMounted(load)
 
 const handleSubmit = async () => {
-  const runId = await runOptimization()
-  if (runId !== null) {
-    await router.push({ name: 'OptimizationRun', params: { runId } })
-  }
+  const runIds = await runOptimization()
+  if (!runIds?.length) return
+
+  await router.push(
+    runIds.length === 1
+      ? { name: 'OptimizationRun', params: { runId: runIds[0] } }
+      : { name: 'OptimizationGroup', query: { runs: runIds.join(',') } },
+  )
 }
 </script>
 

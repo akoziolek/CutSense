@@ -6,7 +6,6 @@ import type {
 import { withoutClosingPoint } from '../../common/geometry/shapes-geometry.js';
 import type {
   OptimizationViewDto,
-  OptimizationLayoutViewDto,
   FabricMetadataDto,
   PatternSummaryDto,
   PlacementDto,
@@ -17,19 +16,15 @@ import type {
 } from '../optimizer-engine/optimizer-engine.types.js';
 import { placePiece } from '../../common/geometry/shapes-geometry.js';
 
-export interface LayoutSource {
-  fabric: OptimizerFabricInputDto;
-  fabricMetadata?: FabricMetadataDto;
-  result: EngineResult;
-}
-
 export interface ViewSource {
   algorithmName: string;
+  fabric: OptimizerFabricInputDto;
+  fabricMetadata?: FabricMetadataDto;
   pattern?: PatternSummaryDto;
   seamAllowanceMm: number;
   cuttingAllowanceMm: number;
   geometry: Map<number, { boundary: OptimizerPointDto[]; grainline: number }>;
-  layouts: LayoutSource[];
+  result: EngineResult;
 }
 
 export type ViewExtra = Partial<
@@ -130,14 +125,19 @@ export class OptimizationViewMapper {
     };
   }
 
- static sourceFromInput(
+  static sourceFromInput(
     input: OptimizerInputDto,
-    results: EngineResult[],
+    result: EngineResult,
     pattern?: PatternSummaryDto,
-    fabricMetadata: (FabricMetadataDto | undefined)[] = [],
+    fabricMetadata?: FabricMetadataDto,
   ): ViewSource {
     return {
       algorithmName: input.algorithmName,
+      fabric: {
+        ...input.fabric,
+        boundary: this.toOptimizerPoints(input.fabric.boundary),
+      },
+      fabricMetadata,
       pattern,
       seamAllowanceMm: input.seamAllowanceMm,
       cuttingAllowanceMm: input.cuttingAllowanceMm,
@@ -150,39 +150,29 @@ export class OptimizationViewMapper {
           },
         ]),
       ),
-      // `results` has the same order as `input.fabrics`
-      layouts: input.fabrics.map((fabric, index) => ({
-        fabric: { ...fabric, boundary: this.toOptimizerPoints(fabric.boundary) },
-        fabricMetadata: fabricMetadata[index],
-        result: results[index]!,
-      })),
+      result,
     };
   }
 
   static toView(src: ViewSource, extra: ViewExtra): OptimizationViewDto {
-    const layouts: OptimizationLayoutViewDto[] = src.layouts.map((layout) => ({
-      fabric: { ...layout.fabric, ...layout.fabricMetadata },
-      wasSuccessful: layout.result.wasSuccessful,
-      minLengthMm: layout.result.minLength,
-      stats: layout.result.stats,
-      placements: layout.result.positions.flatMap((pos) => {
-        const piece = src.geometry.get(pos.id);
-        if (!piece) return [];
-        return [
-          this.placeOne(piece, pos, pos.x, pos.y, layout.fabric.grainline ?? 0),
-        ];
-      }),
-    }));
-
     return {
       ...extra,
       algorithmName: src.algorithmName,
+      fabric: { ...src.fabric, ...src.fabricMetadata },
       ...(src.pattern ? { pattern: src.pattern } : {}),
       seamAllowanceMm: src.seamAllowanceMm,
       cuttingAllowanceMm: src.cuttingAllowanceMm,
-      wasSuccessful: layouts.every((l) => l.wasSuccessful),
-      executionTime: src.layouts.reduce((sum, l) => sum + l.result.executionTime, 0),
-      layouts,
+      wasSuccessful: src.result.wasSuccessful,
+      minLengthMm: src.result.minLength,
+      executionTime: src.result.executionTime,
+      stats: src.result.stats,
+      placements: src.result.positions.flatMap((pos) => {
+        const piece = src.geometry.get(pos.id);
+        if (!piece) return [];
+        return [
+          this.placeOne(piece, pos, pos.x, pos.y, src.fabric.grainline ?? 0),
+        ];
+      }),
     };
   }
 

@@ -1,7 +1,5 @@
 import type {
-  OptimizerFabricInputDto,
   OptimizerInputDto,
-  OptimizerPieceInputDto,
   OptimizerPointDto,
 } from '../optimizations/dto/optimizer-input.dto.js';
 import type {
@@ -11,34 +9,26 @@ import type {
   EnginePoint,
   EngineResult,
 } from './optimizer-engine.types.js';
-
 const pt = ({ x, y }: OptimizerPointDto): EnginePoint => ({ x, y });
 
-export interface FabricJob {
-  fabric: OptimizerFabricInputDto;
-  pieces: OptimizerPieceInputDto[];
-  seamAllowanceMm: number;
-  cuttingAllowanceMm: number;
-}
-
-export function splitByFabric(input: OptimizerInputDto): FabricJob[] {
-  return input.fabrics.map((fabric, index) => ({
-    fabric,
-    pieces: input.pieces.filter((piece) => piece.fabricIndex === index),
-    seamAllowanceMm: input.seamAllowanceMm,
-    cuttingAllowanceMm: input.cuttingAllowanceMm,
-  }));
-}
-
-export function toEngineInput(job: FabricJob, algorithmId: number): EngineInput {
+export function toEngineInput(
+  input: OptimizerInputDto,
+  algorithmId: number,
+): EngineInput {
   const fabric: EngineFabric =
-    job.fabric.fabricId === undefined
-      ? { width: job.fabric.widthMm, length: job.fabric.lengthMm }
-      : { boundary: job.fabric.boundary.map(pt), grainline: job.fabric.grainline ?? 0 };
+    input.fabric.fabricId === undefined
+      ? {
+          width: input.fabric.widthMm,
+          length: input.fabric.lengthMm,
+        }
+      : {
+          boundary: input.fabric.boundary.map(pt),
+          grainline: input.fabric.grainline ?? 0,
+        };
 
   const enginePieces: EnginePiece[] = [];
 
-  for (const [index, p] of job.pieces.entries()) {
+  for (const [index, p] of input.pieces.entries()) {
     const constraints = [];
 
     if (p.normalCount > 0) {
@@ -64,8 +54,8 @@ export function toEngineInput(job: FabricJob, algorithmId: number): EngineInput 
         id: index + 1,
         points: p.boundary.map(pt),
         grainline: p.grainline,
-        seamAllowance: job.seamAllowanceMm,
-        cuttingAllowance: job.cuttingAllowanceMm,
+        seamAllowance: input.seamAllowanceMm,
+        cuttingAllowance: input.cuttingAllowanceMm,
         constraints,
       });
     }
@@ -76,7 +66,7 @@ export function toEngineInput(job: FabricJob, algorithmId: number): EngineInput 
 
 export function fromEngineResult(
   r: EngineResult,
-  pieces: FabricJob['pieces'],
+  pieces: OptimizerInputDto['pieces'],
 ): EngineResult {
   const patternPieceIdByEngineId = new Map(
     pieces.map((piece, index) => [index + 1, piece.patternPieceId]),
@@ -89,7 +79,11 @@ export function fromEngineResult(
       if (patternPieceId === undefined) {
         throw new Error(`Optimizer returned unknown piece ID ${p.id}`);
       }
-      return { ...p, id: patternPieceId };
+
+      return {
+        ...p,
+        id: patternPieceId,
+      };
     }),
   };
 }

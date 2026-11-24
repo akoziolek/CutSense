@@ -14,7 +14,8 @@ chmod +x /usr/bin/g++
 
 COPY package*.json ./
 RUN git config --global --add safe.directory '*'
-RUN npm install
+ENV npm_config_nodedir=/usr/local
+RUN npm install --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 
 FROM base AS development
 COPY . .

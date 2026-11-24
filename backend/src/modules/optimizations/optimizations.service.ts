@@ -66,9 +66,9 @@ import { OptimizationViewMapper } from './optimization-view.mapper.js';
 import { OptimizationFilterOptionsDto } from './dto/optimization-filter-options.dto.js';
 import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 import { assertValidOptimizationRequest } from './optimization-request.validator.js';
-import { SaveOptimizationGroupDto } from './dto/save-optimization-group.dto.js';
 import { randomUUID } from 'crypto';
 import { ResourceConflictException } from '../../common/exceptions/resource-conflict.exception.js';
+import { SaveOptimizationGroupDto } from './dto/save-optimization-group.dto.js';
 
 type Tx = Parameters<Parameters<DrizzleDB['transaction']>[0]>[0];
 
@@ -354,12 +354,12 @@ export class OptimizationsService {
   }
 
   private inGroupOf(id: number, userId: number): SQL {
-    return and(
-      eq(optimizationResults.userId, userId),
-      sql`(${optimizationResults.id} = ${id} or (${optimizationResults.groupId} is not null
-        and ${optimizationResults.groupId} = (select g.group_id from optimization_results g where g.id = ${id})))`,
-    )!;
-  }
+      return and(
+        eq(optimizationResults.userId, userId),
+        sql`(${optimizationResults.id} = ${id} or (${optimizationResults.groupId} is not null
+          and ${optimizationResults.groupId} = (select g.group_id from optimization_results g where g.id = ${id})))`,
+      )!;
+    }
 
   async delete(id: number, userId: number): Promise<void> {
     const deleted = await this.db
@@ -494,20 +494,21 @@ export class OptimizationsService {
   }
 
   async saveGroup(dto: SaveOptimizationGroupDto, userId: number): Promise<{ id: number; ids: number[] }> {
-    const runs = await Promise.all(dto.runIds.map((runId) => this.findRun(runId, userId)));
-    if (runs.some((r) => r.savedId !== undefined)) {
-      throw new ResourceConflictException('These runs were already saved.');
-    }
-    if (runs.some((r) => !r.result.wasSuccessful)) {
-      throw new RequestValidationException('Only successful optimizations can be saved.');
-    }
-    if (runs.some((r) => r.input.patternId !== runs[0]!.input.patternId)) {
-      throw new RequestValidationException('All runs must use the same pattern.');
-    }
-    const ids = await this.saveRuns(runs, dto.name, userId, runs.length > 1 ? randomUUID() : null);
-    return { id: ids[0]!, ids };
+      const runs = await Promise.all(dto.runIds.map((runId) => this.findRun(runId, userId)));
+      if (runs.some((r) => r.savedId !== undefined)) {
+        throw new ResourceConflictException('These runs were already saved.');
+      }
+      if (runs.some((r) => !r.result.wasSuccessful)) {
+        throw new RequestValidationException('Only successful optimizations can be saved.');
+      }
+      if (runs.some((r) => r.input.patternId !== runs[0]!.input.patternId)) {
+        throw new RequestValidationException('All runs must use the same pattern.');
+      }
+      const ids = await this.saveRuns(runs, dto.name, userId, runs.length > 1 ? randomUUID() : null);
+      return { id: ids[0]!, ids };
   }
 
+  // all or nothing: one transaction for every run
   private async saveRuns(runs: StoredRun[], name: string, userId: number, groupId: string | null): Promise<number[]> {
     try {
       return await this.db.transaction(async (tx) => {

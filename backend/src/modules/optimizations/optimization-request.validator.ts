@@ -8,39 +8,24 @@ export function assertValidOptimizationRequest(
   dto: CreateOptimizationDto,
   currentUserId?: number,
 ): void {
-  const libraryIds: number[] = [];
+  const hasLibraryFabric = isSet(dto.fabricId);
+  const hasWidth = isSet(dto.fabricWidthMm);
+  const hasLength = isSet(dto.fabricLengthMm);
 
-  for (const fabric of dto.fabrics) {
-    const hasLibraryFabric = isSet(fabric.fabricId);
-    const hasWidth = isSet(fabric.widthMm);
-    const hasLength = isSet(fabric.lengthMm);
-
-    if (!currentUserId && hasLibraryFabric) {
-      throw new RequestValidationException(
-        'Guests can only optimize using custom fabric dimensions.',
-      );
-    }
-    if (hasLibraryFabric && (hasWidth || hasLength)) {
-      throw new RequestValidationException(
-        'Choose either a fabric from the library or custom dimensions, not both.',
-      );
-    }
-    if (!hasLibraryFabric && !(hasWidth && hasLength)) {
-      throw new RequestValidationException(
-        'Provide a fabric from the library or both the custom width and length.',
-      );
-    }
-    if (hasLibraryFabric) libraryIds.push(fabric.fabricId!);
+  if (!currentUserId && hasLibraryFabric) {
+    throw new RequestValidationException(
+      'Guests can only optimize using custom fabric dimensions.',
+    );
   }
-
-  if (new Set(libraryIds).size !== libraryIds.length) {
-    throw new RequestValidationException('Each library fabric can be used only once.');
+  if (hasLibraryFabric && (hasWidth || hasLength)) {
+    throw new RequestValidationException(
+      'Choose either a fabric from the library or custom dimensions, not both.',
+    );
   }
-  if (dto.pieces.some((piece) => piece.fabricIndex >= dto.fabrics.length)) {
-    throw new RequestValidationException('A piece references a fabric that does not exist.');
-  }
-  if (new Set(dto.pieces.map((piece) => piece.fabricIndex)).size !== dto.fabrics.length) {
-    throw new RequestValidationException('Every fabric needs at least one piece.');
+  if (!hasLibraryFabric && !(hasWidth && hasLength)) {
+    throw new RequestValidationException(
+      'Provide a fabric from the library or both the custom width and length.',
+    );
   }
   if (dto.pieces.some((piece) => piece.normalCount + piece.mirroredCount < 1)) {
     throw new RequestValidationException(

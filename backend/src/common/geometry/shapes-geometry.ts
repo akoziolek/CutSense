@@ -16,12 +16,19 @@ export function withoutClosingPoint<T>(
     : points;
 }
 
-const round3 = (v: number) => Math.round(v * 1000) / 1000 + 0;
+const round3 = (v: number): number =>
+  Math.round((v + Number.EPSILON) * 1000) / 1000 + 0;
 
 export function pointsToWktPolygon(points: Point[]): string {
   if (points.length === 0) return 'POLYGON(())';
+
+  const roundedPoints = points.map((p) => ({
+    x: round3(p.x),
+    y: round3(p.y),
+  }));
+
   const openPoints = withoutClosingPoint(
-    points,
+    roundedPoints,
     (first, last) => first.x === last.x && first.y === last.y,
   );
   const ring = [...openPoints, openPoints[0]!];

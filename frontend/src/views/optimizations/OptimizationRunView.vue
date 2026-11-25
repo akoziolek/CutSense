@@ -279,8 +279,8 @@ const handleMovePiece = async ({
   const current = optimization.value?.placements?.[index]
   if (!current || optimization.value?.isSaved) return
 
-  const nextX = Number((current.x + deltaXMm).toFixed(2))
-  const nextY = Number((current.y + deltaYMm).toFixed(2))
+  const nextX = Number((current.x + deltaXMm).toFixed(3))
+  const nextY = Number((current.y + deltaYMm).toFixed(3))
 
   await movePlacement(index, nextX, nextY)
 }

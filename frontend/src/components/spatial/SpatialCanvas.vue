@@ -150,8 +150,8 @@ const getPointFromEvent = (e: MouseEvent): Point2D | null => {
 
   // Return position in % (0-100), keeping it safely inside image bounds
   return {
-    pctX: Math.max(0, Math.min(100, Number(localPt.x.toFixed(2)))),
-    pctY: Math.max(0, Math.min(100, Number(localPt.y.toFixed(2)))),
+    pctX: Math.max(0, Math.min(100, Number(localPt.x.toFixed(3)))),
+    pctY: Math.max(0, Math.min(100, Number(localPt.y.toFixed(3)))),
   }
 }
 

@@ -1,16 +1,7 @@
 import { computed, onMounted, onUnmounted, ref, type Ref } from 'vue'
-import type { PlacedPieceViewItem } from '@/types/optimization'
-import { validatePiecePlacement, type PlacementInvalidReason } from '@/utils/geometry'
-
-export interface ActivePieceDrag {
-  pieceId: number
-  index: number
-  startClientX: number
-  startClientY: number
-  deltaXMm: number
-  deltaYMm: number
-  hasMoved: boolean
-}
+import type { PlacedPieceViewItem, ActivePieceDrag } from '@/types/optimization'
+import { validateAllPiecesPlacement } from '@/utils/geometry'
+import type { PlacementInvalidReason } from '@/types/geometry'
 
 export function useOptimizationPieceDrag(options: {
   editable: Ref<boolean>
@@ -27,7 +18,7 @@ export function useOptimizationPieceDrag(options: {
     deltaXMm: number
     deltaYMm: number
   }) => void
-  onInvalidMove: (payload: {
+  onInvalidMove?: (payload: {
     index: number
     pieceId: number
     reason: PlacementInvalidReason
@@ -42,24 +33,24 @@ export function useOptimizationPieceDrag(options: {
     const drag = draggingPiece.value
     if (!drag || !drag.hasMoved) return { valid: true as const }
 
-    const movingPiece = options.pieces.value.find((p) => p.id === drag.pieceId)
-    if (!movingPiece) return { valid: true as const }
+    const targetIdx = options.pieces.value.findIndex((p, idx) =>
+      drag.index >= 0 ? idx === drag.index : p.id === drag.pieceId,
+    )
+    if (targetIdx === -1) return { valid: true as const }
 
-    const movedPoints: [number, number][] = movingPiece.points.map(([x, y]) => [
-      x + drag.deltaXMm,
-      y + drag.deltaYMm,
-    ])
+    const allPoints = options.pieces.value.map((piece, idx) =>
+      idx === targetIdx
+        ? piece.points.map(([x, y]): [number, number] => [x + drag.deltaXMm, y + drag.deltaYMm])
+        : piece.points,
+    )
 
-    const otherPiecesPoints = options.pieces.value
-      .filter((p) => p.id !== drag.pieceId)
-      .map((p) => p.points)
-
-    return validatePiecePlacement({
-      movingPoints: movedPoints,
-      otherPiecesPoints,
+    const results = validateAllPiecesPlacement({
+      piecesPoints: allPoints,
       fabricBoundary: options.fabricBoundary.value,
       totalAllowanceMm: options.totalAllowanceMm.value,
     })
+
+    return results[targetIdx] ?? { valid: true as const }
   })
 
   const handlePieceMouseDown = (piece: PlacedPieceViewItem, e: MouseEvent) => {
@@ -107,21 +98,20 @@ export function useOptimizationPieceDrag(options: {
         ignoreNextClick.value = false
       }, 0)
 
-      if (!validation.valid) {
-        options.onInvalidMove({
-          index: drag.index,
-          pieceId: drag.pieceId,
-          reason: validation.reason ?? 'overlap',
-        })
-        return
-      }
-
       options.onMovePiece({
         index: drag.index,
         pieceId: drag.pieceId,
         deltaXMm: drag.deltaXMm,
         deltaYMm: drag.deltaYMm,
       })
+
+      if (!validation.valid && options.onInvalidMove) {
+        options.onInvalidMove({
+          index: drag.index,
+          pieceId: drag.pieceId,
+          reason: validation.reason ?? 'overlap',
+        })
+      }
     }
   }
 

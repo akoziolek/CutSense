@@ -13,8 +13,8 @@ import {
   getRulerSteps,
   getCrosshairState,
   getFabricOriginMm,
-  type PlacementInvalidReason,
 } from '@/utils/geometry'
+import type { PlacementInvalidReason } from '@/types/geometry'
 
 const props = withDefaults(
   defineProps<{

@@ -508,7 +508,12 @@
     "widthPlaceholder": "e.g. 145",
     "heightPlaceholder": "e.g. 290",
     "pieceOutOfBounds": "Piece must stay inside the fabric boundary.",
-    "pieceOverlaps": "Piece cannot overlap another piece or its allowance."
+    "pieceOverlaps": "Piece cannot overlap another piece or its allowance.",
+    "incompleteLayoutBadge": "Incomplete layout",
+    "incompleteLayoutWarning": "Incomplete layout. Fix piece placement before saving or exporting PDF.",
+    "incompleteLayoutTooltip": "Incomplete layout ({reasons}). Fix placement before saving or exporting PDF.",
+    "blockedOutOfBounds": "{count} piece(s) outside fabric",
+    "blockedOverlap": "{count} piece(s) overlapping / allowance conflict"
   },
   "landing": {
     "headline": "Save time and fabric",

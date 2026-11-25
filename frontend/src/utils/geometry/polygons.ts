@@ -1,9 +1,16 @@
 import { Clipper, FillRule, JoinType, EndType, type Path64, type Point64 } from 'clipper2-ts'
-import type { Point2D, PolygonEdge } from '@/types/geometry'
-import { toImagePixels } from './coordinates'
+import type {
+  GeometryBoundsMm,
+  Point2D,
+  PolygonEdge,
+  PlacementValidationResult,
+  PieceBatchValidationResult,
+} from '@/types/geometry'
+import { getGeometryBoundsMm, toImagePixels } from './coordinates'
 
 const CLIPPER_SCALE = 1000
-const PLACEMENT_AREA_TOLERANCE_MM2 = 0.25 //0,5 mm x 0,5 mm
+const PLACEMENT_AREA_TOLERANCE_MM2 = 1.0
+const LINEAR_TOLERANCE_MM = 1.5
 
 // needed for clipper lib
 const toPath64 = (mmPts: [number, number][]): Path64 =>
@@ -94,57 +101,6 @@ export function offsetPolygonMm(
   return resultPath.map((pt: Point64) => [pt.x / CLIPPER_SCALE, pt.y / CLIPPER_SCALE])
 }
 
-export type PlacementInvalidReason = 'out_of_bounds' | 'overlap'
-
-export interface PlacementValidationResult {
-  valid: boolean
-  reason?: PlacementInvalidReason
-}
-
-export function validatePiecePlacement(params: {
-  movingPoints: [number, number][]
-  otherPiecesPoints: [number, number][][]
-  fabricBoundary: [number, number][]
-  totalAllowanceMm: number
-}): PlacementValidationResult {
-  if (params.movingPoints.length < 3) return { valid: true }
-
-  const movingExpanded = offsetPolygonMm(params.movingPoints, params.totalAllowanceMm)
-  const movingPath = toPath64(movingExpanded)
-
-  if (params.fabricBoundary.length >= 3) {
-    const outsideFabricPaths = Clipper.difference(
-      [movingPath],
-      [toPath64(params.fabricBoundary)],
-      FillRule.NonZero,
-    )
-    const outsideAreaMm2 = fromPaths64(outsideFabricPaths).reduce(
-      (sum, poly) => sum + getPolygonAreaMm2(poly),
-      0,
-    )
-    if (outsideAreaMm2 > PLACEMENT_AREA_TOLERANCE_MM2) {
-      return { valid: false, reason: 'out_of_bounds' }
-    }
-  }
-
-  const otherPiecesPaths = params.otherPiecesPoints
-    .filter((pts) => pts.length >= 3)
-    .map((pts) => toPath64(offsetPolygonMm(pts, params.totalAllowanceMm)))
-
-  if (otherPiecesPaths.length > 0) {
-    const overlapPiecesPaths = Clipper.intersect([movingPath], otherPiecesPaths, FillRule.NonZero)
-    const overlapAreaMm2 = fromPaths64(overlapPiecesPaths).reduce(
-      (sum, poly) => sum + getPolygonAreaMm2(poly),
-      0,
-    )
-    if (overlapAreaMm2 > PLACEMENT_AREA_TOLERANCE_MM2) {
-      return { valid: false, reason: 'overlap' }
-    }
-  }
-
-  return { valid: true }
-}
-
 export const getPolygonCentroidPct = (pts: Point2D[]): Point2D => {
   if (pts.length === 0) return { pctX: 0, pctY: 0 }
   if (pts.length < 3) {
@@ -178,4 +134,125 @@ export const getPolygonCentroidPct = (pts: Point2D[]): Point2D => {
     pctX: cx / (3 * area2),
     pctY: cy / (3 * area2),
   }
+}
+
+const boundsOverlap = (a: GeometryBoundsMm, b: GeometryBoundsMm): boolean =>
+  a.originMm.minX <= b.originMm.minX + b.widthMm &&
+  a.originMm.minX + a.widthMm >= b.originMm.minX &&
+  a.originMm.minY <= b.originMm.minY + b.heightMm &&
+  a.originMm.minY + a.heightMm >= b.originMm.minY
+
+const isInsideBounds = (inner: GeometryBoundsMm, outer: GeometryBoundsMm): boolean =>
+  inner.originMm.minX >= outer.originMm.minX &&
+  inner.originMm.minX + inner.widthMm <= outer.originMm.minX + outer.widthMm &&
+  inner.originMm.minY >= outer.originMm.minY &&
+  inner.originMm.minY + inner.heightMm <= outer.originMm.minY + outer.heightMm
+
+export function validateAllPiecesPlacement(params: {
+  piecesPoints: [number, number][][]
+  fabricBoundary: [number, number][]
+  totalAllowanceMm: number
+}): PieceBatchValidationResult[] {
+  const count = params.piecesPoints.length
+  if (count === 0) return []
+
+  const allowance = Math.max(0, params.totalAllowanceMm)
+  const fabricValidationOffset = Math.max(0, allowance - LINEAR_TOLERANCE_MM)
+  const overlapValidationOffset = Math.max(0, allowance - LINEAR_TOLERANCE_MM / 2)
+
+  const hasFabric = params.fabricBoundary.length >= 3
+  const fabricPath = hasFabric ? toPath64(params.fabricBoundary) : null
+  const fabricBounds = hasFabric ? getGeometryBoundsMm([params.fabricBoundary]) : null
+
+  const prepared = params.piecesPoints.map((pts) => {
+    if (pts.length < 3) return null
+    const overlapPoly = offsetPolygonMm(pts, overlapValidationOffset)
+    const fabricPoly =
+      fabricValidationOffset === overlapValidationOffset
+        ? overlapPoly
+        : offsetPolygonMm(pts, fabricValidationOffset)
+
+    return {
+      overlapPath: toPath64(overlapPoly),
+      overlapBounds: getGeometryBoundsMm([overlapPoly]),
+      fabricPath: toPath64(fabricPoly),
+      fabricBounds: getGeometryBoundsMm([fabricPoly]),
+    }
+  })
+
+  const hasOverlap = new Array<boolean>(count).fill(false)
+  const isOutOfBounds = new Array<boolean>(count).fill(false)
+
+  for (let i = 0; i < count; i++) {
+    const a = prepared[i]
+    if (!a) continue
+
+    for (let j = i + 1; j < count; j++) {
+      const b = prepared[j]
+      if (!b || !boundsOverlap(a.overlapBounds, b.overlapBounds)) continue
+
+      const overlapPaths = Clipper.intersect([a.overlapPath], [b.overlapPath], FillRule.NonZero)
+      const overlapAreaMm2 = fromPaths64(overlapPaths).reduce(
+        (sum, poly) => sum + getPolygonAreaMm2(poly),
+        0,
+      )
+
+      if (overlapAreaMm2 > PLACEMENT_AREA_TOLERANCE_MM2) {
+        hasOverlap[i] = true
+        hasOverlap[j] = true
+      }
+    }
+  }
+
+  if (fabricPath && fabricBounds) {
+    for (let i = 0; i < count; i++) {
+      const item = prepared[i]
+      if (!item) continue
+
+      if (params.fabricBoundary.length === 4 && isInsideBounds(item.fabricBounds, fabricBounds)) {
+        continue
+      }
+
+      const outsidePaths = Clipper.difference([item.fabricPath], [fabricPath], FillRule.NonZero)
+      const outsideAreaMm2 = fromPaths64(outsidePaths).reduce(
+        (sum, poly) => sum + getPolygonAreaMm2(poly),
+        0,
+      )
+
+      if (outsideAreaMm2 > PLACEMENT_AREA_TOLERANCE_MM2) {
+        isOutOfBounds[i] = true
+      }
+    }
+  }
+
+  return prepared.map((_, i) => {
+    if (isOutOfBounds[i]) return { valid: false, reason: 'out_of_bounds' }
+    if (hasOverlap[i]) return { valid: false, reason: 'overlap' }
+    return { valid: true }
+  })
+}
+
+/**
+ * Validates piece placement against neighboring pieces and fabric boundaries.
+ *
+ * NOTE (Optimizer integer rounding workaround):
+ * The C++ nesting engine computes placements on a micrometer grid (SCALE = 1000)
+ * but inputs/outputs integer millimeter coordinates, causing up to ~1 mm shift on flush pieces.
+ * `LINEAR_TOLERANCE_MM` compensates for this rounding drift to avoid false-positive
+ * collisions on valid optimizer results.
+ *
+ * @todo Reduce `LINEAR_TOLERANCE_MM` to ~0.05 once the optimizer outputs `double` coordinates.
+ */
+export function validateSinglePieceAtIndex(params: {
+  targetIndex: number
+  piecesPoints: [number, number][][]
+  fabricBoundary: [number, number][]
+  totalAllowanceMm: number
+}): PieceBatchValidationResult {
+  const results = validateAllPiecesPlacement({
+    piecesPoints: params.piecesPoints,
+    fabricBoundary: params.fabricBoundary,
+    totalAllowanceMm: params.totalAllowanceMm,
+  })
+  return results[params.targetIndex] ?? { valid: true }
 }

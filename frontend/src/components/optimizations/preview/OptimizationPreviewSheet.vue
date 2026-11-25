@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, toRef, useId } from 'vue'
 import type { GeometryOriginMm, Point2D } from '@/types/geometry'
-import type { PlacedPieceViewItem } from '@/types/optimization'
-import type { ActivePieceDrag } from '@/composables/optimization/useOptimizationPieceDrag'
+import type { PlacedPieceViewItem, ActivePieceDrag } from '@/types/optimization'
 import {
   useNonOverlappingLabels,
   useNonOverlappingPoints,
@@ -16,6 +15,7 @@ import {
   getPolygonEdges,
   getSegmentMidpoint,
   toFabricPercentBoundary,
+  validateAllPiecesPlacement,
 } from '@/utils/geometry'
 
 const props = defineProps<{
@@ -111,21 +111,48 @@ const photoRectPct = computed(() => {
   }
 })
 
-const formatPieceLabel = (piece: PlacedPieceViewItem): string => {
+const formatPieceLabel = (piece: PlacedPieceViewItem, isOutOfBounds: boolean): string => {
   const parts = [`#${piece.pieceNumber ?? piece.id}`]
   if (piece.isMirrored) parts.push('M')
   if (piece.rotationAngle && piece.rotationAngle !== 0) parts.push(`${piece.rotationAngle}°`)
+  if (isOutOfBounds) parts.push('OUT')
   return parts.join('·')
 }
 
-const piecesPct = computed(() =>
-  props.pieces.map((piece) => {
-    const activeDrag = props.draggingPiece?.pieceId === piece.id ? props.draggingPiece : null
-    const isInvalidDrag = Boolean(activeDrag?.hasMoved && !props.isDragValid)
+const livePieces = computed(() => {
+  const drag = props.draggingPiece
+  const dragIdx = drag?.index ?? -1
+  const dragPieceId = drag?.pieceId ?? null
+  const dx = drag?.deltaXMm ?? 0
+  const dy = drag?.deltaYMm ?? 0
 
-    const livePoints: [number, number][] = activeDrag
-      ? piece.points.map(([x, y]) => [x + activeDrag.deltaXMm, y + activeDrag.deltaYMm])
+  return props.pieces.map((piece, idx) => {
+    const isDragged = drag !== null && (dragIdx >= 0 ? dragIdx === idx : dragPieceId === piece.id)
+
+    const livePoints: [number, number][] = isDragged
+      ? piece.points.map(([x, y]) => [x + dx, y + dy])
       : piece.points
+
+    return {
+      rawPiece: piece,
+      livePoints,
+    }
+  })
+})
+
+const piecesPct = computed(() => {
+  const totalAllowanceMm = props.seamAllowanceMm + props.cuttingAllowanceMm
+  const validations = validateAllPiecesPlacement({
+    piecesPoints: livePieces.value.map((p) => p.livePoints),
+    fabricBoundary: props.fabricShape,
+    totalAllowanceMm,
+  })
+
+  return livePieces.value.map(({ rawPiece: piece, livePoints }, idx) => {
+    const validation = validations[idx] ?? { valid: true }
+    const isInvalid = !validation.valid
+    const isOutOfBounds = isInvalid && validation.reason === 'out_of_bounds'
+    const isOverlap = isInvalid && validation.reason === 'overlap'
 
     const pctPoints = toFabricPercentBoundary(
       livePoints,
@@ -133,14 +160,15 @@ const piecesPct = computed(() =>
       props.canvasWidthMm,
       props.canvasHeightMm,
     )
-    const totalAllowanceMm = props.seamAllowanceMm + props.cuttingAllowanceMm
 
     return {
       id: piece.id,
       rawPiece: piece,
-      isInvalidDrag,
+      isInvalid,
+      isOutOfBounds,
+      isOverlap,
       patternPieceId: piece.patternPieceId,
-      label: formatPieceLabel(piece),
+      label: formatPieceLabel(piece, isOutOfBounds),
       pctPoints,
       svgPoints: toSvgPoints(pctPoints),
       seamAllowanceSvgPoints:
@@ -150,8 +178,8 @@ const piecesPct = computed(() =>
       centerPct: getPolygonCentroidPct(pctPoints),
       areaMm2: getPolygonAreaMm2(livePoints),
     }
-  }),
-)
+  })
+})
 
 const selectedPieces = computed(() =>
   piecesPct.value.filter((piece) => piece.id === props.selectedPieceId),
@@ -223,6 +251,33 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
   }
   return piece.id === hoveredPieceId.value
 }
+
+const getPiecePolygonClasses = (piece: {
+  id: number
+  patternPieceId?: number
+  isOutOfBounds: boolean
+  isInvalid: boolean
+}): string => {
+  if (piece.isOutOfBounds) {
+    return 'fill-amber-500/35 stroke-amber-600 stroke-[1.75]'
+  }
+  if (piece.isInvalid) {
+    return 'fill-destructive/40 stroke-destructive stroke-[1.75]'
+  }
+  if (props.selectedPieceId === piece.id) {
+    return hasActivePhoto.value
+      ? 'fill-brand-green/50 stroke-brand-green-foreground stroke-[1.75]'
+      : 'fill-brand-green stroke-brand-green-foreground stroke-[1.75]'
+  }
+  if (isSamePatternGroup(piece)) {
+    return hasActivePhoto.value
+      ? 'fill-brand-green/35 stroke-brand-green stroke-[1.5]'
+      : 'fill-brand-green/50 stroke-brand-green stroke-[1.5]'
+  }
+  return hasActivePhoto.value
+    ? 'fill-transparent stroke-foreground/65 stroke-1'
+    : 'fill-muted-foreground/20 stroke-foreground/55 stroke-1'
+}
 </script>
 
 <template>
@@ -260,12 +315,15 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
             v-if="piece.cuttingAllowanceSvgPoints"
             :points="piece.cuttingAllowanceSvgPoints"
             :class="
-              piece.isInvalidDrag
-                ? 'fill-destructive/15 stroke-destructive stroke-[1.2]'
-                : 'fill-background/45 stroke-foreground/45 stroke-[0.9]'
+              piece.isOutOfBounds
+                ? 'fill-amber-500/15 stroke-amber-600 stroke-[1.2]'
+                : piece.isInvalid
+                  ? 'fill-destructive/15 stroke-destructive stroke-[1.2]'
+                  : 'fill-background/45 stroke-foreground/45 stroke-[0.9]'
             "
             stroke-dasharray="4 3"
-            stroke-linejoin="bevel"
+            stroke-linejoin="miter"
+            stroke-miterlimit="2"
             vector-effect="non-scaling-stroke"
           />
 
@@ -273,11 +331,14 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
             v-if="piece.seamAllowanceSvgPoints"
             :points="piece.seamAllowanceSvgPoints"
             :class="
-              piece.isInvalidDrag
-                ? 'fill-destructive/10 stroke-destructive/70 stroke-[1]'
-                : 'fill-muted/40 stroke-foreground/20 stroke-[0.8]'
+              piece.isOutOfBounds
+                ? 'fill-amber-500/10 stroke-amber-600/80 stroke-[1]'
+                : piece.isInvalid
+                  ? 'fill-destructive/10 stroke-destructive/70 stroke-[1]'
+                  : 'fill-muted/40 stroke-foreground/20 stroke-[0.8]'
             "
-            stroke-linejoin="bevel"
+            stroke-linejoin="miter"
+            stroke-miterlimit="2"
             vector-effect="non-scaling-stroke"
           />
         </g>
@@ -313,23 +374,18 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
         @click.stop="emit('piece-click', piece.id)"
       >
         <polygon
+          v-if="isSamePatternGroup(piece)"
           :points="piece.svgPoints"
-          class="transition-colors duration-150"
-          :class="[
-            piece.isInvalidDrag
-              ? 'fill-destructive/40 stroke-destructive stroke-[1.75]'
-              : selectedPieceId === piece.id
-                ? hasActivePhoto
-                  ? 'fill-brand-green/50 stroke-brand-green-foreground stroke-[1.75]'
-                  : 'fill-brand-green stroke-brand-green-foreground stroke-[1.75]'
-                : isSamePatternGroup(piece)
-                  ? hasActivePhoto
-                    ? 'fill-brand-green/35 stroke-brand-green stroke-[1.5]'
-                    : 'fill-brand-green/50 stroke-brand-green stroke-[1.5]'
-                  : hasActivePhoto
-                    ? 'fill-transparent stroke-foreground/65 stroke-1'
-                    : 'fill-muted-foreground/20 stroke-foreground/55 stroke-1',
-          ]"
+          class="fill-none stroke-brand-green stroke-[4] opacity-75 pointer-events-none"
+          stroke-linejoin="round"
+          vector-effect="non-scaling-stroke"
+        />
+
+        <polygon
+          :points="piece.svgPoints"
+          class="transition-colors duration-75"
+          :class="getPiecePolygonClasses(piece)"
+          :stroke-dasharray="piece.isOutOfBounds ? '5 3' : undefined"
           stroke-linejoin="round"
           vector-effect="non-scaling-stroke"
         />
@@ -343,13 +399,15 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
           :key="ptIdx"
           class="absolute w-1.5 h-1.5 rounded-full border transition-transform"
           :class="
-            piece.isInvalidDrag
-              ? 'bg-destructive border-destructive'
-              : selectedPieceId === piece.id
-                ? 'bg-brand-green-foreground border-brand-green'
-                : isSamePatternGroup(piece)
-                  ? 'bg-brand-green border-brand-green-foreground'
-                  : 'border-foreground/45 bg-background opacity-80'
+            piece.isOutOfBounds
+              ? 'bg-amber-500 border-amber-600'
+              : piece.isInvalid
+                ? 'bg-destructive border-destructive'
+                : selectedPieceId === piece.id
+                  ? 'bg-brand-green-foreground border-brand-green'
+                  : isSamePatternGroup(piece)
+                    ? 'bg-brand-green border-brand-green-foreground'
+                    : 'border-foreground/45 bg-background opacity-80'
           "
           :style="{
             left: `${pt.pctX}%`,
@@ -367,13 +425,16 @@ const isSamePatternGroup = (piece: { id: number; patternPieceId?: number }) => {
         class="absolute font-mono font-semibold text-[9.5px] leading-none px-1.5 py-0.5 rounded-xs border shadow-2xs whitespace-nowrap transition-[opacity,background-color,color,border-color] duration-150"
         :class="[
           isPieceLabelVisible(piece.id) ? 'opacity-100' : 'opacity-0',
-          piece.isInvalidDrag
-            ? 'bg-destructive text-destructive-foreground border-destructive'
-            : selectedPieceId === piece.id
-              ? 'bg-brand-green-foreground text-brand-green border-brand-green-foreground'
-              : isSamePatternGroup(piece)
-                ? 'bg-brand-green text-brand-green-foreground border-brand-green-foreground/40'
-                : 'bg-background/85 text-foreground/90 border-border/70',
+          isSamePatternGroup(piece) && piece.isInvalid ? 'ring-2 ring-brand-green' : '',
+          piece.isOutOfBounds
+            ? 'bg-amber-500 text-white border-amber-600'
+            : piece.isInvalid
+              ? 'bg-destructive text-destructive-foreground border-destructive'
+              : selectedPieceId === piece.id
+                ? 'bg-brand-green-foreground text-brand-green border-brand-green-foreground'
+                : isSamePatternGroup(piece)
+                  ? 'bg-brand-green text-brand-green-foreground border-brand-green-foreground/40'
+                  : 'bg-background/85 text-foreground/90 border-border/70',
         ]"
         :style="{
           left: `${piece.centerPct.pctX}%`,

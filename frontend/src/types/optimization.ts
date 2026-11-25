@@ -146,3 +146,14 @@ export interface OptimizationFilterOptions {
   fabrics: FilterOption[]
   algorithms: LocalizedFilterOption[]
 }
+
+// preview
+export interface ActivePieceDrag {
+  pieceId: number
+  index: number
+  startClientX: number
+  startClientY: number
+  deltaXMm: number
+  deltaYMm: number
+  hasMoved: boolean
+}

@@ -32,11 +32,12 @@ import {
   Loader2,
   ArrowUp,
   Shirt,
+  AlertTriangle,
 } from 'lucide-vue-next'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { login, useAuth } from '@/stores/authStore'
 import { useDeleteResource } from '@/composables/resources/useDeleteResource'
-import { getGeometryBoundsMm, type PlacementInvalidReason } from '@/utils/geometry'
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +46,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useOptimizationRun } from '@/composables/optimization/useOptimizationRun'
 import { formatAreaM2 } from '@/utils/formatData'
+import { getGeometryBoundsMm, validateAllPiecesPlacement } from '@/utils/geometry'
 
 const route = useRoute()
 const router = useRouter()
@@ -58,6 +60,7 @@ const resourceId = computed(() => String(route.params.id ?? route.params.runId ?
 const isCanvasExpanded = ref(false)
 const isSaveOpen = ref(false)
 const isEditOpen = ref(false)
+const hoveredBlockedAction = ref<'save' | 'export' | null>(null)
 
 const {
   confirmOpen,
@@ -77,6 +80,29 @@ const {
 onMounted(() => {
   useOptimizationAddingStore().reset()
 })
+
+const {
+  optimization,
+  isFetching,
+  showSkeleton,
+  error,
+  isNotFound,
+  isDownloadingPdf,
+  isSaving,
+  saveError,
+  isRenaming,
+  renameError,
+  canUndo,
+  canRedo,
+  clearSkeletonTimer,
+  fetchOptimization,
+  downloadPdf: handleDownloadPdf,
+  saveOptimization,
+  renameOptimization,
+  movePlacement,
+  undoPlacement,
+  redoPlacement,
+} = useOptimizationRun(isSavedRoute, resourceId)
 
 const normalizedLayout = computed(() => {
   const opt = optimization.value
@@ -141,6 +167,62 @@ const normalizedLayout = computed(() => {
   }
 })
 
+const totalAllowanceMm = computed(() =>
+  optimization.value
+    ? optimization.value.seamAllowanceMm + optimization.value.cuttingAllowanceMm
+    : 0,
+)
+
+const layoutIssueSummary = computed(() => {
+  const opt = optimization.value
+  if (!opt || opt.isSaved) {
+    return { outOfBoundsCount: 0, overlapCount: 0, isIncomplete: false }
+  }
+
+  const pieces = normalizedLayout.value.pieces
+  const boundary = normalizedLayout.value.fabricBoundary
+  if (pieces.length === 0 || boundary.length < 3) {
+    return { outOfBoundsCount: 0, overlapCount: 0, isIncomplete: false }
+  }
+
+  const validations = validateAllPiecesPlacement({
+    piecesPoints: pieces.map((p) => p.points),
+    fabricBoundary: boundary,
+    totalAllowanceMm: totalAllowanceMm.value,
+  })
+
+  let outOfBoundsCount = 0
+  let overlapCount = 0
+
+  for (const result of validations) {
+    if (!result.valid) {
+      if (result.reason === 'out_of_bounds') outOfBoundsCount += 1
+      else overlapCount += 1
+    }
+  }
+
+  return {
+    outOfBoundsCount,
+    overlapCount,
+    isIncomplete: outOfBoundsCount > 0 || overlapCount > 0,
+  }
+})
+
+const isLayoutIncomplete = computed(() => layoutIssueSummary.value.isIncomplete)
+
+const blockedActionTooltip = computed(() => {
+  if (!isLayoutIncomplete.value) return undefined
+  const { outOfBoundsCount, overlapCount } = layoutIssueSummary.value
+  const parts: string[] = []
+  if (outOfBoundsCount > 0) {
+    parts.push(t('optimizations.blockedOutOfBounds', { count: outOfBoundsCount }))
+  }
+  if (overlapCount > 0) {
+    parts.push(t('optimizations.blockedOverlap', { count: overlapCount }))
+  }
+  return t('optimizations.incompleteLayoutTooltip', { reasons: parts.join(', ') })
+})
+
 const metaItems = computed<MetaItem[]>(() =>
   optimization.value
     ? [
@@ -159,32 +241,13 @@ const metaItems = computed<MetaItem[]>(() =>
 )
 
 const openSave = () => {
+  if (isLayoutIncomplete.value) {
+    toast.warning(blockedActionTooltip.value ?? t('optimizations.incompleteLayoutWarning'))
+    return
+  }
   saveError.value = ''
   isSaveOpen.value = true
 }
-
-const {
-  optimization,
-  isFetching,
-  showSkeleton,
-  error,
-  isNotFound,
-  isDownloadingPdf,
-  isSaving,
-  saveError,
-  isRenaming,
-  renameError,
-  canUndo,
-  canRedo,
-  clearSkeletonTimer,
-  fetchOptimization,
-  downloadPdf: handleDownloadPdf,
-  saveOptimization,
-  renameOptimization,
-  movePlacement,
-  undoPlacement,
-  redoPlacement,
-} = useOptimizationRun(isSavedRoute, resourceId)
 
 const handleSave = async (name: string) => {
   const id = await saveOptimization(name)
@@ -222,14 +285,6 @@ const handleMovePiece = async ({
   await movePlacement(index, nextX, nextY)
 }
 
-const handleInvalidMove = ({ reason }: { reason: PlacementInvalidReason }) => {
-  toast.warning(
-    reason === 'out_of_bounds'
-      ? t('optimizations.pieceOutOfBounds')
-      : t('optimizations.pieceOverlaps'),
-  )
-}
-
 watch(
   [isSavedRoute, resourceId],
   ([, id], _, onCleanup) => {
@@ -263,70 +318,101 @@ watch(
             v-if="optimization && optimization.wasSuccessful"
             class="flex flex-wrap items-center justify-end gap-2.5 font-inter"
           >
-            <DropdownMenu>
-              <DropdownMenuTrigger as-child>
-                <Button
-                  variant="outline"
-                  class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-background hover:bg-muted/20 cursor-pointer font-medium shadow-2xs"
-                  :disabled="isDownloadingPdf"
+            <div
+              class="relative inline-flex"
+              @mouseenter="isLayoutIncomplete ? (hoveredBlockedAction = 'export') : null"
+              @mouseleave="hoveredBlockedAction === 'export' ? (hoveredBlockedAction = null) : null"
+            >
+              <DropdownMenu>
+                <DropdownMenuTrigger as-child>
+                  <Button
+                    variant="outline"
+                    class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-background hover:bg-muted/20 cursor-pointer font-medium shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="isDownloadingPdf || isLayoutIncomplete"
+                  >
+                    <Loader2 v-if="isDownloadingPdf" class="h-4 w-4 animate-spin" />
+                    <Download v-else class="h-4.5 w-4.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  class="w-64 sm:w-72 max-w-[calc(100vw-2rem)] border border-foreground/30 p-1.5 shadow-md"
                 >
-                  <Loader2 v-if="isDownloadingPdf" class="h-4 w-4 animate-spin" />
-                  <Download v-else class="h-4.5 w-4.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                class="w-64 sm:w-72 max-w-[calc(100vw-2rem)] border border-foreground/30 p-1.5 shadow-md"
+                  <DropdownMenuItem
+                    :disabled="isLayoutIncomplete"
+                    class="items-start gap-2.5 rounded-md p-2.5 cursor-pointer"
+                    @select="handleDownloadPdf('a4')"
+                  >
+                    <FileText class="h-4 w-4 shrink-0 mt-0.5" />
+                    <div class="flex flex-col gap-0.5">
+                      <span class="font-medium leading-tight">
+                        {{ t('optimizations.downloadPdfA4') }}
+                      </span>
+                      <span class="text-xs text-muted-foreground leading-snug">
+                        {{ t('optimizations.downloadPdfA4Description') }}
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    :disabled="isLayoutIncomplete"
+                    class="items-start gap-2.5 rounded-md p-2.5 cursor-pointer"
+                    @select="handleDownloadPdf('actual')"
+                  >
+                    <Maximize2 class="h-4 w-4 shrink-0 mt-0.5" />
+                    <div class="flex flex-col gap-0.5">
+                      <span class="font-medium leading-tight">
+                        {{ t('optimizations.downloadPdfActual') }}
+                      </span>
+                      <span class="text-xs text-muted-foreground leading-snug">
+                        {{ t('optimizations.downloadPdfActualDescription') }}
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <div
+                v-if="hoveredBlockedAction === 'export' && blockedActionTooltip"
+                role="tooltip"
+                class="absolute right-0 top-full mt-1.5 z-50 w-64 rounded-md border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md pointer-events-none"
               >
-                <DropdownMenuItem
-                  class="items-start gap-2.5 rounded-md p-2.5 cursor-pointer"
-                  @select="handleDownloadPdf('a4')"
-                >
-                  <FileText class="h-4 w-4 shrink-0 mt-0.5" />
-                  <div class="flex flex-col gap-0.5">
-                    <span class="font-medium leading-tight">
-                      {{ t('optimizations.downloadPdfA4') }}
-                    </span>
-                    <span class="text-xs text-muted-foreground leading-snug">
-                      {{ t('optimizations.downloadPdfA4Description') }}
-                    </span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  class="items-start gap-2.5 rounded-md p-2.5 cursor-pointer"
-                  @select="handleDownloadPdf('actual')"
-                >
-                  <Maximize2 class="h-4 w-4 shrink-0 mt-0.5" />
-                  <div class="flex flex-col gap-0.5">
-                    <span class="font-medium leading-tight">
-                      {{ t('optimizations.downloadPdfActual') }}
-                    </span>
-                    <span class="text-xs text-muted-foreground leading-snug">
-                      {{ t('optimizations.downloadPdfActualDescription') }}
-                    </span>
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                {{ blockedActionTooltip }}
+              </div>
+            </div>
 
             <template v-if="!optimization.isSaved">
-              <Button
-                v-if="auth.user"
-                class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-brand-pink/50 hover:bg-brand-pink/80 cursor-pointer font-medium shadow-2xs"
-                @click="openSave"
+              <div
+                class="relative inline-flex"
+                @mouseenter="isLayoutIncomplete ? (hoveredBlockedAction = 'save') : null"
+                @mouseleave="hoveredBlockedAction === 'save' ? (hoveredBlockedAction = null) : null"
               >
-                <Save class="h-4.5 w-4.5" />
-                <span>{{ t('optimizations.save') }}</span>
-              </Button>
-              <Button
-                v-else
-                variant="outline"
-                class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-background hover:bg-muted/20 cursor-pointer font-medium shadow-2xs"
-                @click="login(route.fullPath)"
-              >
-                <LogIn class="h-4.5 w-4.5" />
-                <span>{{ t('optimizations.signInToSave') }}</span>
-              </Button>
+                <Button
+                  v-if="auth.user"
+                  :disabled="isLayoutIncomplete"
+                  class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-brand-pink/50 hover:bg-brand-pink/80 cursor-pointer font-medium shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+                  @click="openSave"
+                >
+                  <Save class="h-4.5 w-4.5" />
+                  <span>{{ t('optimizations.save') }}</span>
+                </Button>
+                <Button
+                  v-else
+                  variant="outline"
+                  class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-background hover:bg-muted/20 cursor-pointer font-medium shadow-2xs"
+                  @click="login(route.fullPath)"
+                >
+                  <LogIn class="h-4.5 w-4.5" />
+                  <span>{{ t('optimizations.signInToSave') }}</span>
+                </Button>
+
+                <div
+                  v-if="hoveredBlockedAction === 'save' && blockedActionTooltip"
+                  role="tooltip"
+                  class="absolute right-0 top-full mt-1.5 z-50 w-64 rounded-md border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md pointer-events-none"
+                >
+                  {{ blockedActionTooltip }}
+                </div>
+              </div>
             </template>
 
             <DetailsActions
@@ -403,9 +489,23 @@ watch(
               :class="isCanvasExpanded ? 'lg:col-span-2' : 'lg:col-span-1'"
               class="w-full space-y-3"
             >
-              <h2 class="text-xl font-bold font-inter tracking-tight text-foreground">
-                {{ t('optimizations.placementOfPieces') }}
-              </h2>
+              <div class="flex items-center justify-between gap-3 min-h-7">
+                <h2 class="text-xl font-bold font-inter tracking-tight text-foreground">
+                  {{ t('optimizations.placementOfPieces') }}
+                </h2>
+
+                <span
+                  v-if="isLayoutIncomplete"
+                  :title="blockedActionTooltip"
+                  class="inline-flex items-center gap-1.5 rounded-md border border-amber-500/50 bg-amber-500/15 px-2.5 py-1 text-[11px] font-medium text-foreground shrink-0"
+                >
+                  <AlertTriangle class="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                  <span class="font-inter">
+                    {{ t('optimizations.incompleteLayoutBadge') }}
+                  </span>
+                </span>
+              </div>
+
               <OptimizationPreview
                 v-model:is-expanded="isCanvasExpanded"
                 :editable="!optimization.isSaved"
@@ -422,7 +522,6 @@ watch(
                 :photo-width-mm="optimization.fabric.imageWidthMm ?? null"
                 :photo-height-mm="optimization.fabric.imageHeightMm ?? null"
                 @move-piece="handleMovePiece"
-                @invalid-move="handleInvalidMove"
                 @undo="undoPlacement"
                 @redo="redoPlacement"
               />

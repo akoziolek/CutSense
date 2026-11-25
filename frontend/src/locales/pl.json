@@ -507,7 +507,12 @@
     "widthPlaceholder": "np. 145",
     "heightPlaceholder": "np. 290",
     "pieceOutOfBounds": "Element musi pozostać w obszarze tkaniny.",
-    "pieceOverlaps": "Element nie może nachodzić na inne."
+    "pieceOverlaps": "Element nie może nachodzić na inne.",
+    "incompleteLayoutBadge": "Niekompletny układ",
+    "incompleteLayoutWarning": "Niekompletny układ. Popraw rozmieszczenie elementów przed zapisem lub eksportem do PDF.",
+    "incompleteLayoutTooltip": "Niekompletny układ ({reasons}). Popraw rozmieszczenie przed zapisem lub eksportem do PDF.",
+    "blockedOutOfBounds": "elementy poza tkaniną: {count}",
+    "blockedOverlap": "nachodzące elementy / konflikt naddatków: {count}"
   },
   "landing": {
     "headline": "Oszczędź czas i tkaninę",

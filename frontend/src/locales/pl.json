@@ -337,7 +337,8 @@
     "minLength": "Min. długość materiału",
     "minLengthValue": "{lengthM}\u00A0m × {widthM}\u00A0m",
     "calculating": "Obliczanie...",
-    "calculationUnavailable": "Obliczenie niedostępne"
+    "calculationUnavailable": "Obliczenie niedostępne",
+    "pieceLabel": "Element #{number}"
   },
   "optimizations": {
     "addFirstFabric": "Dodaj pierwszą tkaninę",
@@ -422,7 +423,7 @@
     "ofTotalFabric": "całkowitej tkaniny",
     "patternLibrary": "Biblioteka wykrojów",
     "patternLoadFailed": "Nie udało się wczytać wykroju. Spróbuj ponownie.",
-    "pieceLabel": "Element nr {number}{copy}",
+    "pieceLabel": "Element #{number}{copy}",
     "pieceNeedsCopy": "Dodaj co najmniej jedną kopię lub usuń ten element.",
     "placementOfPieces": "Rozmieszczenie elementów",
     "plural": "optymalizacji",

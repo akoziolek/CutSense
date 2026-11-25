@@ -338,7 +338,8 @@
     "minLength": "Min. fabric length",
     "minLengthValue": "{lengthM}\u00A0m × {widthM}\u00A0m",
     "calculating": "Calculating...",
-    "calculationUnavailable": "Calculation unavailable"
+    "calculationUnavailable": "Calculation unavailable",
+    "pieceLabel": "Element #{number}"
   },
   "optimizations": {
     "addFirstFabric": "Add your first fabric",
@@ -423,7 +424,7 @@
     "ofTotalFabric": "of the total fabric",
     "patternLibrary": "Pattern library",
     "patternLoadFailed": "Could not load the pattern. Please try again.",
-    "pieceLabel": "Piece #{number}{copy}",
+    "pieceLabel": "Element #{number}{copy}",
     "pieceNeedsCopy": "Add at least one copy or remove this piece.",
     "placementOfPieces": "Placement of pieces",
     "plural": "optimizations",

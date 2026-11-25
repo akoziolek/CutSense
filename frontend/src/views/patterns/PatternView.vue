@@ -248,7 +248,7 @@ watch(
                   v-for="(piece, index) in pattern.pieces"
                   :key="piece.id"
                   :piece="piece"
-                  :label="`Piece #${index + 1}`"
+                  :label="t('patterns.pieceLabel', { number: index + 1 })"
                   :image="imagesById.get(piece.patternImageId)"
                   :show-dimensions="showDimensions"
                 />

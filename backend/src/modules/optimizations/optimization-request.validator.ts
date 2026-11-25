@@ -11,6 +11,7 @@ export function assertValidOptimizationRequest(
   const hasLibraryFabric = isSet(dto.fabricId);
   const hasWidth = isSet(dto.fabricWidthMm);
   const hasLength = isSet(dto.fabricLengthMm);
+  const hasFabricGrainline = isSet(dto.fabricGrainline);
 
   if (!currentUserId && hasLibraryFabric) {
     throw new RequestValidationException(
@@ -20,6 +21,11 @@ export function assertValidOptimizationRequest(
   if (hasLibraryFabric && (hasWidth || hasLength)) {
     throw new RequestValidationException(
       'Choose either a fabric from the library or custom dimensions, not both.',
+    );
+  }
+  if (hasLibraryFabric && hasFabricGrainline) {
+    throw new RequestValidationException(
+      'A custom fabric grainline cannot be used with a library fabric.',
     );
   }
   if (!hasLibraryFabric && !(hasWidth && hasLength)) {

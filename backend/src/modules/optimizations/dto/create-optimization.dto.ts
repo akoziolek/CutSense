@@ -93,6 +93,18 @@ export class CreateOptimizationDto {
   @Max(MAX_FABRIC_SIDE_MM)
   fabricLengthMm?: number;
 
+  @ApiPropertyOptional({
+    description: 'Custom fabric grainline in degrees. Valid only with custom dimensions.',
+    minimum: 0,
+    maximum: 359,
+    example: 90,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(359)
+  fabricGrainline?: number;
+
   @ApiProperty({ description: 'Seam allowance in millimeters', minimum: 0, maximum: MAX_SEAM_ALLOWANCE_MM, example: 5 })
   @IsInt()
   @Min(0)

@@ -466,6 +466,7 @@ export class OptimizationsService {
       fabric = OptimizationViewMapper.customFabric(
         dto.fabricWidthMm!,
         dto.fabricLengthMm!,
+        dto.fabricGrainline ?? 0,
       );
     }
 
@@ -560,6 +561,7 @@ export class OptimizationsService {
         customFabricId: input.fabric.fabricId ?? null,
         fabricWidth: isLibrary ? null : input.fabric.widthMm,
         fabricLength: isLibrary ? null : input.fabric.lengthMm,
+        fabricGrainline: input.fabric.grainline,
         seamAllowance: input.seamAllowanceMm,
         cuttingAllowance: input.cuttingAllowanceMm,
         minLengthMm: Math.round(result.minLength),
@@ -618,6 +620,7 @@ export class OptimizationsService {
       fabric = OptimizationViewMapper.customFabric(
         row.fabricWidth ?? 0,
         row.fabricLength ?? 0,
+        row.fabricGrainline,
       );
     }
 

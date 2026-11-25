@@ -81,12 +81,13 @@ export class OptimizationViewMapper {
   static customFabric(
     widthMm: number,
     lengthMm: number,
+    grainline = 0,
   ): OptimizerFabricInputDto {
     return {
       fabricId: undefined,
       widthMm,
       lengthMm,
-      grainline: 0,
+      grainline,
       boundary: this.rectangularBoundary(widthMm, lengthMm),
     };
   }

@@ -78,12 +78,12 @@ describe('toEngineInput', () => {
     ]);
   });
 
-  it('keeps custom rectangular dimensions in the engine API format', () => {
+  it('passes custom rectangular dimensions and grainline in the engine API format', () => {
     const result = toEngineInput(
       makeInput({
         widthMm: 100,
         lengthMm: 200,
-        grainline: 0,
+        grainline: 45,
         boundary: [
           { x: 0, y: 0 },
           { x: 100, y: 0 },
@@ -94,7 +94,15 @@ describe('toEngineInput', () => {
       1,
     );
 
-    expect(result.fabric).toEqual({ width: 100, length: 200 });
+    expect(result.fabric).toEqual({
+      boundary: [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+        { x: 100, y: 200 },
+        { x: 0, y: 200 },
+      ],
+      grainline: 45,
+    });
   });
 
   it('maps stable engine piece IDs back to source pattern piece IDs', () => {

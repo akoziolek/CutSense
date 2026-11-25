@@ -7,6 +7,7 @@ export function useOptimizationPieceDrag(options: {
   editable: Ref<boolean>
   canUndo: Ref<boolean>
   canRedo: Ref<boolean>
+  selectedPieceId: Ref<number | null>
   pieces: Ref<PlacedPieceViewItem[]>
   fabricBoundary: Ref<[number, number][]>
   totalAllowanceMm: Ref<number>
@@ -134,6 +135,35 @@ export function useOptimizationPieceDrag(options: {
           options.onUndo()
         }
       }
+      return
+    }
+
+    if (
+      !draggingPiece.value &&
+      options.selectedPieceId.value !== null &&
+      ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)
+    ) {
+      const selectedPiece = options.pieces.value.find((p) => p.id === options.selectedPieceId.value)
+      if (!selectedPiece) return
+
+      e.preventDefault()
+
+      const stepMm = e.shiftKey ? 10 : e.altKey ? 0.5 : 1
+
+      let deltaXMm = 0
+      let deltaYMm = 0
+
+      if (e.key === 'ArrowLeft') deltaXMm = -stepMm
+      if (e.key === 'ArrowRight') deltaXMm = stepMm
+      if (e.key === 'ArrowUp') deltaYMm = stepMm
+      if (e.key === 'ArrowDown') deltaYMm = -stepMm
+
+      options.onMovePiece({
+        index: selectedPiece.index,
+        pieceId: selectedPiece.id,
+        deltaXMm,
+        deltaYMm,
+      })
     }
   }
 

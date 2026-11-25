@@ -159,6 +159,7 @@ const { draggingPiece, dragValidation, ignoreNextClick, handlePieceMouseDown } =
     editable: toRef(props, 'editable'),
     canUndo: toRef(props, 'canUndo'),
     canRedo: toRef(props, 'canRedo'),
+    selectedPieceId,
     pieces: toRef(props, 'pieces'),
     fabricBoundary: effectiveFabricBoundary,
     totalAllowanceMm,

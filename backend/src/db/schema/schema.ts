@@ -322,6 +322,7 @@ export const optimizationResults = pgTable(
     groupId: uuid('group_id'),
     fabricWidth: integer('fabric_width'),
     fabricLength: integer('fabric_length'),
+    fabricGrainline: smallint('fabric_grainline').notNull().default(0),
     customFabricId: bigint('custom_fabric_id', { mode: 'number' }).references(
       () => fabrics.id,
       { onDelete: 'cascade' },

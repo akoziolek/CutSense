@@ -1,0 +1,1 @@
+ALTER TABLE "optimization_results" ADD COLUMN "fabric_grainline" smallint DEFAULT 0 NOT NULL;

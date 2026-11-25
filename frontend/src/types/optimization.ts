@@ -39,7 +39,13 @@ export interface OptimizationPieceConfig {
 }
 
 export type PoolFabric =
-  | { key: string; source: 'custom'; widthCm: string; heightCm: string }
+  | {
+      key: string
+      source: 'custom'
+      widthCm: string
+      heightCm: string
+      grainline: number
+    }
   | { key: string; source: 'library'; fabricId: number; name: string }
 
 export interface WizardPieceConfig extends OptimizationPieceConfig {
@@ -53,6 +59,7 @@ export interface CreateOptimizationPayload {
   fabricId?: number
   fabricWidthMm?: number
   fabricLengthMm?: number
+  fabricGrainline?: number
   seamAllowanceMm: number
   cuttingAllowanceMm: number
   pieces: Omit<OptimizationPieceConfig, 'key'>[]

@@ -12,6 +12,7 @@ import { Compass, Info, ArrowUp, ChevronDown } from 'lucide-vue-next'
 const props = withDefaults(
   defineProps<{
     threadAngle?: number
+    title?: string
   }>(),
   {
     threadAngle: 0,
@@ -33,7 +34,7 @@ const threadAngles = [0, 45, 90, 135, 180, 225, 270, 315]
         <div class="flex items-center gap-2">
           <Compass class="h-4 w-4 text-foreground" />
           <h3 class="text-xs font-bold font-inter text-foreground uppercase tracking-wider">
-            {{ $t('spatial.threadDirection') }}
+            {{ props.title ?? $t('spatial.threadDirection') }}
           </h3>
         </div>
 

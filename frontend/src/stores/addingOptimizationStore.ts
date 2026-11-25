@@ -155,9 +155,9 @@ export const useOptimizationAddingStore = defineStore('addingOptimization', () =
     fabricPool.value = fabricPool.value.filter((f) => used.has(f.key))
   }
 
-  function addCustomFabric(widthCm: string, heightCm: string): string {
+  function addCustomFabric(widthCm: string, heightCm: string, grainline: number): string {
     const key = nextFabricKey()
-    fabricPool.value.push({ key, source: 'custom', widthCm, heightCm })
+    fabricPool.value.push({ key, source: 'custom', widthCm, heightCm, grainline })
     return key
   }
 
@@ -209,7 +209,12 @@ export const useOptimizationAddingStore = defineStore('addingOptimization', () =
       const width = parseCm(fabric.widthCm)
       const height = parseCm(fabric.heightCm)
       if (width === null || height === null) return null
-      payloads.push({ ...base, fabricWidthMm: cmToMm(width), fabricLengthMm: cmToMm(height) })
+      payloads.push({
+        ...base,
+        fabricWidthMm: cmToMm(width),
+        fabricLengthMm: cmToMm(height),
+        fabricGrainline: fabric.grainline,
+      })
     }
 
     return payloads.length ? payloads : null

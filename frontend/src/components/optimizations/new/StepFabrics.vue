@@ -3,10 +3,16 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Point2D } from '@/types/geometry'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import SidebarThreadDirection from '@/components/spatial/sidebar/SidebarThreadDirection.vue'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import FormFloatingActions from '@/components/forms/FormFloatingActions.vue'
 import PieceSelectCard from '@/components/optimizations/new/PieceSelectCard.vue'
 import FabricGroupsPanel from '@/components/optimizations/new/FabricGroupsPanel.vue'
@@ -110,9 +116,8 @@ const assign = (fabricKey: string) => {
   clearSelection()
 }
 
-const tab = ref(store.fabricPool.length ? 'existing' : 'custom')
-
 const size = reactive({ width: '', height: '' })
+const customGrainline = ref(0)
 const sizeFields = [
   { id: 'fabric-height', label: 'Height', key: 'height', placeholder: 'e.g. 290' },
   { id: 'fabric-width', label: 'Width', key: 'width', placeholder: 'e.g. 145' },
@@ -135,15 +140,26 @@ const canAddCustom = computed(
 )
 const assignCustom = () => {
   if (!canAddCustom.value) return
-  assign(store.addCustomFabric(size.width, size.height))
+  assign(store.addCustomFabric(size.width, size.height, customGrainline.value))
   size.width = size.height = ''
+  customGrainline.value = 0
+  fabricDialogView.value = null
 }
 
 const libraryPick = ref<SelectedItem | null>(null)
+const fabricDialogView = ref<'source' | 'custom' | 'library' | null>(null)
+const fabricDialogOpen = computed(() => fabricDialogView.value !== null)
+const openFabricDialog = () => {
+  if (hasSelection.value) fabricDialogView.value = 'source'
+}
+const setFabricDialogOpen = (open: boolean) => {
+  if (!open) fabricDialogView.value = null
+}
 const assignLibrary = () => {
   if (!libraryPick.value || !hasSelection.value) return
   assign(store.addLibraryFabric(libraryPick.value))
   libraryPick.value = null
+  fabricDialogView.value = null
 }
 </script>
 
@@ -213,158 +229,197 @@ const assignLibrary = () => {
           </p>
         </section>
 
-        <Card class="space-y-3 border-muted p-4 shadow-xs">
-          <h2 class="text-sm font-bold font-inter">
-            2. Choose fabric for
-            {{ hasSelection ? `${selected.length} selected piece(s)` : 'the selected pieces' }}
-          </h2>
-
-          <Tabs v-model="tab" class="h-[26rem]">
-            <div class="flex items-center justify-between gap-3">
-              <TabsList>
-                <TabsTrigger value="existing" :disabled="!store.fabricPool.length">
-                  Used in this run
-                </TabsTrigger>
-                <TabsTrigger value="custom">{{ t('optimizations.customDimensions') }}</TabsTrigger>
-                <TabsTrigger v-if="isLoggedIn" value="library">
-                  {{ t('optimizations.fabricLibrary') }}
-                </TabsTrigger>
-              </TabsList>
-
-              <Button
-                v-if="tab === 'custom'"
-                type="button"
-                size="sm"
-                class="shrink-0 whitespace-nowrap"
-                :disabled="!canAddCustom"
-                @click="assignCustom"
-              >
-                Use for selected pieces
-              </Button>
-              <Button
-                v-else-if="tab === 'library'"
-                type="button"
-                size="sm"
-                class="shrink-0 whitespace-nowrap"
-                :disabled="!libraryPick || !hasSelection"
-                @click="assignLibrary"
-              >
-                Use for selected pieces
-              </Button>
-            </div>
-
-            <TabsContent value="existing" class="min-h-0 overflow-y-auto space-y-2">
-              <Button
-                v-for="(f, i) in store.fabricPool"
-                :key="f.key"
-                type="button"
-                variant="outline"
-                class="mr-2 h-auto py-2 text-xs"
-                :disabled="!hasSelection"
-                @click="assign(f.key)"
-              >
-                {{ i + 1 }}. {{ fabricLabel(f) }}
-              </Button>
-            </TabsContent>
-
-            <TabsContent value="custom" class="h-full min-h-0 overflow-y-auto p-1">
-              <div class="grid h-full grid-cols-1 gap-6 sm:grid-cols-2 sm:items-stretch">
-                <div class="flex max-w-md flex-col justify-between gap-4">
-                  <div class="space-y-3">
-                    <div v-for="field in sizeFields" :key="field.id" class="space-y-1">
-                      <Label :for="field.id" class="text-xs font-medium text-muted-foreground">
-                        {{ field.label }}
-                      </Label>
-                      <div class="relative">
-                        <Input
-                          :id="field.id"
-                          type="number"
-                          step="0.1"
-                          :min="MIN_FABRIC_SIDE_CM"
-                          :max="MAX_FABRIC_SIDE_CM"
-                          :placeholder="field.placeholder"
-                          :model-value="size[field.key]"
-                          class="h-9 pr-10 text-sm"
-                          @update:model-value="(v: string | number) => (size[field.key] = String(v ?? ''))"
-                          @keyup.enter="assignCustom"
-                        />
-                        <span
-                          class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground"
-                          >cm</span
-                        >
-                      </div>
-                    </div>
-
-                    <p v-if="sizeInvalid" class="text-xs text-destructive" role="alert">
-                      {{
-                        t('optimizations.sizeRangeError', {
-                          min: MIN_FABRIC_SIDE_CM,
-                          max: MAX_FABRIC_SIDE_CM,
-                        })
-                      }}
-                    </p>
-                  </div>
-
-                  <p class="text-xs text-muted-foreground">
-                    Every custom size you add is a separate sheet with its own layout.
-                  </p>
-                </div>
-
-                <div
-                  class="flex h-full min-h-48 items-center justify-center rounded-md border border-muted bg-muted/20 p-4"
-                >
-                  <svg
-                    v-if="customPreview"
-                    :viewBox="`0 0 ${customPreview.w} ${customPreview.h}`"
-                    preserveAspectRatio="xMidYMid meet"
-                    class="h-full w-full"
-                    role="img"
-                    :aria-label="
-                      t('optimizations.fabricPreview', {
-                        width: customPreview.w,
-                        height: customPreview.h,
-                      })
-                    "
-                  >
-                    <rect
-                      x="0"
-                      y="0"
-                      :width="customPreview.w"
-                      :height="customPreview.h"
-                      class="fill-muted stroke-foreground"
-                      stroke-width="2"
-                      vector-effect="non-scaling-stroke"
-                    />
-                  </svg>
-                  <p v-else class="text-xs text-muted-foreground">
-                    {{ t('optimizations.enterFabricSize') }}
-                  </p>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent
-              v-if="isLoggedIn"
-              value="library"
-              class="flex min-h-0 flex-col gap-3 overflow-hidden"
-            >
-              <div class="min-h-0 flex-1 overflow-y-auto p-1.5">
-                <FabricLibraryPicker
-                  :selected-id="libraryPick?.id ?? null"
-                  @select="(fabric) => (libraryPick = fabric)"
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          <p v-if="!hasSelection" class="text-xs text-muted-foreground">
-            Select at least one piece above first.
-          </p>
-        </Card>
       </div>
 
-      <FabricGroupsPanel @select-group="selectGroup" />
+      <FabricGroupsPanel
+        :can-add-fabric="hasSelection"
+        @select-group="selectGroup"
+        @add-fabric="openFabricDialog"
+      />
     </div>
+
+    <Dialog :open="fabricDialogOpen" @update:open="setFabricDialogOpen">
+      <DialogContent
+        :class="
+          fabricDialogView === 'source'
+            ? 'max-w-lg'
+            : 'h-[85vh] w-[92vw] max-h-[calc(100vh-2rem)] max-w-none sm:max-w-6xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden'
+        "
+      >
+        <DialogHeader>
+          <DialogTitle>
+            <template v-if="fabricDialogView === 'source'">Add fabric</template>
+            <template v-else-if="fabricDialogView === 'custom'">
+              Custom dimensions for {{ selected.length }} selected piece(s)
+            </template>
+            <template v-else>Choose fabric for {{ selected.length }} selected piece(s)</template>
+          </DialogTitle>
+          <DialogDescription v-if="fabricDialogView === 'source'">
+            Choose a custom fabric size or select a fabric from your library.
+          </DialogDescription>
+          <DialogDescription v-else-if="fabricDialogView === 'custom'">
+            Every custom size you add is a separate sheet with its own layout.
+          </DialogDescription>
+          <DialogDescription v-else>
+            Select a fabric from your library to assign it to the selected pieces.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div v-if="fabricDialogView === 'source'" class="grid gap-3 sm:grid-cols-2">
+          <Button
+            type="button"
+            variant="outline"
+            class="h-auto w-full min-w-0 justify-start whitespace-normal py-4 text-left"
+            @click="fabricDialogView = 'custom'"
+          >
+            <span class="min-w-0 whitespace-normal">
+              <span class="block font-semibold">{{ t('optimizations.customDimensions') }}</span>
+              <span
+                class="mt-1 block whitespace-normal break-words text-xs font-normal text-muted-foreground"
+              >
+                Enter the width and height of a custom fabric.
+              </span>
+            </span>
+          </Button>
+          <Button
+            v-if="isLoggedIn"
+            type="button"
+            variant="outline"
+            class="h-auto w-full min-w-0 justify-start whitespace-normal py-4 text-left"
+            @click="fabricDialogView = 'library'"
+          >
+            <span class="min-w-0 whitespace-normal">
+              <span class="block font-semibold">{{ t('optimizations.fabricLibrary') }}</span>
+              <span
+                class="mt-1 block whitespace-normal break-words text-xs font-normal text-muted-foreground"
+              >
+                Choose an existing fabric from your library.
+              </span>
+            </span>
+          </Button>
+        </div>
+
+        <div
+          v-else-if="fabricDialogView === 'custom'"
+          class="flex min-h-0 flex-col gap-5 overflow-hidden"
+        >
+          <div class="grid min-h-0 flex-1 gap-6 sm:grid-cols-2 sm:items-stretch">
+            <div class="space-y-3">
+              <div v-for="field in sizeFields" :key="field.id" class="space-y-1">
+                <Label :for="field.id" class="text-xs font-medium text-muted-foreground">
+                  {{ field.label }}
+                </Label>
+                <div class="relative">
+                  <Input
+                    :id="field.id"
+                    type="number"
+                    step="0.1"
+                    :min="MIN_FABRIC_SIDE_CM"
+                    :max="MAX_FABRIC_SIDE_CM"
+                    :placeholder="field.placeholder"
+                    :model-value="size[field.key]"
+                    class="h-9 pr-10 text-sm"
+                    @update:model-value="(v: string | number) => (size[field.key] = String(v ?? ''))"
+                    @keyup.enter="assignCustom"
+                  />
+                  <span
+                    class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground"
+                    >cm</span
+                  >
+                </div>
+              </div>
+              <SidebarThreadDirection
+                :thread-angle="customGrainline"
+                :title="t('optimizations.fabricGrainline')"
+                @update:thread-angle="(angle: number) => (customGrainline = angle)"
+              />
+              <p v-if="sizeInvalid" class="text-xs text-destructive" role="alert">
+                {{
+                  t('optimizations.sizeRangeError', {
+                    min: MIN_FABRIC_SIDE_CM,
+                    max: MAX_FABRIC_SIDE_CM,
+                  })
+                }}
+              </p>
+            </div>
+
+            <div
+              class="flex min-h-0 items-center justify-center rounded-md border border-muted bg-muted/20 p-4"
+            >
+              <svg
+                v-if="customPreview"
+                :viewBox="`0 0 ${customPreview.w} ${customPreview.h}`"
+                preserveAspectRatio="xMidYMid meet"
+                class="h-full w-full"
+                role="img"
+                :aria-label="
+                  t('optimizations.fabricPreview', {
+                    width: customPreview.w,
+                    height: customPreview.h,
+                  })
+                "
+              >
+                <rect
+                  x="0"
+                  y="0"
+                  :width="customPreview.w"
+                  :height="customPreview.h"
+                  class="fill-muted stroke-foreground"
+                  stroke-width="2"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <p v-else class="text-xs text-muted-foreground">
+                {{ t('optimizations.enterFabricSize') }}
+              </p>
+            </div>
+          </div>
+
+          <div class="flex justify-between gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              class="border-black"
+              @click="fabricDialogView = 'source'"
+            >
+              Back
+            </Button>
+            <Button type="button" :disabled="!canAddCustom" @click="assignCustom">
+              OK
+            </Button>
+          </div>
+        </div>
+
+        <div
+          v-else-if="fabricDialogView === 'library'"
+          class="flex min-h-0 flex-col gap-4 overflow-hidden"
+        >
+          <div class="min-h-0 flex-1 overflow-y-auto p-1">
+            <FabricLibraryPicker
+              :selected-id="libraryPick?.id ?? null"
+              @select="(fabric) => (libraryPick = fabric)"
+            />
+          </div>
+          <div class="flex justify-between gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              class="border-black"
+              @click="fabricDialogView = 'source'"
+            >
+              Back
+            </Button>
+            <Button
+              type="button"
+              :disabled="!libraryPick || !hasSelection"
+              @click="assignLibrary"
+            >
+              OK
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
 
     <FormFloatingActions
       :cancel-label="t('common.actions.cancel')"

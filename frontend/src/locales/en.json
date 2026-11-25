@@ -365,6 +365,7 @@
     "enterFabricSize": "Enter the fabric size to see a preview.",
     "fabricLibrary": "Fabric library",
     "fabricLibraryDescription": "Pick a pre-configured shape or saved scrap from your library.",
+    "fabricGrainline": "Fabric grainline",
     "fabricPreview": "Fabric {width} by {height} cm",
     "fabricSize": "Fabric size",
     "fabricSource": "Fabric source",

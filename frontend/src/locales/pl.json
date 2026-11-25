@@ -364,6 +364,7 @@
     "enterFabricSize": "Wpisz rozmiar tkaniny, aby zobaczyć podgląd.",
     "fabricLibrary": "Biblioteka tkanin",
     "fabricLibraryDescription": "Wybierz wstępnie skonfigurowany kształt lub zapisany skrawek z biblioteki.",
+    "fabricGrainline": "Kierunek nitki tkaniny",
     "fabricPreview": "Tkanina {width} na {height} cm",
     "fabricSize": "Rozmiar tkaniny",
     "fabricSource": "Źródło tkaniny",

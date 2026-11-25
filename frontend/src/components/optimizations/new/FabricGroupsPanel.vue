@@ -1,21 +1,39 @@
 <script setup lang="ts">
-import { MousePointerClick, X } from 'lucide-vue-next'
+import { MousePointerClick, Plus, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { fabricLabel, useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 
-const emit = defineEmits<{ (e: 'select-group', pieceKeys: string[]): void }>()
+defineProps<{ canAddFabric: boolean }>()
+const emit = defineEmits<{
+  (e: 'select-group', pieceKeys: string[]): void
+  (e: 'add-fabric'): void
+}>()
 const store = useOptimizationAddingStore()
 </script>
 
 <template>
   <div class="w-full shrink-0 space-y-3 rounded-md border border-muted bg-card p-4 shadow-xs lg:w-80">
-    <h3 class="text-xs font-bold font-inter uppercase tracking-wider text-foreground">
-      Fabrics in this run ({{ store.fabricPool.length }})
-    </h3>
+    <div class="flex items-center justify-between gap-2">
+      <h3 class="text-xs font-bold font-inter uppercase tracking-wider text-foreground">
+        Fabrics in this run ({{ store.fabricPool.length }})
+      </h3>
+      <Button
+        type="button"
+        size="icon"
+        variant="outline"
+        class="size-8 shrink-0"
+        :disabled="!canAddFabric"
+        aria-label="Add fabric"
+        title="Add fabric"
+        @click="emit('add-fabric')"
+      >
+        <Plus class="size-4" />
+      </Button>
+    </div>
 
     <p v-if="!store.fabricPool.length" class="text-xs text-muted-foreground">
-      Select pieces and choose a fabric for them.
+      Select pieces, then use + to choose a fabric for them.
     </p>
 
     <ul v-else class="space-y-2">

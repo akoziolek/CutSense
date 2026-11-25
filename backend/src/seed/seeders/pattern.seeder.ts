@@ -139,7 +139,7 @@ export async function seedPatterns(
     boundaries.forEach((boundary, pieceIndex) => {
       pieceRows.push({
         patternImageId: Number(img.id),
-        boundary: sql`ST_GeomFromWKB(decode(${boundary}, 'hex'))`,
+        boundary: sql`ST_SnapToGrid(ST_GeomFromWKB(decode(${boundary}, 'hex')), 0.001)`,
         grainline: Math.floor(Math.random() * 360),
         normalCount: 1,
         mirroredCount: pieceIndex % 2 === 0 ? 1 : 0,

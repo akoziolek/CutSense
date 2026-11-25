@@ -8,7 +8,7 @@ export function useOptimizationRun(
   isSavedRoute: ComputedRef<boolean>,
   resourceId: ComputedRef<string>,
 ) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
 
   const optimization = ref<OptimizationView | null>(null)
   const isFetching = ref(true)
@@ -79,7 +79,11 @@ export function useOptimizationRun(
 
     isDownloadingPdf.value = true
     try {
-      const blob = await apiBlob(`${basePath}?format=${format}`)
+      const params = new URLSearchParams({
+        format,
+        lang: locale.value === 'pl' ? 'pl' : 'en',
+      })
+      const blob = await apiBlob(`${basePath}?${params.toString()}`)
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       const baseName = (opt.name ?? opt.pattern?.name ?? 'optimization')

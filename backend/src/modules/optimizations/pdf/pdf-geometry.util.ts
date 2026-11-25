@@ -10,6 +10,8 @@ import type {
   PlacementDto,
 } from '../dto/optimization-view.dto.js';
 import type { PointDto } from '../../../common/geometry/point.dto.js';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 export interface Bounds {
   minX: number;
@@ -28,6 +30,21 @@ export interface TileGridPlan {
   rows: number;
   activeCells: Map<string, number>;
   totalPages: number;
+}
+
+const REGULAR_FONT_PATH = path.resolve(
+  process.cwd(),
+  'assets/fonts/Inter_18pt-Regular.ttf',
+);
+
+const BOLD_FONT_PATH = path.resolve(
+  process.cwd(),
+  'assets/fonts/Inter_18pt-Regular.ttf',
+);
+
+export function registerPdfFonts(doc: PDFKit.PDFDocument): void {
+  doc.registerFont('Inter', REGULAR_FONT_PATH);
+  doc.registerFont('Inter-Bold', BOLD_FONT_PATH);
 }
 
 export function getFabricPolygon(
@@ -236,7 +253,7 @@ export function buildTileGridPlan(
   const { cols, rows, nonEmpty } = useLandscape ? landscape : portrait;
 
   const activeCells = new Map<string, number>();
-  let pageCounter = 1; 
+  let pageCounter = 1;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const key = `${r}:${c}`;

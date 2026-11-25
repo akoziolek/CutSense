@@ -6,6 +6,7 @@ import {
   computeBounds,
   getFabricPolygon,
   offsetPolygon,
+  registerPdfFonts,
   toTuplePolygon,
 } from './pdf-geometry.util.js';
 import {
@@ -15,6 +16,8 @@ import {
   drawSummaryCoverPage,
   drawTileGuides,
 } from './pdf-layout-renderer.js';
+import { type PdfLang as OptimizationPdfLang } from './pdf-labels.js';
+export type { OptimizationPdfLang };
 
 export type OptimizationPdfFormat = 'a4' | 'actual';
 
@@ -26,11 +29,12 @@ export class OptimizationPdfService {
   async generate(
     view: OptimizationViewDto,
     format: OptimizationPdfFormat,
+    lang: OptimizationPdfLang = 'en',
   ): Promise<{ buffer: Buffer; filename: string }> {
     const buffer =
       format === 'actual'
-        ? await this.renderTiledA4ActualPdf(view)
-        : await this.renderA4ReportPdf(view);
+        ? await this.renderTiledA4ActualPdf(view, lang)
+        : await this.renderA4ReportPdf(view, lang);
 
     const baseName = this.sanitizeFilename(
       view.name ??
@@ -45,7 +49,10 @@ export class OptimizationPdfService {
     };
   }
 
-  private renderA4ReportPdf(view: OptimizationViewDto): Promise<Buffer> {
+  private renderA4ReportPdf(
+    view: OptimizationViewDto,
+    lang: OptimizationPdfLang = 'en',
+  ): Promise<Buffer> {
     const fabricPts = getFabricPolygon(view);
     const bounds = computeBounds([
       fabricPts,
@@ -65,12 +72,15 @@ export class OptimizationPdfService {
         margins: { top: 0, bottom: 0, left: 0, right: 0 },
       });
 
-      drawSummaryCoverPage(doc, view);
+      drawSummaryCoverPage(doc, view, lang);
       doc.end();
     });
   }
 
-  private renderTiledA4ActualPdf(view: OptimizationViewDto): Promise<Buffer> {
+  private renderTiledA4ActualPdf(
+    view: OptimizationViewDto,
+    lang: OptimizationPdfLang = 'en',
+  ): Promise<Buffer> {
     const totalAllowance = view.seamAllowanceMm + view.cuttingAllowanceMm;
     const activePolygons = view.placements
       .filter((p) => p.polygon.length >= 3)
@@ -105,16 +115,16 @@ export class OptimizationPdfService {
     );
 
     return this.collectBuffer(doc, () => {
-      // Strona 1: Summary
+      // Page 1: Summary
       doc.addPage({
         size: 'A4',
         layout: summaryIsLandscape ? 'landscape' : 'portrait',
         margins: { top: 0, bottom: 0, left: 0, right: 0 },
       });
 
-      drawSummaryCoverPage(doc, view, { tileBounds, plan });
+      drawSummaryCoverPage(doc, view, lang, { tileBounds, plan });
 
-      // Strony 2..N: Tiles N:N
+      // Pages 2..N: Tiles N:N
       const marginPt = marginMm * MM_TO_PT;
       const tileWPt = plan.tileWmm * MM_TO_PT;
       const tileHPt = plan.tileHmm * MM_TO_PT;
@@ -162,6 +172,7 @@ export class OptimizationPdfService {
             pageNumber,
             plan.totalPages,
             plan.activeCells,
+            lang,
           );
         }
       }
@@ -181,6 +192,7 @@ export class OptimizationPdfService {
       autoFirstPage: false,
       info: { Title: title },
     });
+    registerPdfFonts(doc);
 
     doc.on('pageAdded', () => {
       doc.page.margins = { top: 0, bottom: 0, left: 0, right: 0 };

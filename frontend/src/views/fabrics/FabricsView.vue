@@ -31,8 +31,6 @@ import BulkDeleteControls from '@/components/common/BulkDeleteControls.vue'
 import { useResourceTags } from '@/composables/resources/useResourceTags'
 import { useFabricsList } from '@/composables/fabrics/useFabricsLists'
 
-// load tags z inneog composable
-
 const PAGE_SIZE = 12
 const DEFAULT_SORT: FabricSort = 'date_desc'
 const { t } = useI18n()
@@ -342,7 +340,7 @@ const noSpinner =
               :key="fabric.id"
               :to="{ name: 'FabricDetails', params: { id: fabric.id } }"
               :title="fabric.name"
-              :meta="`${formatCardDate(fabric.createdAt)} • ${(fabric.areaMm2 / 1_000_000).toFixed(1)} m²`"
+              :meta="`${formatCardDate(fabric.createdAt)} • ${(fabric.areaMm2 / 1_000_000).toFixed(2)} m²`"
               :image-url="fabric.pictureUrl"
               :is-favourite="fabric.isFavourite"
               :selectable="selectionMode"

@@ -48,17 +48,23 @@ import {
   OptimizationPdfService,
   type OptimizationPdfFormat,
 } from './pdf/optimization-pdf.service.js';
-
-enum PdfFormatParam {
-  A4 = 'a4',
-  ACTUAL = 'actual',
-}
+import { DefaultValuePipe } from '@nestjs/common';
 import { OptimizationFilterOptionsDto } from './dto/optimization-filter-options.dto.js';
 import {
   BulkDeleteDto,
   BulkDeleteResponseDto,
 } from '../../common/dto/bulk-delete.dto.js';
 import { RenameOptimizationDto } from './dto/rename-optimization.dto.js';
+
+enum PdfFormatParam {
+  A4 = 'a4',
+  ACTUAL = 'actual',
+}
+
+enum PdfLangParam {
+  PL = 'pl',
+  EN = 'en',
+}
 
 @Controller('optimizations')
 @ApiTags('Optimizations')
@@ -213,11 +219,13 @@ export class OptimizationController {
   private async sendPdfResponse(
     view: OptimizationViewDto,
     format: PdfFormatParam,
+    lang: PdfLangParam,
     res: Response,
   ): Promise<StreamableFile> {
     const { buffer, filename } = await this.optimizationPdfService.generate(
       view,
       format as OptimizationPdfFormat,
+      lang,
     );
     res.set({
       'Content-Type': 'application/pdf',
@@ -235,11 +243,17 @@ export class OptimizationController {
   async downloadRunPdf(
     @Param('runId', ParseUUIDPipe) runId: string,
     @Query('format', new ParseEnumPipe(PdfFormatParam)) format: PdfFormatParam,
+    @Query(
+      'lang',
+      new DefaultValuePipe(PdfLangParam.EN),
+      new ParseEnumPipe(PdfLangParam),
+    )
+    lang: PdfLangParam,
     @Res({ passthrough: true }) res: Response,
     @OptionalUser() user?: AuthUser,
   ): Promise<StreamableFile> {
     const view = await this.optimizationsService.getRun(runId, user?.id);
-    return this.sendPdfResponse(view, format, res);
+    return this.sendPdfResponse(view, format, lang, res);
   }
 
   @Get(':id/pdf')
@@ -251,11 +265,17 @@ export class OptimizationController {
   async downloadSavedPdf(
     @Param('id', ParseIntPipe) id: number,
     @Query('format', new ParseEnumPipe(PdfFormatParam)) format: PdfFormatParam,
+    @Query(
+      'lang',
+      new DefaultValuePipe(PdfLangParam.EN),
+      new ParseEnumPipe(PdfLangParam),
+    )
+    lang: PdfLangParam,
     @Res({ passthrough: true }) res: Response,
     @CurrentUser() user: AuthUser,
   ): Promise<StreamableFile> {
     const view = await this.optimizationsService.getSaved(id, user.id);
-    return this.sendPdfResponse(view, format, res);
+    return this.sendPdfResponse(view, format, lang, res);
   }
 
   @Get('filter-options')

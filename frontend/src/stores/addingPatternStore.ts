@@ -9,6 +9,7 @@ import {
   PATTERN_VISIBILITY,
   PATTERN_SIZE,
 } from '@/types/pattern'
+import { useI18n } from 'vue-i18n'
 
 const STORAGE_PHOTOS_KEY = 'adding_pattern_photos'
 const STORAGE_CONFIGS_KEY = 'adding_pattern_pieces'
@@ -38,6 +39,7 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
   const pieces = ref<PatternPiece[]>([])
   const details = ref<PatternDetails>({ ...DEFAULT_DETAILS })
   const isHydrated = ref(false)
+  const { t } = useI18n()
 
   function sanitizePhotoConfig(config?: Partial<PatternPhotoData>): PatternPhotoData {
     const shapes =
@@ -140,14 +142,16 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
             id: `piece-${shapeId}`,
             photoIndex: photoIdx,
             shapeId,
-            name: existing.name || `Piece #${counter}`,
+            name: existing.name,
           })
         } else {
           newPieces.push({
             id: `piece-${shapeId}`,
             photoIndex: photoIdx,
             shapeId,
-            name: `Piece #${counter}`,
+            name: t('patterns.pieceLabel', {
+              number: counter,
+            }),
             normal: 1,
             mirrored: 0,
             grainline: 0,

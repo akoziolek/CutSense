@@ -13,8 +13,9 @@ import {
   index,
   uuid,
   jsonb,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import { postgisPolygon } from './custom-types.js';
 import type { OptimizerInputDto } from '../../modules/optimizations/dto/optimizer-input.dto.js';
 import type { EngineResult } from '../../modules/optimizer-engine/optimizer-engine.types.js';
@@ -41,35 +42,61 @@ export const patternSizeEnum = pgEnum('pattern_size', [
 // TABLES
 // ==========================================
 
+export type LocalizedText = {
+  pl: string;
+  en: string;
+};
+
 export const algorithmTypes = pgTable('algorithm_types', {
   id: bigint('id', { mode: 'number' })
     .primaryKey()
     .generatedByDefaultAsIdentity(),
-  name: varchar('name', { length: 35 }).notNull().unique(),
-  description: varchar('description', { length: 100 }),
+  name: jsonb('name').$type<LocalizedText>().notNull(),
+  description: jsonb('description').$type<LocalizedText>(),
 });
+export const tagsForPatterns = pgTable(
+  'tags_for_patterns',
+  {
+    id: bigint('id', { mode: 'number' })
+      .primaryKey()
+      .generatedByDefaultAsIdentity(),
+    name: jsonb('name').$type<LocalizedText>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('tags_patterns_name_pl_idx').on(
+      sql`lower(${table.name}->>'pl')`,
+    ),
+    uniqueIndex('tags_patterns_name_en_idx').on(
+      sql`lower(${table.name}->>'en')`,
+    ),
+  ],
+);
 
-export const tagsForPatterns = pgTable('tags_for_patterns', {
-  id: bigint('id', { mode: 'number' })
-    .primaryKey()
-    .generatedByDefaultAsIdentity(),
-  name: varchar('name', { length: 20 }).notNull().unique(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-});
-
-export const tagsForFabrics = pgTable('tags_for_fabrics', {
-  id: bigint('id', { mode: 'number' })
-    .primaryKey()
-    .generatedByDefaultAsIdentity(),
-  name: varchar('name', { length: 20 }).notNull().unique(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-});
+export const tagsForFabrics = pgTable(
+  'tags_for_fabrics',
+  {
+    id: bigint('id', { mode: 'number' })
+      .primaryKey()
+      .generatedByDefaultAsIdentity(),
+    name: jsonb('name').$type<LocalizedText>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('tags_fabrics_name_pl_idx').on(
+      sql`lower(${table.name}->>'pl')`,
+    ),
+    uniqueIndex('tags_fabrics_name_en_idx').on(
+      sql`lower(${table.name}->>'en')`,
+    ),
+  ],
+);
 
 export const users = pgTable('users', {
   id: bigint('id', { mode: 'number' })

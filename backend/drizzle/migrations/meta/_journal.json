@@ -148,6 +148,13 @@
       "when": 1794830409157,
       "tag": "0020_change_optimization_time_to_integer",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795462803279,
+      "tag": "0021_add_localized_text",
+      "breakpoints": true
     }
   ]
 }

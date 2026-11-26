@@ -425,11 +425,26 @@ export class PatternsService {
           ? await tx
               .select({ id: tagsForPatterns.id, name: tagsForPatterns.name })
               .from(tagsForPatterns)
-              .where(inArray(tagsForPatterns.name, tagNames))
+              .where(
+                or(
+                  inArray(
+                    sql<string>`lower(${tagsForPatterns.name}->>'pl')`,
+                    tagNames,
+                  ),
+                  inArray(
+                    sql<string>`lower(${tagsForPatterns.name}->>'en')`,
+                    tagNames,
+                  ),
+                ),
+              )
           : [];
 
         const unknown = tagNames.filter(
-          (n) => !tagRows.some((r) => r.name === n),
+          (n) =>
+            !tagRows.some(
+              (r) =>
+                r.name.pl.toLowerCase() === n || r.name.en.toLowerCase() === n,
+            ),
         );
         if (unknown.length) {
           throw new BadRequestException([
@@ -552,7 +567,7 @@ export class PatternsService {
   async getPatternTags(): Promise<PatternTagDto[]> {
     const tags = await this.db.query.tagsForPatterns.findMany({
       columns: { id: true, name: true },
-      orderBy: (tag, { asc }) => [asc(tag.name)],
+      orderBy: (tag) => [tag.id],
     });
 
     return PatternsMapper.toTagDtos(tags);

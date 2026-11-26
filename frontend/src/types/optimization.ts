@@ -1,4 +1,10 @@
-import type { BaseFilters, FilterOption, NamedItem, PaginatedResponse } from './common'
+import type {
+  BaseFilters,
+  FilterOption,
+  LocalizedText,
+  NamedItem,
+  PaginatedResponse,
+} from './common'
 import type { PointMm } from './geometry'
 import type { PatternImage, PatternPieceDefinition } from './pattern'
 
@@ -12,8 +18,16 @@ export type FabricSource = 'custom' | 'library'
 
 export type SelectedItem = NamedItem
 
-export interface OptimizationAlgorithm extends NamedItem {
-  description?: string
+export interface OptimizationAlgorithm {
+  id: number
+  name: LocalizedText
+  description?: LocalizedText
+}
+
+export interface LocalizedFilterOption {
+  id: number
+  name: LocalizedText
+  count?: number
 }
 
 export interface OptimizationDefaults {
@@ -86,7 +100,7 @@ export interface OptimizationView {
   id?: number
   name?: string
   isSaved: boolean
-  algorithmName: string
+  algorithmName: LocalizedText
   fabric: {
     fabricId?: number
     name?: string
@@ -115,7 +129,7 @@ export interface OptimizationListItem extends NamedItem {
   patternId: number
   patternName: string
   fabricName?: string
-  algorithmName: string
+  algorithmName: LocalizedText
   minLengthMm: number
 }
 
@@ -127,5 +141,5 @@ export type OptimizationSort = `${OptimizationSortField}_${'asc' | 'desc'}`
 export interface OptimizationFilterOptions {
   patterns: FilterOption[]
   fabrics: FilterOption[]
-  algorithms: FilterOption[]
+  algorithms: LocalizedFilterOption[]
 }

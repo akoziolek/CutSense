@@ -14,6 +14,7 @@ import { type CreatePatternDto } from './dto/create-pattern.dto.js';
 import type { EnginePiece } from '../optimizer-engine/optimizer-engine.types.js';
 import type { PatternPieceGeometryDto } from './dto/pattern-piece-geometry.dto.js';
 import type { PatternCoverDto } from './dto/pattern-cover.dto.js';
+import type { LocalizedText } from '../../db/schema/schema.js';
 
 interface PatternListRow {
   id: number;
@@ -37,7 +38,7 @@ export interface PatternWithRelations {
   starAverage: string;
   userId: number;
   createdAt: Date;
-  tags: { tag: { id: number; name: string } }[];
+  tags: { tag: { id: number; name: LocalizedText } }[];
   user: { id: number; nickname: string | null };
   images: {
     id: number;
@@ -59,7 +60,7 @@ export interface PatternWithRelations {
 
 interface PatternTag {
   id: number;
-  name: string;
+  name: LocalizedText;
 }
 
 export class PatternsMapper {

@@ -10,6 +10,7 @@ import {
   offsetPolygon,
   toTuplePolygon,
 } from './pdf-geometry.util.js';
+import { type PdfLang, getPdfLabels } from './pdf-labels.js';
 
 export const MM_TO_PT = 72 / 25.4;
 
@@ -54,8 +55,10 @@ export function drawSafeText(
 export function drawSummaryCoverPage(
   doc: PDFKit.PDFDocument,
   view: OptimizationViewDto,
+  lang: PdfLang = 'en',
   tiledContext?: { tileBounds: Bounds; plan: TileGridPlan },
 ): void {
+  const t = getPdfLabels(lang);
   const fabricPts = getFabricPolygon(view);
   const fabricBounds = computeBounds([fabricPts]);
   const bounds = computeBounds([
@@ -68,24 +71,26 @@ export function drawSummaryCoverPage(
   const margin = 36;
   const contentW = pageW - margin * 2;
 
-  const title = view.name ?? view.pattern?.name ?? 'Optimization Layout';
-  doc.font('Helvetica-Bold').fontSize(15).fillColor(PDF_PALETTE.inkPrimary);
+  const title = view.name ?? view.pattern?.name ?? t.defaultTitle;
+  doc.font('Inter-Bold').fontSize(15).fillColor(PDF_PALETTE.inkPrimary);
   drawSafeText(doc, title, margin, margin);
 
-  doc.font('Helvetica').fontSize(9).fillColor(PDF_PALETTE.inkSecondary);
+  const algorithmLabel = view.algorithmName[lang] ?? view.algorithmName.en;
+
+  doc.font('Inter').fontSize(9).fillColor(PDF_PALETTE.inkSecondary);
   drawSafeText(
     doc,
-    `Algorithm: ${view.algorithmName}   |   Fabric: ${Math.round(fabricBounds.width)} x ${Math.round(fabricBounds.height)} mm   |   Allowances: ${view.seamAllowanceMm} / ${view.cuttingAllowanceMm} mm`,
+    `${t.algorithm}: ${algorithmLabel}   |   ${t.fabric}: ${Math.round(fabricBounds.width)} x ${Math.round(fabricBounds.height)} mm   |   ${t.allowances}: ${view.seamAllowanceMm} / ${view.cuttingAllowanceMm} mm`,
     margin,
     margin + 20,
   );
 
   const statsY = margin + 38;
   const usedLengthM = (view.minLengthMm / 1000).toFixed(2);
-  doc.font('Helvetica').fontSize(9).fillColor(PDF_PALETTE.inkPrimary);
+  doc.font('Inter').fontSize(9).fillColor(PDF_PALETTE.inkPrimary);
   drawSafeText(
     doc,
-    `Used length: ${usedLengthM} m   |   Remaining: ${view.stats.remainingFabricPercentage}%   |   Usable scraps: ${view.stats.usableScrapsPercentage}%   |   Waste: ${view.stats.wastePercentage}%`,
+    `${t.usedLength}: ${usedLengthM} m   |   ${t.remaining}: ${view.stats.remainingFabricPercentage}%   |   ${t.usableScraps}: ${view.stats.usableScrapsPercentage}%   |   ${t.waste}: ${view.stats.wastePercentage}%`,
     margin,
     statsY,
   );
@@ -141,40 +146,22 @@ export function drawSummaryCoverPage(
     .strokeColor(PDF_PALETTE.borderLight)
     .stroke();
 
-  doc.font('Helvetica-Bold').fontSize(9).fillColor(PDF_PALETTE.inkPrimary);
+  doc.font('Inter-Bold').fontSize(9).fillColor(PDF_PALETTE.inkPrimary);
   drawSafeText(
     doc,
-    `Scale 1 : ${ratioDenominator.toFixed(1)}`,
+    `${t.scale} 1 : ${ratioDenominator.toFixed(1)}`,
     margin,
     footerY,
   );
 
-  doc.font('Helvetica').fontSize(8).fillColor(PDF_PALETTE.inkSecondary);
-  drawSafeText(
-    doc,
-    'Solid: pattern   |   Thin: seam   |   Dashed: cutting',
-    margin,
-    footerY + 13,
-  );
-  drawSafeText(
-    doc,
-    '#N: Pattern piece   |   M: Mirrored   |   °: Rotation angle',
-    margin,
-    footerY + 25,
-  );
+  doc.font('Inter').fontSize(8).fillColor(PDF_PALETTE.inkSecondary);
+  drawSafeText(doc, t.legendLines, margin, footerY + 13);
+  drawSafeText(doc, t.legendPieces, margin, footerY + 25);
 
   if (tiledContext) {
     const activeCount = tiledContext.plan.activeCells.size;
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(8)
-      .fillColor(PDF_PALETTE.tileOverlayStroke);
-    drawSafeText(
-      doc,
-      `Blue grid: A4 sheets (${activeCount} active pages, pages 2–${activeCount + 1})`,
-      margin,
-      footerY + 37,
-    );
+    doc.font('Inter-Bold').fontSize(8).fillColor(PDF_PALETTE.tileOverlayStroke);
+    drawSafeText(doc, t.blueGrid(activeCount), margin, footerY + 37);
 
     const realCalPt = 50 * MM_TO_PT;
     const realCalX = pageW - margin - realCalPt;
@@ -185,12 +172,12 @@ export function drawSummaryCoverPage(
         .rect(realCalX, realCalY, realCalPt, realCalPt)
         .fillAndStroke('#FFFFFF', PDF_PALETTE.inkPrimary);
 
-      doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_PALETTE.inkPrimary);
-      drawSafeText(doc, 'TEST 1:1', realCalX + 6, realCalY + 8);
+      doc.font('Inter-Bold').fontSize(8).fillColor(PDF_PALETTE.inkPrimary);
+      drawSafeText(doc, t.test1to1, realCalX + 6, realCalY + 8);
 
-      doc.font('Helvetica').fontSize(7.5).fillColor(PDF_PALETTE.inkSecondary);
+      doc.font('Inter').fontSize(7.5).fillColor(PDF_PALETTE.inkSecondary);
       drawSafeText(doc, '50 x 50 mm', realCalX + 6, realCalY + 20);
-      drawSafeText(doc, 'Print at 100%', realCalX + 6, realCalY + 31);
+      drawSafeText(doc, t.print100, realCalX + 6, realCalY + 31);
     }
   } else {
     const refBarMm = 100;
@@ -213,7 +200,7 @@ export function drawSummaryCoverPage(
         .lineWidth(1)
         .stroke();
 
-      doc.font('Helvetica').fontSize(8).fillColor(PDF_PALETTE.inkSecondary);
+      doc.font('Inter').fontSize(8).fillColor(PDF_PALETTE.inkSecondary);
       drawSafeText(doc, `${refBarMm} mm`, barX, barY + 5, {
         width: refBarPt,
         align: 'center',
@@ -364,7 +351,7 @@ export function drawLayoutVector(
     ) {
       doc
         .save()
-        .font('Helvetica-Bold')
+        .font('Inter-Bold')
         .fontSize(fillPieces ? 7.5 : 9)
         .fillColor(PDF_PALETTE.inkPrimary);
       drawSafeText(doc, label, cx - 34, cy - 4.5, {
@@ -386,7 +373,9 @@ export function drawTileGuides(
   pageNumber: number,
   totalPages: number,
   activeCells: Map<string, number>,
+  lang: PdfLang = 'en',
 ): void {
+  const t = getPdfLabels(lang);
   doc.save();
 
   doc
@@ -417,7 +406,7 @@ export function drawTileGuides(
   }
 
   const currentCode = getTileCode(row, col);
-  const badgeW = 96;
+  const badgeW = 108;
   const badgeH = 24;
   const badgeX = marginPt + tileWPt - badgeW - 8;
   const badgeY = marginPt + 8;
@@ -426,32 +415,26 @@ export function drawTileGuides(
     .rect(badgeX, badgeY, badgeW, badgeH)
     .fillAndStroke(PDF_PALETTE.tileBadgeBg, PDF_PALETTE.inkSecondary);
 
-  doc.font('Helvetica-Bold').fontSize(11).fillColor(PDF_PALETTE.inkPrimary);
+  doc.font('Inter-Bold').fontSize(11).fillColor(PDF_PALETTE.inkPrimary);
   drawSafeText(doc, currentCode, badgeX + 8, badgeY + 6);
 
-  doc.font('Helvetica').fontSize(8.5).fillColor(PDF_PALETTE.inkSecondary);
-  drawSafeText(
-    doc,
-    `Page ${pageNumber}/${totalPages}`,
-    badgeX + 34,
-    badgeY + 7,
-    {
-      width: badgeW - 42,
-      align: 'right',
-    },
-  );
+  doc.font('Inter').fontSize(8.5).fillColor(PDF_PALETTE.inkSecondary);
+  drawSafeText(doc, t.pageOf(pageNumber, totalPages), badgeX + 34, badgeY + 7, {
+    width: badgeW - 42,
+    align: 'right',
+  });
 
-  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(PDF_PALETTE.inkPrimary);
+  doc.font('Inter-Bold').fontSize(8.5).fillColor(PDF_PALETTE.inkPrimary);
 
   if (activeCells.has(`${row - 1}:${col}`)) {
     const topCode = getTileCode(row - 1, col);
     drawSafeText(
       doc,
-      `UP: ${topCode}`,
-      marginPt + tileWPt / 2 - 40,
+      `${t.up}: ${topCode}`,
+      marginPt + tileWPt / 2 - 45,
       marginPt - 18,
       {
-        width: 80,
+        width: 90,
         align: 'center',
       },
     );
@@ -461,7 +444,7 @@ export function drawTileGuides(
     const bottomCode = getTileCode(row + 1, col);
     drawSafeText(
       doc,
-      `DOWN: ${bottomCode}`,
+      `${t.down}: ${bottomCode}`,
       marginPt + tileWPt / 2 - 45,
       marginPt + tileHPt + 7,
       {
@@ -476,8 +459,8 @@ export function drawTileGuides(
     doc.save();
     doc.translate(marginPt - 14, marginPt + tileHPt / 2 + 25);
     doc.rotate(-90);
-    drawSafeText(doc, `LEFT: ${leftCode}`, 0, 0, {
-      width: 50,
+    drawSafeText(doc, `${t.left}: ${leftCode}`, 0, 0, {
+      width: 60,
       align: 'center',
     });
     doc.restore();
@@ -488,8 +471,8 @@ export function drawTileGuides(
     doc.save();
     doc.translate(marginPt + tileWPt + 14, marginPt + tileHPt / 2 - 25);
     doc.rotate(90);
-    drawSafeText(doc, `RIGHT: ${rightCode}`, 0, 0, {
-      width: 50,
+    drawSafeText(doc, `${t.right}: ${rightCode}`, 0, 0, {
+      width: 60,
       align: 'center',
     });
     doc.restore();
@@ -557,7 +540,7 @@ function drawTiledGridOverlay(
           );
 
         doc
-          .font(isActive ? 'Helvetica-Bold' : 'Helvetica')
+          .font(isActive ? 'Inter-Bold' : 'Inter')
           .fontSize(6.5)
           .fillColor(
             isActive ? PDF_PALETTE.tileOverlayStroke : PDF_PALETTE.inkMuted,
@@ -593,7 +576,7 @@ function drawDimensionRulers(
     .lineWidth(0.5)
     .strokeColor(PDF_PALETTE.inkMuted)
     .fillColor(PDF_PALETTE.inkMuted)
-    .font('Helvetica')
+    .font('Inter')
     .fontSize(6.5);
 
   const bottomY = offsetY + renderedH + 4;
@@ -610,7 +593,7 @@ function drawDimensionRulers(
       .lineTo(x, bottomY + (isEnd ? 5 : 3.5))
       .stroke();
     doc
-      .font(isEnd ? 'Helvetica-Bold' : 'Helvetica')
+      .font(isEnd ? 'Inter-Bold' : 'Inter')
       .text(`${Math.round(mm)}`, x - 16, bottomY + 6, {
         width: 32,
         align: 'center',
@@ -632,7 +615,7 @@ function drawDimensionRulers(
       .lineTo(leftX - (isEnd ? 5 : 3.5), y)
       .stroke();
     doc
-      .font(isEnd ? 'Helvetica-Bold' : 'Helvetica')
+      .font(isEnd ? 'Inter-Bold' : 'Inter')
       .text(`${Math.round(mm)}`, leftX - 36, y - 3.5, {
         width: 30,
         align: 'right',

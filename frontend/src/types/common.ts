@@ -3,9 +3,19 @@ export interface NamedItem {
   name: string
 }
 
-export type NameTag = NamedItem
+export interface LocalizedText {
+  pl: string
+  en: string
+}
 
-export interface FilterOption extends NamedItem {
+export interface NameTag {
+  id: number
+  name: LocalizedText
+}
+
+export interface FilterOption {
+  id: number
+  name: string | LocalizedText
   count?: number
 }
 

@@ -14,6 +14,12 @@ export interface PatternFormPayload {
   visibility: PATTERN_VISIBILITY | string
 }
 
+export interface PatternRatingState {
+  userRating: number | null
+  starCount: number
+  starAverage: string
+}
+
 export interface PatternImage {
   id: number
   url: string

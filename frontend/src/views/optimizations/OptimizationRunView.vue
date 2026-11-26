@@ -293,7 +293,7 @@ watch(
 
             <DetailsActions
               v-if="optimization.isSaved"
-              :edit-label="t('actions.edit')"
+              :edit-label="t('common.actions.edit')"
               @edit="openEdit"
               @delete="requestDelete"
             />

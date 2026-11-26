@@ -16,6 +16,7 @@ import {
   Patch,
   Query,
   Delete,
+  Put,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -31,6 +32,7 @@ import {
   ApiUnauthorizedResponse,
   ApiBadGatewayResponse,
   ApiConsumes,
+  ApiForbiddenResponse,
 } from '@nestjs/swagger';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
 import { PatternsService } from './patterns.service.js';
@@ -58,6 +60,8 @@ import {
   BulkDeleteResponseDto,
 } from '../../common/dto/bulk-delete.dto.js';
 import { RequestValidationException } from '../../common/exceptions/request-validation.exception.js';
+import { PatternSize, PatternVisibility } from './dto/pattern.enum.js';
+import { PatternRatingDto, SetRatingDto } from './dto/pattern-rating.dto.js';
 
 @Controller('patterns')
 @ApiTags('Patterns')
@@ -300,6 +304,35 @@ export class PatternController {
       dto.isFavourite,
       user.id,
     );
+  }
+
+  @Put(':id/rating')
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Rate a public pattern',
+    description:
+      'Sets the current user’s star rating (1–5) of a public pattern owned by someone else. Calling it again replaces the previous rating.',
+  })
+  @ApiParam({ 
+    name: 'id', 
+    type: Number, 
+    example: 1 })
+  @ApiBody({ type: SetRatingDto })
+  @ApiOkResponse({ type: PatternRatingDto })
+  @ApiBadRequestResponse({ 
+    description: 'Invalid ID or rating.' })
+  @ApiUnauthorizedResponse({ 
+    description: 'A valid session cookie is required.' })
+  @ApiForbiddenResponse({ 
+    description: 'Users cannot rate their own patterns.' })
+  @ApiNotFoundResponse({ 
+    description: 'The pattern does not exist or is not public.' })
+  async setRating(
+    @Param('id', ParseIntPipe) patternId: number,
+    @Body() dto: SetRatingDto,
+    @CurrentUser() user: { id: number },
+  ): Promise<PatternRatingDto> {
+    return this.patternsService.setRating(patternId, dto.rating, user.id);
   }
 
   @Delete(':id')

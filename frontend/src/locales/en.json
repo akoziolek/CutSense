@@ -338,7 +338,8 @@
     "minLength": "Min. fabric length",
     "minLengthValue": "{lengthM}\u00A0m × {widthM}\u00A0m",
     "calculating": "Calculating...",
-    "calculationUnavailable": "Calculation unavailable"
+    "calculationUnavailable": "Calculation unavailable",
+    "signInToRate": "Sign in to rate"
   },
   "optimizations": {
     "addFirstFabric": "Add your first fabric",
@@ -421,6 +422,7 @@
     "notFoundMessage": "The requested optimization does not exist or has expired.",
     "numberOfPieces": "Number of pieces",
     "ofTotalFabric": "of the total fabric",
+    "optimize": "Optimize",
     "patternLibrary": "Pattern library",
     "patternLoadFailed": "Could not load the pattern. Please try again.",
     "pieceLabel": "Piece #{number}{copy}",

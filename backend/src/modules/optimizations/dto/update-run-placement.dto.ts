@@ -5,6 +5,7 @@ import {
   IsArray,
   ArrayMinSize,
   ValidateNested,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -26,4 +27,7 @@ export class UpdateRunPlacementsDto {
   @ValidateNested({ each: true })
   @Type(() => UpdatedPiecePlacementDto)
   placements!: UpdatedPiecePlacementDto[];
+
+  @IsBoolean()
+  isValid?: boolean;
 }

@@ -256,6 +256,9 @@ export class OptimizationController {
   @ApiOperation({
     summary: 'Download optimization run layout as PDF (A4 or 1:1 actual size)',
   })
+  @ApiBadRequestResponse({
+    description: 'Invalid PDF format or the optimization layout is incomplete.',
+  })
   async downloadRunPdf(
     @Param('runId', ParseUUIDPipe) runId: string,
     @Query('format', new ParseEnumPipe(PdfFormatParam)) format: PdfFormatParam,
@@ -271,6 +274,9 @@ export class OptimizationController {
   @ApiOperation({
     summary:
       'Download saved optimization layout as PDF (A4 or 1:1 actual size)',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid PDF format or the optimization layout is incomplete.',
   })
   async downloadSavedPdf(
     @Param('id', ParseIntPipe) id: number,

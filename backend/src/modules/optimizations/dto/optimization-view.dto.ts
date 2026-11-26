@@ -109,8 +109,8 @@ export class OptimizationViewDto {
   @ApiProperty({ description: 'Optimizer execution time in milliseconds' })
   executionTime!: number;
 
-  @ApiProperty({ type: 'object', additionalProperties: { type: 'number' } })
-  stats!: ViewStats;
+  @ApiProperty({type: 'object', additionalProperties: { type: 'number' } })
+  stats: ViewStats | null;
 
   @ApiProperty({ type: [PlacementDto] })
   placements!: PlacementDto[];

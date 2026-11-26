@@ -124,7 +124,7 @@ export interface OptimizationView {
   cuttingAllowanceMm: number
   wasSuccessful: boolean
   executionTime: number // ms
-  stats: OptimizationStats
+  stats?: OptimizationStats | null
   placements: OptimizationPlacement[]
 }
 

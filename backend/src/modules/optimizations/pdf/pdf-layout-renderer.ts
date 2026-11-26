@@ -82,13 +82,16 @@ export function drawSummaryCoverPage(
   );
 
   const statsY = margin + 38;
-  doc.font('Helvetica').fontSize(9).fillColor(PDF_PALETTE.inkPrimary);
-  drawSafeText(
-    doc,
-    `Remaining: ${view.stats.remainingFabricPercentage}%   |   Usable scraps: ${view.stats.usableScrapsPercentage}%   |   Waste: ${view.stats.wastePercentage}%`,
-    margin,
-    statsY,
-  );
+
+  if (view.stats) {
+    doc.font('Helvetica').fontSize(9).fillColor(PDF_PALETTE.inkPrimary);
+    drawSafeText(
+      doc,
+      `Remaining: ${view.stats.remainingFabricPercentage}%   |   Usable scraps: ${view.stats.usableScrapsPercentage}%   |   Waste: ${view.stats.wastePercentage}%`,
+      margin,
+      statsY,
+    );
+  }
 
   const rulerLeftSpace = 38;
   const rulerBottomSpace = 24;

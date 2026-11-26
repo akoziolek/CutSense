@@ -54,6 +54,7 @@ import {
 } from '../optimizer-engine/optimizer-engine.types.js';
 import {
   fromEngineResult,
+  toCalculateStatsInput,
   toEngineInput,
 } from '../optimizer-engine/optimizer-engine.mapper.js';
 import { assertDateRange, likeTerm } from '../../common/utils/list-query.js';
@@ -445,7 +446,7 @@ export class OptimizationsService {
   ): Promise<{ id: number }> {
     const run = await this.findRun(runId, currentUserId);
     if (run.savedId !== undefined) return { id: run.savedId };
-    if (!run.result.wasSuccessful) {
+    if (!run.result.wasSuccessful || !run.result.stats) {
       throw new RequestValidationException(
         'Only a successful optimization can be saved.',
       );
@@ -494,13 +495,15 @@ export class OptimizationsService {
             seamAllowance: input.seamAllowanceMm,
             cuttingAllowance: input.cuttingAllowanceMm,
             spentTime: Math.round(result.executionTime),
-            usableScrapsArea: Math.round(stats.usableScrapsArea),
-            usableScrapsPercentage: Math.round(stats.usableScrapsPercentage),
-            wasteScrapsArea: Math.round(stats.wasteArea),
-            wasteScrapsPercentage: Math.round(stats.wastePercentage),
-            remainingFabricArea: Math.round(stats.remainingFabricArea),
+            usableScrapsArea: Math.round(stats?.usableScrapsArea ?? 0),
+            usableScrapsPercentage: Math.round(
+              stats?.usableScrapsPercentage ?? 0,
+            ),
+            wasteScrapsArea: Math.round(stats?.wasteArea ?? 0),
+            wasteScrapsPercentage: Math.round(stats?.wastePercentage ?? 0),
+            remainingFabricArea: Math.round(stats?.remainingFabricArea ?? 0),
             remainingAreaPercentage: Math.round(
-              stats.remainingFabricPercentage,
+              stats?.remainingFabricPercentage ?? 0,
             ),
           })
           .returning({ id: optimizationResults.id });
@@ -754,10 +757,17 @@ export class OptimizationsService {
       };
     });
 
-    // TODO: Call dedicated engine endpoint to recalculate  layout stats
-    // (usableScraps, waste, remainingFabric) after manual placement changes.
+    const shouldRecalculate = dto.isValid === true;
+
+    const stats = shouldRecalculate
+      ? await this.engine.calculateStats(
+          toCalculateStatsInput(run.input, updatedPositions),
+        )
+      : null;
+
     const updatedResult: EngineResult = {
       ...run.result,
+      stats,
       positions: updatedPositions,
     };
 

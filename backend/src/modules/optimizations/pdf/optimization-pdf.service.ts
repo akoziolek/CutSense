@@ -15,6 +15,7 @@ import {
   drawSummaryCoverPage,
   drawTileGuides,
 } from './pdf-layout-renderer.js';
+import { RequestValidationException } from '../../../common/exceptions/request-validation.exception.js';
 
 export type OptimizationPdfFormat = 'a4' | 'actual';
 
@@ -27,6 +28,11 @@ export class OptimizationPdfService {
     view: OptimizationViewDto,
     format: OptimizationPdfFormat,
   ): Promise<{ buffer: Buffer; filename: string }> {
+    if (!view.stats) {
+          throw new RequestValidationException(
+            'Pdf can only be generated for valid optimizations',
+          );
+        }
     const buffer =
       format === 'actual'
         ? await this.renderTiledA4ActualPdf(view)

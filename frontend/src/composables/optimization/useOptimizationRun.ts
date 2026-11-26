@@ -1,9 +1,10 @@
-import { ref, toRaw, type ComputedRef } from 'vue'
+import { ref, toRaw, type ComputedRef, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { api, ApiError, apiBlob } from '@/api/client'
 import type { OptimizationView } from '@/types/optimization'
 import { useSpatialHistory } from '@/composables/spatial/useSpatialHistory'
+import { validateAllPiecesPlacement } from '@/utils/geometry'
 
 export function useOptimizationRun(
   isSavedRoute: ComputedRef<boolean>,
@@ -76,6 +77,56 @@ export function useOptimizationRun(
     }
   }
 
+  const layoutIssueSummary = computed(() => {
+    const opt = optimization.value
+    if (!opt || opt.isSaved) {
+      return { outOfBoundsCount: 0, overlapCount: 0, isIncomplete: false }
+    }
+
+    const boundary = opt.fabric.boundary ?? []
+    const fabricBoundary: [number, number][] =
+      boundary.length >= 3
+        ? boundary.map(({ x, y }) => [x, y])
+        : [
+            [0, 0],
+            [opt.fabric.widthMm ?? 0, 0],
+            [opt.fabric.widthMm ?? 0, opt.fabric.lengthMm ?? 0],
+            [0, opt.fabric.lengthMm ?? 0],
+          ]
+
+    const piecesPoints = (opt.placements ?? [])
+      .filter((p) => p.polygon && p.polygon.length >= 3)
+      .map((p) => p.polygon.map(({ x, y }): [number, number] => [x, y]))
+
+    if (piecesPoints.length === 0 || fabricBoundary.length < 3) {
+      return { outOfBoundsCount: 0, overlapCount: 0, isIncomplete: false }
+    }
+
+    const validations = validateAllPiecesPlacement({
+      piecesPoints,
+      fabricBoundary,
+      totalAllowanceMm: opt.seamAllowanceMm + opt.cuttingAllowanceMm,
+    })
+
+    let outOfBoundsCount = 0
+    let overlapCount = 0
+    for (const result of validations) {
+      if (!result.valid) {
+        if (result.reason === 'out_of_bounds') outOfBoundsCount += 1
+        else overlapCount += 1
+      }
+    }
+
+    return {
+      outOfBoundsCount,
+      overlapCount,
+      isIncomplete: outOfBoundsCount > 0 || overlapCount > 0,
+    }
+  })
+
+  const isLayoutIncomplete = computed(() => layoutIssueSummary.value.isIncomplete)
+  let syncRevision = 0
+
   const applyAndSyncPlacement = (index: number, x: number, y: number): Promise<boolean> => {
     const opt = optimization.value
     if (!opt || isSavedRoute.value || opt.isSaved) return Promise.resolve(false)
@@ -94,20 +145,34 @@ export function useOptimizationRun(
       y: pt.y + dy,
     }))
 
+    const isValid = !isLayoutIncomplete.value
+    if (!isValid) {
+      opt.stats = null
+    }
+
+    const revision = ++syncRevision
     const runId = resourceId.value
+
     const task = placementSyncQueue.then(async () => {
       try {
         const updated = await api<OptimizationView>(
           `/optimizations/runs/${encodeURIComponent(runId)}/placements`,
           {
             method: 'PATCH',
-            body: JSON.stringify({ placements: [{ index, x, y }] }),
+            body: JSON.stringify({
+              placements: [{ index, x, y }],
+              isValid,
+            }),
           },
         )
-        optimization.value = updated
+        if (optimization.value && revision === syncRevision) {
+          optimization.value.stats = updated.stats
+        }
         return true
       } catch (e) {
-        optimization.value = previous
+        if (revision === syncRevision) {
+          optimization.value = previous
+        }
         toast.error(e instanceof ApiError ? e.body.message : t('optimizations.updateFailed'))
         return false
       }
@@ -238,8 +303,10 @@ export function useOptimizationRun(
     renameError,
     canUndo,
     canRedo,
+    isLayoutIncomplete,
     clearSkeletonTimer,
     fetchOptimization,
+    layoutIssueSummary,
     downloadPdf,
     saveOptimization,
     renameOptimization,

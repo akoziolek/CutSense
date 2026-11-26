@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DetailsCard from '@/components/common/DetailsCard.vue'
 import type { MetaItem } from '@/types/details'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CalendarDays, RulerDimensionLine, Scissors, Lock, Globe } from 'lucide-vue-next'
-import PatternPiecesCarousel from '@/components/patterns/PatternPiecesCarousel.vue'
+import { CalendarDays, RulerDimensionLine, Scissors, Lock, Globe, Puzzle } from 'lucide-vue-next'
+import PatternRating from '@/components/patterns/PatternRating.vue'
 import DetailsActions from '@/components/common/DetailsActions.vue'
 import { useAuth } from '@/stores/authStore'
 import { useFavouriteToggle } from '@/composables/resources/useFavouriteToggle'
@@ -17,24 +18,16 @@ import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
 import { useDeleteResource } from '@/composables/resources/useDeleteResource'
 import { usePatternDetails } from '@/composables/patterns/usePatternDetails'
 import PatternPieceCard from '@/components/patterns/PatternPieceCard.vue'
+import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
+import type { PatternRatingState } from '@/types/pattern'
 
 const props = defineProps<{ id: string }>()
 const { t } = useI18n()
-const { state: auth } = useAuth()
 
 const showDimensions = ref(false)
 
-const {
-  pattern,
-  isFetching,
-  showSkeleton,
-  error,
-  isNotFound,
-  minLengthStatus,
-  clearSkeletonTimer,
-  clearPollTimer,
-  fetchPattern,
-} = usePatternDetails()
+const { pattern, isFetching, showSkeleton, error, isNotFound, minLengthStatus, fetchPattern } =
+  usePatternDetails()
 
 const {
   confirmOpen,
@@ -52,6 +45,38 @@ const {
 })
 
 const { toggle: toggleFavourite, pending } = useFavouriteToggle('/patterns')
+
+let skeletonTimer: ReturnType<typeof setTimeout> | null = null
+let pollTimer: ReturnType<typeof setTimeout> | null = null
+const { state: auth } = useAuth()
+
+const router = useRouter()
+const optimizationStore = useOptimizationAddingStore()
+
+const onRated = (state: PatternRatingState) => {
+  if (pattern.value) Object.assign(pattern.value, state)
+}
+
+const optimize = () => {
+  if (!pattern.value) return
+  optimizationStore.reset()
+  optimizationStore.selectPattern({ id: pattern.value.id, name: pattern.value.name })
+  void router.push({ name: 'OptimizationNew' })
+}
+
+const clearSkeletonTimer = () => {
+  if (skeletonTimer) {
+    clearTimeout(skeletonTimer)
+    skeletonTimer = null
+  }
+}
+
+const clearPollTimer = () => {
+  if (pollTimer) {
+    clearTimeout(pollTimer)
+    pollTimer = null
+  }
+}
 
 const formatMinLength = (lengthMm: number, widthMm: number | null) => {
   const lengthM = (lengthMm / 1000).toFixed(2)
@@ -121,9 +146,34 @@ watch(
 <template>
   <GridLayout>
     <div class="w-full max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-14 py-8 sm:py-10 space-y-6">
-      <PageHeader :title="pattern?.name ?? (isFetching ? '' : t('patterns.details'))">
+      <PageHeader
+        :title="pattern?.name ?? (isFetching ? '' : 'Pattern details')"
+        :full-width="true"
+      >
+        <template v-if="pattern && pattern.visibility === 'PUBLIC'" #title-extra>
+          <PatternRating
+            :pattern-id="pattern.id"
+            :user-rating="pattern.userRating"
+            :star-count="pattern.starCount"
+            :star-average="pattern.starAverage"
+            :is-logged-in="!!auth.user"
+            :is-owner="isOwner"
+            @rated="onRated"
+          />
+        </template>
+
         <template #actions>
-          <div class="flex items-center gap-2">
+          <div class="flex shrink-0 items-center gap-2">
+            <Button
+              v-if="pattern"
+              type="button"
+              variant="outline"
+              class="inline-flex! h-9! w-fit! shrink-0! flex-row! cursor-pointer items-center! justify-center! gap-1.5! rounded-lg! border-2! border-foreground/70! bg-background! px-3.5! text-sm! font-medium! whitespace-nowrap! text-foreground! hover:bg-brand-pink! hover:text-brand-pink-foreground! hover:border-foreground/70!"
+              @click="optimize"
+            >
+              <Puzzle class="size-4 shrink-0" />
+              <span class="whitespace-nowrap">{{ t('optimizations.optimize') }}</span>
+            </Button>
             <FavouriteButton
               v-if="pattern && auth.user"
               :is-favourite="pattern.isFavourite"
@@ -138,6 +188,7 @@ watch(
           </div>
         </template>
       </PageHeader>
+
       <!-- TODO - move this to card section?? -->
       <p v-if="pattern" class="-mt-4 text-sm ml-4 text-muted-foreground">
         {{ t('common.details.author') }}: {{ pattern.author.nickname }}

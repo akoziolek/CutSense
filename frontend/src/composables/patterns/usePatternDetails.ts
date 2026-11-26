@@ -21,6 +21,7 @@ export interface PatternDetailsResponse {
   pieces: PatternCarouselPiece[]
   images: PatternImage[]
   isFavourite: boolean
+  userRating: number | null
 }
 
 const POLL_DELAYS_MS = [1000, 2000, 4000, 8000, 15000]

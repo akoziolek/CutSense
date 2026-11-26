@@ -74,11 +74,17 @@ const handleBack = (event: MouseEvent) => {
       <X class="!size-6 stroke-[2.5]" />
     </Button>
 
-    <h1 class="text-3xl font-bold tracking-tight flex-1 w-full text-left">
-      <TextHighlight :full-width="fullWidth" :color="color">
-        <slot>{{ title }}</slot>
-      </TextHighlight>
-    </h1>
+    <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1">
+      <h1
+        class="min-w-0 text-3xl font-bold tracking-tight text-left"
+        :class="{ 'flex-1 w-full': fullWidth }"
+      >
+        <TextHighlight :full-width="fullWidth" :color="color">
+          <slot>{{ title }}</slot>
+          <slot name="title-extra" />
+        </TextHighlight>
+      </h1>
+    </div>
 
     <div v-if="$slots.actions" class="flex items-center gap-2 shrink-0 mt-2">
       <slot name="actions" />

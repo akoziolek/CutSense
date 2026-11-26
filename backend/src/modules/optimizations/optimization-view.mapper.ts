@@ -162,7 +162,7 @@ export class OptimizationViewMapper {
       cuttingAllowanceMm: src.cuttingAllowanceMm,
       wasSuccessful: src.result.wasSuccessful,
       executionTime: src.result.executionTime,
-      stats: src.result.stats,
+      stats: src.result.stats ?? null,
       placements: src.result.positions.flatMap((pos) => {
         const piece = src.geometry.get(pos.id);
         if (!piece) return [];

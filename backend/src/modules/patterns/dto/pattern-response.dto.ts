@@ -160,4 +160,12 @@ export class PatternResponseDto {
     type: [PatternPieceDto],
   })
   pieces!: PatternPieceDto[];
+
+  @ApiProperty({
+    description: 'Rating given by the current user (null for guests or when not rated)',
+    type: Number,
+    nullable: true,
+    example: 4,
+  })
+  userRating!: number | null;
 }

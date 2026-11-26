@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import NickNameModal from './NicknameModal.vue'
+import NicknameModal from './NicknameModal.vue'
 import LoginModal from '@/components/auth/LoginModal.vue'
 import { login, useAuth } from '@/stores/authStore'
 import { clearReturnTo, consumeReturnTo } from '@/utils/returnTo'
@@ -101,7 +101,7 @@ async function onCancel() {
     @update:open="(v) => !v && closeLogin()"
     @login="login()"
   />
-  <NickNameModal
+  <NicknameModal
     v-else-if="activeModal === 'registration'"
     :open="true"
     :user-name="googleName"

@@ -27,6 +27,7 @@ import {
   tagsForPatterns,
   patternImages,
   patternFavourites,
+  patternStars,
 } from '../../db/schema/schema.js';
 import { PatternResponseDto } from './dto/pattern-response.dto.js';
 import { PatternTagDto } from './dto/pattern-tag.dto.js';
@@ -53,6 +54,8 @@ import { StoragePaths, StorageService } from '../storage/storage.service.js';
 import { NestingEngine } from '../optimizer-engine/nesting.engine.js';
 import type { EnginePiece } from '../optimizer-engine/optimizer-engine.types.js';
 import { resolveRequiredFabricWidthMm } from '../../common/geometry/shapes-geometry.js';
+import { PatternRatingDto } from './dto/pattern-rating.dto.js';
+import { AccessDeniedException } from '../../common/exceptions/access-denied.exception.js';
 
 // identity ids start at 1, so this never matches a favourite row (used for guests)
 const NO_USER_ID = 0;
@@ -197,6 +200,10 @@ export class PatternsService {
           columns: { userId: true },
           where: (fav, { eq }) => eq(fav.userId, currentUserId ?? NO_USER_ID),
         },
+        stars: {
+          columns: { rating: true },
+          where: (star, { eq }) => eq(star.userId, currentUserId ?? NO_USER_ID),
+        },
       },
     });
 
@@ -212,6 +219,51 @@ export class PatternsService {
     );
 
     return PatternsMapper.toResponseDto(pattern, imageUrls);
+  }
+
+  async setRating(
+    patternId: number,
+    rating: number,
+    currentUserId: number,
+  ): Promise<PatternRatingDto> {
+    return this.db.transaction(async (tx) => {
+      // the row lock serializes concurrent ratings so the aggregate stays correct
+      const [pattern] = await tx
+        .select({ id: patterns.id, userId: patterns.userId, visibility: patterns.visibility })
+        .from(patterns)
+        .where(eq(patterns.id, patternId))
+        .for('update');
+
+      if (!pattern || pattern.visibility !== 'PUBLIC') {
+        throw new ResourceNotFoundException('Pattern', patternId);
+      }
+      if (pattern.userId === currentUserId) {
+        throw new AccessDeniedException('You cannot rate your own pattern.');
+      }
+
+      await tx
+        .insert(patternStars)
+        .values({ patternId, userId: currentUserId, rating })
+        .onConflictDoUpdate({
+          target: [patternStars.patternId, patternStars.userId],
+          set: { rating, updatedAt: new Date() },
+        });
+
+      const [{ total, average }] = await tx
+        .select({
+          total: count(),
+          average: sql<string>`coalesce(round(avg(${patternStars.rating}), 2), 0)::text`,
+        })
+        .from(patternStars)
+        .where(eq(patternStars.patternId, patternId));
+
+      await tx
+        .update(patterns)
+        .set({ starCount: total, starAverage: average })
+        .where(eq(patterns.id, patternId));
+
+      return { id: patternId, userRating: rating, starCount: total, starAverage: average };
+    });
   }
 
   private firstImagesQuery(patternIds?: number[]) {

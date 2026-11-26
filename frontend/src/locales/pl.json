@@ -345,6 +345,7 @@
     "minLengthValue": "{widthM}\u00A0m × {lengthM}\u00A0m",
     "calculating": "Obliczanie...",
     "calculationUnavailable": "Obliczenie niedostępne",
+    "signInToRate": "Zaloguj się, aby wystawić ocenę",
     "pieceList": {
       "piece": "Element",
       "pieceNumbered": "Element {number}",
@@ -363,7 +364,7 @@
     "savedToast": "Dodano wykrój",
     "saveErrorToast": "Nie udało się zapisać wykroju"
   },
-  "optimizations": {
+  "optimizations": { 
     "addFirstFabric": "Dodaj pierwszą tkaninę",
     "addFirstPattern": "Dodaj pierwszy wykrój",
     "algorithm": "Algorytm",
@@ -444,6 +445,7 @@
     "notFoundMessage": "Żądana optymalizacja nie istnieje lub wygasła.",
     "numberOfPieces": "Liczba elementów",
     "ofTotalFabric": "całkowitej tkaniny",
+    "optimize": "Optymalizuj",
     "patternLibrary": "Biblioteka wykrojów",
     "patternLoadFailed": "Nie udało się wczytać wykroju. Spróbuj ponownie.",
     "pieceLabel": "Element nr {number}{copy}",

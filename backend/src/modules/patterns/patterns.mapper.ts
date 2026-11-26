@@ -55,6 +55,7 @@ export interface PatternWithRelations {
     }[];
   }[];
   favoritedBy: { userId: number }[];
+  stars?: { rating: number }[];
 }
 
 interface PatternTag {
@@ -113,6 +114,7 @@ export class PatternsMapper {
       isFavourite: pattern.favoritedBy.length > 0,
       starCount: pattern.starCount,
       starAverage: pattern.starAverage,
+      userRating: pattern.stars?.[0]?.rating ?? null,
       userId: pattern.userId,
       createdAt: pattern.createdAt.toISOString(),
       tags: pattern.tags.map((item) =>

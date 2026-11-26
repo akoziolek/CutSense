@@ -6,10 +6,9 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import SidebarThreadDirection from '@/components/spatial/sidebar/SidebarThreadDirection.vue'
 import PatternPiecePreview from '@/components/patterns/PatternPiecePreview.vue'
-import type { Point2D } from '@/types/geometry'
+import type { PieceImageSource, Point2D } from '@/types/geometry'
 import type { OptimizationPieceConfig } from '@/types/optimization'
 import { MAX_PIECE_COPIES } from '@/utils/optimizationConfig'
-import type { PieceImageSource } from '@/types/geometry'
 
 defineProps<{
   piece: OptimizationPieceConfig
@@ -45,14 +44,18 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
     class="flex flex-col items-center gap-5 overflow-hidden rounded-md border border-muted bg-card p-4 shadow-xs transition-all hover:shadow-md sm:p-5 xl:flex-row xl:items-start"
   >
     <PatternPiecePreview
-      :image-url="imageUrl"
+      :image-url="image?.url ?? imageUrl"
       :points="points"
       :shape-index="shapeIndex"
       :all-shapes="allShapes"
+      :image-width-mm="image?.imageWidthMm"
+      :image-height-mm="image?.imageHeightMm"
     />
 
     <div class="flex w-full min-w-0 flex-1 flex-col py-0.5">
-      <div class="mb-4 flex items-center justify-between gap-4 border-b border-border/60 dark:border-muted pb-2">
+      <div
+        class="mb-4 flex items-center justify-between gap-4 border-b border-border/60 dark:border-muted pb-2"
+      >
         <h2 class="truncate text-xl font-bold font-inter tracking-tight text-foreground">
           {{ label }}
         </h2>
@@ -89,7 +92,11 @@ const onQuantity = (key: (typeof quantityFields)[number]['key'], raw: string | n
             {{ $t('optimizations.numberOfPieces') }}
           </h3>
           <div class="flex items-center gap-3 pt-0.5 text-xs sm:gap-4">
-            <label v-for="field in quantityFields" :key="field.key" class="flex items-center gap-2 font-medium">
+            <label
+              v-for="field in quantityFields"
+              :key="field.key"
+              class="flex items-center gap-2 font-medium"
+            >
               <span class="text-muted-foreground">{{ $t(`patterns.${field.label}`) }}:</span>
               <Input
                 type="number"

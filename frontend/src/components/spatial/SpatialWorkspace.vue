@@ -13,7 +13,6 @@ const props = withDefaults(
   defineProps<{
     imageUrl?: string | null
     shapes: Point2D[][]
-    hiddenShapes?: boolean[]
     activeShapeIndex?: number
     hoveredShapeIndex?: number | null
     allShapesEdges?: PolygonEdge[][]
@@ -29,13 +28,11 @@ const props = withDefaults(
     isMoveMode?: boolean
     isDraggingCanvas?: boolean
     isInteractiveDragging?: boolean
-    showLabelToggle?: boolean
     drawingPoints?: Point2D[]
     isNearStartPoint?: boolean
   }>(),
   {
     imageUrl: null,
-    hiddenShapes: () => [],
     activeShapeIndex: 0,
     hoveredShapeIndex: null,
     allShapesEdges: () => [],
@@ -51,7 +48,6 @@ const props = withDefaults(
     isMoveMode: false,
     isDraggingCanvas: false,
     isInteractiveDragging: false,
-    showLabelToggle: true,
     drawingPoints: () => [],
     isNearStartPoint: false,
   },
@@ -103,7 +99,6 @@ defineExpose({
         ref="spatialCanvasRef"
         :image-url="props.imageUrl"
         :shapes="props.shapes"
-        :hidden-shapes="props.hiddenShapes"
         :active-shape-index="props.activeShapeIndex"
         :hovered-shape-index="props.hoveredShapeIndex"
         :all-shapes-edges="props.allShapesEdges"
@@ -135,7 +130,6 @@ defineExpose({
             v-model:show-labels="showLabels"
             :is-move-mode="props.isMoveMode"
             :can-delete="props.canDelete"
-            :show-label-toggle="props.showLabelToggle"
             @update:active-tool="(tool) => emit('update:activeTool', tool)"
             @delete-selected="emit('deleteSelected')"
           />

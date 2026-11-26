@@ -1,4 +1,10 @@
-import type { BaseFilters, FilterOption, NamedItem, PaginatedResponse } from './common'
+import type {
+  BaseFilters,
+  FilterOption,
+  LocalizedText,
+  NamedItem,
+  PaginatedResponse,
+} from './common'
 import type { PointMm } from './geometry'
 import type { PatternImage, PatternPieceDefinition } from './pattern'
 
@@ -12,8 +18,16 @@ export type FabricSource = 'custom' | 'library'
 
 export type SelectedItem = NamedItem
 
-export interface OptimizationAlgorithm extends NamedItem {
-  description?: string
+export interface OptimizationAlgorithm {
+  id: number
+  name: LocalizedText
+  description?: LocalizedText
+}
+
+export interface LocalizedFilterOption {
+  id: number
+  name: LocalizedText
+  count?: number
 }
 
 export interface OptimizationDefaults {
@@ -74,10 +88,11 @@ export interface OptimizationPlacement {
 
 export interface PlacedPieceViewItem {
   id: number
-  patternPieceId?: number
+  index: number
+  patternPieceId: number
   pieceNumber?: number
-  isMirrored?: boolean
-  rotationAngle?: number
+  isMirrored: boolean
+  rotationAngle: number
   points: [number, number][]
 }
 
@@ -86,14 +101,18 @@ export interface OptimizationView {
   id?: number
   name?: string
   isSaved: boolean
-  algorithmName: string
+  algorithmName: LocalizedText
   fabric: {
     fabricId?: number
     name?: string
     createdAt?: string
-    widthMm: number
-    lengthMm: number
+    widthMm?: number
+    lengthMm?: number
+    grainline: number
     boundary: OptimizerPoint[]
+    pictureUrl?: string
+    imageWidthMm?: number
+    imageHeightMm?: number
   }
   pattern?: {
     id: number
@@ -104,9 +123,8 @@ export interface OptimizationView {
   seamAllowanceMm: number
   cuttingAllowanceMm: number
   wasSuccessful: boolean
-  minLengthMm: number
   executionTime: number // ms
-  stats: OptimizationStats
+  stats?: OptimizationStats | null
   placements: OptimizationPlacement[]
 }
 
@@ -115,8 +133,7 @@ export interface OptimizationListItem extends NamedItem {
   patternId: number
   patternName: string
   fabricName?: string
-  algorithmName: string
-  minLengthMm: number
+  algorithmName: LocalizedText
 }
 
 export type OptimizationListResponse = PaginatedResponse<OptimizationListItem>
@@ -127,5 +144,16 @@ export type OptimizationSort = `${OptimizationSortField}_${'asc' | 'desc'}`
 export interface OptimizationFilterOptions {
   patterns: FilterOption[]
   fabrics: FilterOption[]
-  algorithms: FilterOption[]
+  algorithms: LocalizedFilterOption[]
+}
+
+// preview
+export interface ActivePieceDrag {
+  pieceId: number
+  index: number
+  startClientX: number
+  startClientY: number
+  deltaXMm: number
+  deltaYMm: number
+  hasMoved: boolean
 }

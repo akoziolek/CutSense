@@ -70,7 +70,6 @@ export type PatternSort = 'name_asc' | 'name_desc' | 'date_desc' | 'date_asc'
 export interface PatternPhotoData {
   shapes: Point2D[][]
   shapeIds: string[]
-  hiddenShapes: boolean[]
   pxPerMm: number
   rotation: number
   imageWidth: number

@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api, ApiError } from '@/api/client'
 import type { FabricFormPayload, FabricResponse } from '@/types/fabric'
+import { toast } from 'vue-sonner'
 
 export function useFabricEdit() {
   const { t } = useI18n()
@@ -73,9 +74,11 @@ export function useFabricEdit() {
           tagIds: payload.tags.map((tag) => tag.id),
         }),
       })
+      toast.success(t('fabrics.editedToast'))
       return true
     } catch (e) {
       console.error('Failed to update fabric:', e)
+      toast.error(t('fabrics.updateErrorToast'))
       submitError.value = e instanceof ApiError ? e.body.message : t('fabrics.updateFailed')
       return false
     } finally {

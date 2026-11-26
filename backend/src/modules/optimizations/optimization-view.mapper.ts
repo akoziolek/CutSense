@@ -15,9 +15,10 @@ import type {
   EngineResult,
 } from '../optimizer-engine/optimizer-engine.types.js';
 import { placePiece } from '../../common/geometry/shapes-geometry.js';
+import type { LocalizedText } from '../../db/schema/schema.js';
 
 export interface ViewSource {
-  algorithmName: string;
+  algorithmName: LocalizedText;
   fabric: OptimizerFabricInputDto;
   fabricMetadata?: FabricMetadataDto;
   pattern?: PatternSummaryDto;
@@ -93,26 +94,12 @@ export class OptimizationViewMapper {
 
   static libraryFabric(raw: {
     id: number;
-    widthMm: number;
-    lengthMm: number;
     grainline: number;
     boundary: OptimizerPointDto[];
   }): OptimizerFabricInputDto {
     const pts = this.toOptimizerPoints(raw.boundary);
-    if (pts.length === 0) {
-      return {
-        fabricId: raw.id,
-        widthMm: raw.widthMm,
-        lengthMm: raw.lengthMm,
-        grainline: raw.grainline,
-        boundary: [],
-      };
-    }
-
     return {
       fabricId: raw.id,
-      widthMm: raw.widthMm,
-      lengthMm: raw.lengthMm,
       grainline: raw.grainline,
       boundary: pts,
     };
@@ -122,17 +109,28 @@ export class OptimizationViewMapper {
     return {
       name: raw.name,
       createdAt: raw.createdAt,
+      ...(raw.pictureUrl ? { pictureUrl: raw.pictureUrl } : {}),
+      ...(raw.imageWidthMm !== undefined
+        ? { imageWidthMm: raw.imageWidthMm }
+        : {}),
+      ...(raw.imageHeightMm !== undefined
+        ? { imageHeightMm: raw.imageHeightMm }
+        : {}),
     };
-  }
+  } 
 
   static sourceFromInput(
     input: OptimizerInputDto,
     result: EngineResult,
     pattern?: PatternSummaryDto,
     fabricMetadata?: FabricMetadataDto,
+    algorithmName: LocalizedText = {
+      pl: input.algorithmName,
+      en: input.algorithmName,
+    },
   ): ViewSource {
     return {
-      algorithmName: input.algorithmName,
+      algorithmName,
       fabric: {
         ...input.fabric,
         boundary: this.toOptimizerPoints(input.fabric.boundary),
@@ -163,9 +161,8 @@ export class OptimizationViewMapper {
       seamAllowanceMm: src.seamAllowanceMm,
       cuttingAllowanceMm: src.cuttingAllowanceMm,
       wasSuccessful: src.result.wasSuccessful,
-      minLengthMm: src.result.minLength,
       executionTime: src.result.executionTime,
-      stats: src.result.stats,
+      stats: src.result.stats ?? null,
       placements: src.result.positions.flatMap((pos) => {
         const piece = src.geometry.get(pos.id);
         if (!piece) return [];

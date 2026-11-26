@@ -38,7 +38,7 @@ import type {
   OptimizationViewDto,
 } from './dto/optimization-view.dto.js';
 import {
-  AVAILABLE_ALGORITHMS,
+  AVAILABLE_ALGORITHM_IDS,
   DEFAULT_CUTTING_ALLOWANCE_MM,
   DEFAULT_SEAM_ALLOWANCE_MM,
   ENGINE_ALGORITHM_IDS,
@@ -50,9 +50,11 @@ import {
 import {
   OPTIMIZER_ENGINE,
   type OptimizerEngine,
+  type EngineResult,
 } from '../optimizer-engine/optimizer-engine.types.js';
 import {
   fromEngineResult,
+  toCalculateStatsInput,
   toEngineInput,
 } from '../optimizer-engine/optimizer-engine.mapper.js';
 import { assertDateRange, likeTerm } from '../../common/utils/list-query.js';
@@ -66,6 +68,7 @@ import { OptimizationViewMapper } from './optimization-view.mapper.js';
 import { OptimizationFilterOptionsDto } from './dto/optimization-filter-options.dto.js';
 import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 import { assertValidOptimizationRequest } from './optimization-request.validator.js';
+import { UpdateRunPlacementsDto } from './dto/update-run-placement.dto.js';
 
 @Injectable()
 export class OptimizationsService {
@@ -86,7 +89,7 @@ export class OptimizationsService {
 
   async getAlgorithms(): Promise<AlgorithmDto[]> {
     const rows = await this.db.query.algorithmTypes.findMany({
-      where: inArray(algorithmTypes.name, AVAILABLE_ALGORITHMS),
+      where: inArray(algorithmTypes.id, AVAILABLE_ALGORITHM_IDS),
       columns: { id: true, name: true, description: true },
       orderBy: (algorithm, { asc }) => [asc(algorithm.id)],
     });
@@ -131,6 +134,7 @@ export class OptimizationsService {
         result,
         pattern,
         fabricMetadata,
+        await this.getAlgorithmName(input.algorithmId),
       ),
       { runId, isSaved: false },
     );
@@ -144,6 +148,9 @@ export class OptimizationsService {
     const source = OptimizationViewMapper.sourceFromInput(
       run.input,
       run.result,
+      undefined,
+      undefined,
+      await this.getAlgorithmName(run.input.algorithmId),
     );
     source.fabricMetadata = await this.getFabricMetadata(
       run.input.fabric.fabricId,
@@ -229,7 +236,6 @@ export class OptimizationsService {
           patternName: patterns.name,
           algorithmName: algorithmTypes.name,
           fabricName: fabrics.name,
-          minLengthMm: optimizationResults.minLengthMm,
         })
         .from(optimizationResults)
         .innerJoin(patterns, eq(patterns.id, optimizationResults.patternId))
@@ -244,7 +250,6 @@ export class OptimizationsService {
         .offset((page - 1) * limit),
       this.db.select({ total: count() }).from(optimizationResults).where(where),
     ]);
-
     const covers = await this.patternsService.getPatternCovers(
       rows.map((r) => r.patternId),
       userId,
@@ -262,7 +267,6 @@ export class OptimizationsService {
         patternName: row.patternName,
         fabricName: row.fabricName ?? undefined,
         algorithmName: row.algorithmName,
-        minLengthMm: row.minLengthMm,
       })),
       total,
       page,
@@ -290,9 +294,9 @@ export class OptimizationsService {
       case OptimizationSortOption.FABRIC_DESC:
         return [desc(lower(sql`coalesce(${fabrics.name}, '')`)), desc(id)];
       case OptimizationSortOption.ALGORITHM_ASC:
-        return [asc(lower(algorithmTypes.name)), asc(id)];
+        return [asc(sql`lower(${algorithmTypes.name}->>'en')`), asc(id)];
       case OptimizationSortOption.ALGORITHM_DESC:
-        return [desc(lower(algorithmTypes.name)), desc(id)];
+        return [desc(sql`lower(${algorithmTypes.name}->>'en')`), desc(id)];
       case OptimizationSortOption.DATE_DESC:
       default:
         return [desc(optimizationResults.createdAt), desc(id)];
@@ -370,9 +374,9 @@ export class OptimizationsService {
     const algorithm = await this.db.query.algorithmTypes.findFirst({
       where: and(
         eq(algorithmTypes.id, dto.algorithmId),
-        inArray(algorithmTypes.name, AVAILABLE_ALGORITHMS),
+        inArray(algorithmTypes.id, AVAILABLE_ALGORITHM_IDS),
       ),
-      columns: { id: true, name: true },
+      columns: { id: true },
     });
     if (!algorithm) {
       throw new RequestValidationException(
@@ -425,7 +429,7 @@ export class OptimizationsService {
       input: {
         patternId: dto.patternId,
         algorithmId: algorithm.id,
-        algorithmName: algorithm.name,
+        algorithmName: this.getEngineAlgorithmName(algorithm.id),
         fabric,
         seamAllowanceMm: dto.seamAllowanceMm,
         cuttingAllowanceMm: dto.cuttingAllowanceMm,
@@ -442,7 +446,7 @@ export class OptimizationsService {
   ): Promise<{ id: number }> {
     const run = await this.findRun(runId, currentUserId);
     if (run.savedId !== undefined) return { id: run.savedId };
-    if (!run.result.wasSuccessful) {
+    if (!run.result.wasSuccessful || !run.result.stats) {
       throw new RequestValidationException(
         'Only a successful optimization can be saved.',
       );
@@ -490,15 +494,16 @@ export class OptimizationsService {
             fabricLength: isLibrary ? null : input.fabric.lengthMm,
             seamAllowance: input.seamAllowanceMm,
             cuttingAllowance: input.cuttingAllowanceMm,
-            minLengthMm: Math.round(result.minLength),
             spentTime: Math.round(result.executionTime),
-            usableScrapsArea: Math.round(stats.usableScrapsArea),
-            usableScrapsPercentage: Math.round(stats.usableScrapsPercentage),
-            wasteScrapsArea: Math.round(stats.wasteArea),
-            wasteScrapsPercentage: Math.round(stats.wastePercentage),
-            remainingFabricArea: Math.round(stats.remainingFabricArea),
+            usableScrapsArea: Math.round(stats?.usableScrapsArea ?? 0),
+            usableScrapsPercentage: Math.round(
+              stats?.usableScrapsPercentage ?? 0,
+            ),
+            wasteScrapsArea: Math.round(stats?.wasteArea ?? 0),
+            wasteScrapsPercentage: Math.round(stats?.wastePercentage ?? 0),
+            remainingFabricArea: Math.round(stats?.remainingFabricArea ?? 0),
             remainingAreaPercentage: Math.round(
-              stats.remainingFabricPercentage,
+              stats?.remainingFabricPercentage ?? 0,
             ),
           })
           .returning({ id: optimizationResults.id });
@@ -587,7 +592,6 @@ export class OptimizationsService {
       seamAllowanceMm: row.seamAllowance,
       cuttingAllowanceMm: row.cuttingAllowance,
       wasSuccessful: true,
-      minLengthMm: row.minLengthMm,
       executionTime: row.spentTime,
       stats: {
         usableScrapsArea: row.usableScrapsArea,
@@ -669,7 +673,7 @@ export class OptimizationsService {
             eq(optimizationResults.userId, userId),
           ),
         )
-        .where(inArray(algorithmTypes.name, AVAILABLE_ALGORITHMS))
+        .where(inArray(algorithmTypes.id, AVAILABLE_ALGORITHM_IDS))
         .groupBy(algorithmTypes.id, algorithmTypes.name)
         .orderBy(asc(algorithmTypes.id)),
     ]);
@@ -679,5 +683,96 @@ export class OptimizationsService {
       fabrics: fabricRows,
       algorithms: algorithmRows,
     };
+  }
+
+  private getEngineAlgorithmName(algorithmId: number): string {
+    const algorithm = Object.entries(ENGINE_ALGORITHM_IDS).find(
+      ([, id]) => id === algorithmId,
+    );
+    if (!algorithm) {
+      throw new RequestValidationException(
+        'The selected algorithm is not available.',
+      );
+    }
+    return algorithm[0];
+  }
+
+  private async getAlgorithmName(algorithmId: number) {
+    const algorithm = await this.db.query.algorithmTypes.findFirst({
+      where: eq(algorithmTypes.id, algorithmId),
+      columns: { name: true },
+    });
+    if (!algorithm) {
+      throw new ResourceNotFoundException('Algorithm', algorithmId);
+    }
+    return algorithm.name;
+  }
+
+  async updateRunPlacements(
+    runId: string,
+    dto: UpdateRunPlacementsDto,
+    currentUserId?: number,
+  ): Promise<OptimizationViewDto> {
+    const run = await this.findRun(runId, currentUserId);
+
+    if (run.savedId !== undefined) {
+      throw new RequestValidationException(
+        'Saved optimizations cannot be modified.',
+      );
+    }
+
+    if (!run.result.wasSuccessful) {
+      throw new RequestValidationException(
+        'Only a successful optimization run can be modified.',
+      );
+    }
+
+    const seenIndices = new Set<number>();
+    for (const item of dto.placements) {
+      if (seenIndices.has(item.index)) {
+        throw new RequestValidationException(
+          `Duplicate placement index: ${item.index}.`,
+        );
+      }
+      if (item.index < 0 || item.index >= run.result.positions.length) {
+        throw new RequestValidationException(
+          `Placement index ${item.index} is out of bounds.`,
+        );
+      }
+      seenIndices.add(item.index);
+    }
+
+    const updatesByIndex = new Map(
+      dto.placements.map((item) => [item.index, { x: item.x, y: item.y }]),
+    );
+
+    const updatedPositions = run.result.positions.map((pos, index) => {
+      const patch = updatesByIndex.get(index);
+      if (!patch) return pos;
+
+      return {
+        ...pos,
+        x: patch.x,
+        y: patch.y,
+      };
+    });
+
+    const shouldRecalculate = dto.isValid === true;
+
+    const stats = shouldRecalculate
+      ? await this.engine.calculateStats(
+          toCalculateStatsInput(run.input, updatedPositions),
+        )
+      : null;
+
+    const updatedResult: EngineResult = {
+      ...run.result,
+      stats,
+      positions: updatedPositions,
+    };
+
+    await this.runs.updateResult(run.id, updatedResult);
+
+    return this.getRun(runId, currentUserId);
   }
 }

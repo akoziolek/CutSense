@@ -3,10 +3,12 @@ import type {
   OptimizerPointDto,
 } from '../optimizations/dto/optimizer-input.dto.js';
 import type {
+  CalculateStatsInput,
   EngineFabric,
   EngineInput,
   EnginePiece,
   EnginePoint,
+  EnginePosition,
   EngineResult,
 } from './optimizer-engine.types.js';
 const pt = ({ x, y }: OptimizerPointDto): EnginePoint => ({ x, y });
@@ -18,8 +20,8 @@ export function toEngineInput(
   const fabric: EngineFabric =
     input.fabric.fabricId === undefined
       ? {
-          width: input.fabric.widthMm,
-          length: input.fabric.lengthMm,
+          width: input.fabric.widthMm!,
+          length: input.fabric.lengthMm!,
         }
       : {
           boundary: input.fabric.boundary.map(pt),
@@ -85,5 +87,36 @@ export function fromEngineResult(
         id: patternPieceId,
       };
     }),
+  };
+}
+
+export function toCalculateStatsInput(
+  input: OptimizerInputDto,
+  positions: EnginePosition[],
+): CalculateStatsInput {
+  const { fabric, pieces } = toEngineInput(input, 0); // adapter (in fact contstraints, should'nt be sent - data duplication)
+  const engineIdByPatternPieceId = new Map<number, number>();
+  for (const [index, piece] of input.pieces.entries()) {
+    if (piece.normalCount > 0 || piece.mirroredCount > 0) {
+      engineIdByPatternPieceId.set(piece.patternPieceId, index + 1);
+    }
+  }
+
+  const enginePlacements: EnginePosition[] = positions.map((pos) => {
+    const engineId = engineIdByPatternPieceId.get(pos.id);
+    if (engineId === undefined) {
+      throw new Error(`Unknown patternPieceId ${pos.id} in placement`);
+    }
+
+    return {
+      ...pos,
+      id: engineId,
+    };
+  });
+
+  return {
+    fabric,
+    pieces,
+    placements: enginePlacements,
   };
 }

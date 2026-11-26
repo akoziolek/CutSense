@@ -5,6 +5,7 @@ import { ApiError, api } from '@/api/client'
 import i18n from '@/i18n'
 import type { MetaItem } from '@/types/details'
 import type { NameTag } from '@/types/common'
+import { localizedText } from '@/utils/localizedText'
 import type { Point2D } from '@/types/geometry'
 import FabricView from './FabricView.vue'
 
@@ -48,7 +49,9 @@ const DetailsCardStub = defineComponent({
     return () =>
       h('section', [
         props.description ? h('p', props.description) : null,
-        ...props.tags.map((tag) => h('span', { key: tag.id }, tag.name)),
+        ...props.tags.map((tag) =>
+          h('span', { key: tag.id }, localizedText(tag.name, i18n.global.locale.value)),
+        ),
         ...props.metaItems.map((item) => h('p', `${item.label}: ${item.value}`)),
       ])
   },

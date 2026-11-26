@@ -67,7 +67,8 @@
       "longPressToSelect": "Long press or right-click a card to select it",
       "deleteItemsTitle": "Delete {count} {noun}?",
       "deleteSuccessTitle": "{noun} deleted",
-      "deleteSuccessDescription": "{count} {noun} deleted together with their optimizations."
+      "deleteSuccessDescription": "{count} {noun} deleted together with their optimizations.",
+      "select": "Select"
     },
     "pagination": {
       "previous": "Previous",
@@ -103,7 +104,8 @@
       "noMatchingTags": "No matching tags",
       "requiredField": "* Required field",
       "foundCount": "{count} found",
-      "stepOf": "Step {current} of {total}"
+      "stepOf": "Step {current} of {total}",
+      "selectedCount": "{count} selected"
     },
     "confirmations": {
       "deleteDescription": "This action cannot be undone and will permanently remove all associated optimizations."
@@ -131,12 +133,13 @@
       "area": "Area",
       "visibility": "Visibility",
       "size": "Size",
-      "author": "Author"
+      "author": "Author",
+      "grainline": "Grainline"
     },
     "form": {
       "required": "* Required field",
       "descriptionPlaceholder": "Enter composition, weight, or intended use...",
-      "searchOrAddTags": "Search or add tags..."
+      "searchOrAddTags": "Search tags..."
     },
     "upload": {
       "clickToUpload": "Click to upload",
@@ -268,7 +271,11 @@
     "sortNewest": "Newest first",
     "sortOldest": "Oldest first",
     "sortSmallest": "Smallest first",
-    "sortBiggest": "Biggest first"
+    "sortBiggest": "Biggest first",
+    "editedToast": "Fabric updated",
+    "updateErrorToast": "Failed to update the fabric",
+    "savedToast": "Fabric saved",
+    "saveErrorToast": "Failed to save the fabric"
   },
   "patterns": {
     "name": "Pattern name",
@@ -301,7 +308,7 @@
     "selectSize": "Select size",
     "visibility": "Visibility",
     "descriptionPlaceholder": "Enter composition, weight, or intended use...",
-    "searchOrAddTags": "Search or add tags...",
+    "searchOrAddTags": "Search tags...",
     "imageProcessError": "We couldn't process this image.",
     "imageProcessDescription": "Try again later or adjust the default shape manually.",
     "tagLoadError": "Could not load pattern tags. Please try again.",
@@ -335,11 +342,28 @@
     "detectingBoundaries": "Detecting pattern piece boundaries from photo #{number}...",
     "analysisFailed": "Could not analyze photo boundary. Please adjust manually.",
     "noSheetsToDisplay": "No pattern sheets to display",
-    "minLength": "Min. fabric length",
-    "minLengthValue": "{lengthM}\u00A0m × {widthM}\u00A0m",
+    "minLength": "Min. fabric size",
+    "minLengthValue": "{widthM}\u00A0m × {lengthM}\u00A0m",
     "calculating": "Calculating...",
     "calculationUnavailable": "Calculation unavailable",
-    "signInToRate": "Sign in to rate"
+    "signInToRate": "Sign in to rate",
+    "pieceList": {
+      "piece": "Piece",
+      "pieceNumbered": "Piece {number}",
+      "grainline": "Grainline",
+      "grainlineTitle": "Grainline: {angle}°",
+      "normal": "Normal",
+      "normalTitle": "Normal pieces",
+      "mirrored": "Mirrored",
+      "mirroredTitle": "Mirrored pieces",
+      "title": "Pattern pieces ({count})",
+      "showDimensions": "Show dimensions",
+      "empty": "This pattern has no pieces."
+    },
+    "updateToast": "Pattern updated",
+    "updateErrorToast": "Failed to update the pattern",
+    "savedToast": "Pattern saved",
+    "saveErrorToast": "Failed to save the pattern"
   },
   "optimizations": {
     "addFirstFabric": "Add your first fabric",
@@ -482,10 +506,20 @@
     "hidePieceLabels": "Hide piece numbers",
     "legendPiece": "Pattern piece",
     "legendMirrored": "Mirrored",
-    "legendRotated": "Rotation angle"
+    "legendRotated": "Rotation angle",
+    "widthPlaceholder": "e.g. 145",
+    "heightPlaceholder": "e.g. 290",
+    "pieceOutOfBounds": "Piece must stay inside the fabric boundary.",
+    "pieceOverlaps": "Piece cannot overlap another piece or its allowance.",
+    "incompleteLayoutBadge": "Invalid layout",
+    "incompleteLayoutWarning": "Invalid layout. Fix piece placement before saving or exporting PDF.",
+    "incompleteLayoutTooltip": "Invalid layout ({reasons}). Fix placement before saving or exporting PDF.",
+    "blockedOutOfBounds": "{count} piece(s) outside fabric",
+    "blockedOverlap": "{count} piece(s) overlapping / allowance conflict",
+    "statsUnavailableIncomplet": "Fix piece placement to recalculate"
   },
   "landing": {
-    "headline": "Every centimeter counts",
+    "headline": "Save time and fabric",
     "subheadline": "Sew with less waste",
     "andCreateMore": "And create more",
     "getStarted": "Get started",
@@ -496,6 +530,28 @@
     "stepsTitle": "See how easy it is to get started",
     "stepsDescription": "There are just few simple steps that you need to follow.",
     "step": "Step {number}",
+    "steps": {
+      "1": {
+        "title": "Choose your fabric",
+        "description": "Pick a fabric from your stash or enter custom dimensions."
+      },
+      "2": {
+        "title": "Select a pattern",
+        "description": "Pick a pattern from your library or browse community patterns."
+      },
+      "3": {
+        "title": "Set parameters",
+        "description": "Provide details such as the desired number of pieces and margins."
+      },
+      "4": {
+        "title": "Pick an algorithm",
+        "description": "Choose the nesting algorithm best suited for your layout."
+      },
+      "5": {
+        "title": "Export results",
+        "description": "View, save, and export your optimized fabric layout."
+      }
+    },
     "creators": "Creators",
     "creatorDescription": "Some description about us.",
     "tickerSignUp": "Sign up to access all the features",

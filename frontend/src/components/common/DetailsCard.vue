@@ -26,7 +26,11 @@ withDefaults(
     >
       <slot name="header">
         <div v-for="(item, index) in metaItems" :key="index" class="flex items-center gap-2">
-          <component :is="item.icon" v-if="item.icon" class="h-4 w-4 shrink-0" />
+          <component
+            :is="item.icon"
+            class="h-4 w-4 shrink-0 transition-transform"
+            :style="item.iconStyle"
+          />
           <span>
             <strong v-if="item.label" class="font-bold font-inter"
               >{{ item.label }}

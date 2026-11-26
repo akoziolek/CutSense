@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { PatternListItem, PatternFilters, PatternSort } from '@/types/pattern'
 import { PATTERN_SIZE } from '@/types/pattern'
-import { formatCardDate } from '@/utils/formatCardDate'
+import { formatCardDate } from '@/utils/formatData'
 import {
   countActiveFilters,
   emptyFilters,
@@ -362,7 +362,7 @@ watch(
       </Transition>
     </div>
 
-    <FloatingButton v-if="isLoggedIn" :to="{ name: 'PatternNew' }" />
+    <FloatingButton v-if="isLoggedIn && !selectionMode" :to="{ name: 'PatternNew' }" />
 
     <BulkDeleteControls
       base-path="/patterns"

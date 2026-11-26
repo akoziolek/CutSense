@@ -55,13 +55,12 @@ export async function seedFabrics(
         `POLYGON((0 0, ${template.imageWidthMm} 0, ${template.imageWidthMm} ${template.imageHeightMm}, 0 ${template.imageHeightMm}, 0 0))`;
 
       const isHex = !boundary.startsWith('POLYGON');
-
       return {
         name: template.name,
         description: template.description,
         pictureS3Key,
         boundary: isHex
-          ? sql`ST_GeomFromWKB(decode(${boundary}, 'hex'))`
+          ? sql`ST_SnapToGrid(ST_GeomFromWKB(decode(${boundary}, 'hex')), 0.001)`
           : sql`ST_GeomFromText(${boundary}, 0)`,
         grainline: Math.floor(Math.random() * 360),
         imageWidthMm: template.imageWidthMm,

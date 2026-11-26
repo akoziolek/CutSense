@@ -13,6 +13,9 @@ import type {
   EnginePiece,
   EngineResult,
   OptimizerEngine,
+  EnginePosition,
+  NestingStats,
+  CalculateStatsInput,
 } from './optimizer-engine.types.js';
 
 const nesting = createRequire(import.meta.url)('@cut-sense/nesting-engine') as {
@@ -22,6 +25,11 @@ const nesting = createRequire(import.meta.url)('@cut-sense/nesting-engine') as {
     algorithmId: number,
   ): Promise<EngineResult>;
   calcMinimum(width: number, pieces: EnginePiece[]): Promise<number>;
+  calculateStatsFor(
+    fabric: EngineFabric,
+    pieces: EnginePiece[],
+    placements: EnginePosition[],
+  ): Promise<NestingStats>;
 };
 
 const TIMEOUT_MS = 60_000;
@@ -42,6 +50,16 @@ export class NestingEngine implements OptimizerEngine {
 
   async calcMinimum({ width, pieces }: CalcMinimumInput): Promise<number> {
     return this.runInPool(() => nesting.calcMinimum(width, pieces));
+  }
+
+  async calculateStats({
+    fabric,
+    pieces,
+    placements,
+  }: CalculateStatsInput): Promise<NestingStats> {
+    return this.runInPool(() =>
+      nesting.calculateStatsFor(fabric, pieces, placements),
+    );
   }
 
   private async runInPool<T>(task: () => Promise<T>): Promise<T> {

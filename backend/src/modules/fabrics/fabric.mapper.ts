@@ -4,6 +4,8 @@ import { FabricResponseDto } from './dto/fabric-response.dto.js';
 import { PointDto } from '../../common/geometry/point.dto.js';
 import { withoutClosingPoint } from '../../common/geometry/shapes-geometry.js';
 import { FabricGeometryDto } from './dto/fabric-geometry.dto.js';
+import type { FabricSummaryDto } from './dto/fabric-summary.dto.js';
+import type { LocalizedText } from '../../db/schema/schema.js';
 
 interface FabricWithTags {
   id: number;
@@ -18,7 +20,7 @@ interface FabricWithTags {
   tags: {
     tag: {
       id: number;
-      name: string;
+      name: LocalizedText;
     };
   }[];
   boundary: PointDto[];
@@ -111,23 +113,49 @@ export class FabricMapper {
     });
   }
 
-  static toGeometryDto(fabric: {
-    id: number;
-    name: string;
-    createdAt: Date;
-    imageWidthMm: number;
-    imageHeightMm: number;
-    grainline: number;
-    boundaryGeoJson: string;
-  }): FabricGeometryDto {
+  static toGeometryDto(
+    fabric: {
+      id: number;
+      name: string;
+      createdAt: Date;
+      imageWidthMm: number;
+      imageHeightMm: number;
+      grainline: number;
+      boundaryGeoJson: string;
+    },
+    pictureUrl?: string,
+  ): FabricGeometryDto {
     return {
       id: fabric.id,
       name: fabric.name,
       createdAt: fabric.createdAt.toISOString(),
-      widthMm: fabric.imageWidthMm,
-      lengthMm: fabric.imageHeightMm,
+      imageWidthMm: fabric.imageWidthMm,
+      imageHeightMm: fabric.imageHeightMm,
       grainline: fabric.grainline,
       boundary: this.boundaryFromGeoJson(fabric.boundaryGeoJson),
+      ...(pictureUrl ? { pictureUrl } : {}),
+    };
+  }
+
+  static toSummaryDto(
+    fabric: {
+      name: string;
+      createdAt: Date;
+      imageWidthMm?: number | null;
+      imageHeightMm?: number | null;
+    },
+    pictureUrl?: string,
+  ): FabricSummaryDto {
+    return {
+      name: fabric.name,
+      createdAt: fabric.createdAt.toISOString(),
+      ...(pictureUrl ? { pictureUrl } : {}),
+      ...(fabric.imageWidthMm != null
+        ? { imageWidthMm: fabric.imageWidthMm }
+        : {}),
+      ...(fabric.imageHeightMm != null
+        ? { imageHeightMm: fabric.imageHeightMm }
+        : {}),
     };
   }
 }

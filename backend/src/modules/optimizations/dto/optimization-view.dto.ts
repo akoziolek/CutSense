@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import type { LocalizedText } from '../../../db/schema/schema.js';
 import { OptimizerFabricInputDto } from './optimizer-input.dto.js';
 import type { ViewStats } from '../../optimizer-engine/optimizer-engine.types.js';
 import { PointDto } from '../../../common/geometry/point.dto.js';
@@ -13,6 +14,9 @@ export interface PatternSummaryDto {
 export interface FabricMetadataDto {
   name: string;
   createdAt: string;
+  pictureUrl?: string;
+  imageWidthMm?: number;
+  imageHeightMm?: number;
 }
 
 export class OptimizationFabricViewDto extends OptimizerFabricInputDto {
@@ -21,6 +25,17 @@ export class OptimizationFabricViewDto extends OptimizerFabricInputDto {
 
   @ApiPropertyOptional({ description: 'Date the library fabric was added.' })
   createdAt?: string;
+
+  @ApiPropertyOptional({
+    description: 'Presigned URL of the library fabric photo.',
+  })
+  pictureUrl?: string;
+
+  @ApiPropertyOptional({ description: 'Full photo width in millimeters.' })
+  imageWidthMm?: number;
+
+  @ApiPropertyOptional({ description: 'Full photo height in millimeters.' })
+  imageHeightMm?: number;
 }
 
 export class PlacementDto {
@@ -54,7 +69,9 @@ export class OptimizationViewDto {
   @ApiPropertyOptional({ description: 'Present while the run is cached' })
   runId?: string;
 
-  @ApiPropertyOptional({ description: 'Present once the optimization is saved' })
+  @ApiPropertyOptional({
+    description: 'Present once the optimization is saved',
+  })
   id?: number;
 
   @ApiPropertyOptional()
@@ -64,7 +81,7 @@ export class OptimizationViewDto {
   isSaved!: boolean;
 
   @ApiProperty()
-  algorithmName!: string;
+  algorithmName!: LocalizedText;
 
   @ApiProperty({ type: OptimizationFabricViewDto })
   fabric!: OptimizationFabricViewDto;
@@ -89,14 +106,11 @@ export class OptimizationViewDto {
   @ApiProperty()
   wasSuccessful!: boolean;
 
-  @ApiProperty({ description: 'Used fabric length in millimeters' })
-  minLengthMm!: number;
-
   @ApiProperty({ description: 'Optimizer execution time in milliseconds' })
   executionTime!: number;
 
-  @ApiProperty({ type: 'object', additionalProperties: { type: 'number' } })
-  stats!: ViewStats;
+  @ApiProperty({type: 'object', additionalProperties: { type: 'number' } })
+  stats: ViewStats | null;
 
   @ApiProperty({ type: [PlacementDto] })
   placements!: PlacementDto[];

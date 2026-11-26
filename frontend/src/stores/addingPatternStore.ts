@@ -45,7 +45,6 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
         ? config.shapes
         : [JSON.parse(JSON.stringify(DEFAULT_SHAPE))]
 
-    const hiddenShapes = shapes.map((_, idx) => config?.hiddenShapes?.[idx] ?? idx !== 0)
     const shapeIds = shapes.map((_, idx) => {
       const savedId = config?.shapeIds?.[idx]
       return savedId && !config.shapeIds?.slice(0, idx).includes(savedId)
@@ -56,7 +55,6 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     return {
       shapes: JSON.parse(JSON.stringify(shapes)),
       shapeIds,
-      hiddenShapes,
       pxPerMm: typeof config?.pxPerMm === 'number' && config.pxPerMm > 0 ? config.pxPerMm : 1,
       rotation: typeof config?.rotation === 'number' ? config.rotation : 0,
       imageWidth:
@@ -177,7 +175,6 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
 
     config.shapes.splice(shapeIndex, 1)
     config.shapeIds.splice(shapeIndex, 1)
-    config.hiddenShapes.splice(shapeIndex, 1)
 
     if (targetShapeId) {
       const targetPieceIdx = pieces.value.findIndex((p) => p.shapeId === targetShapeId)
@@ -209,7 +206,6 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
 
     config.shapes = JSON.parse(JSON.stringify(shapes))
     config.shapeIds = shapes.map(() => createShapeId())
-    config.hiddenShapes = shapes.map((_, idx) => idx !== 0)
     config.isAnalyzed = true
     config.isAnalyzing = false
 
@@ -227,7 +223,6 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     const config = photoConfigs.value[photoIndex]
     if (!config) return
 
-    config.hiddenShapes[shapeIndex] = !config.hiddenShapes[shapeIndex]
     return persistConfigs()
   }
 
@@ -241,7 +236,6 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
 
     config.shapes.push(JSON.parse(JSON.stringify(newShape)))
     config.shapeIds.push(shapeId)
-    config.hiddenShapes.push(true)
 
     syncPiecesFromConfigs()
     void persistConfigs()
@@ -265,11 +259,9 @@ export const usePatternAddingStore = defineStore('addingPattern', () => {
     if (shapeIndex >= config.shapes.length) {
       config.shapes.push(cloned)
       config.shapeIds.push(shapeId)
-      config.hiddenShapes.push(true)
     } else {
       config.shapes.splice(shapeIndex, 0, cloned)
       config.shapeIds.splice(shapeIndex, 0, shapeId)
-      config.hiddenShapes.splice(shapeIndex, 0, true)
     }
 
     syncPiecesFromConfigs()

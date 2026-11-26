@@ -56,10 +56,14 @@ const updateQuantity = (pieceId: string, field: 'normal' | 'mirrored', rawVal: s
           :shape-index="getPieceShapeIndex(piece.photoIndex, piece.shapeId)"
           :rotation="getPhotoRotation(piece.photoIndex)"
           :all-shapes="patternStore.photoConfigs[piece.photoIndex]?.shapes"
+          :image-width-mm="patternStore.photoConfigs[piece.photoIndex]?.imageWidth"
+          :image-height-mm="patternStore.photoConfigs[piece.photoIndex]?.imageHeight"
         />
 
         <div class="w-full flex-1 min-w-0 flex flex-col justify-between py-0.5">
-          <div class="flex items-center justify-between gap-4 border-b border-border/60 dark:border-muted pb-2 mb-4">
+          <div
+            class="flex items-center justify-between gap-4 border-b border-border/60 dark:border-muted pb-2 mb-4"
+          >
             <h2
               class="font-inter text-xl font-bold tracking-tight text-foreground select-none truncate"
             >
@@ -168,7 +172,9 @@ const updateQuantity = (pieceId: string, field: 'normal' | 'mirrored', rawVal: s
       v-else
       class="rounded-xl border border-dashed border-border p-8 text-left text-xs text-muted-foreground bg-card/40 space-y-1"
     >
-      <p class="font-inter font-semibold text-sm text-foreground">{{ $t('patterns.noPiecesDetected') }}</p>
+      <p class="font-inter font-semibold text-sm text-foreground">
+        {{ $t('patterns.noPiecesDetected') }}
+      </p>
       <p>{{ $t('patterns.piecesHelp') }}</p>
     </div>
 

@@ -8,13 +8,13 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 
-// TODO - after PR use only this modal
 interface Props {
   open?: boolean
   title?: string
   description?: string
   confirmLabel?: string
   cancelLabel?: string
+  confirmVariant?: 'default' | 'destructive'
   showCancel?: boolean
   showConfirm?: boolean
   confirmDisabled?: boolean
@@ -30,6 +30,7 @@ const props = withDefaults(defineProps<Props>(), {
   description: '',
   confirmLabel: '',
   cancelLabel: '',
+  confirmVariant: 'default',
   showCancel: false,
   showConfirm: true,
   confirmDisabled: false,
@@ -126,7 +127,8 @@ const handleOpenAutoFocus = (event: Event) => {
           v-if="showCancel"
           type="button"
           variant="ghost"
-          class="h-9 rounded-lg text-xs sm:text-sm hover:bg-brand-green hover:text-brand-green-foreground"
+          :disabled="confirmLoading"
+          class="h-9 rounded-md px-4 text-xs sm:text-sm font-semibold font-inter hover:bg-brand-green hover:text-brand-green-foreground transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
           @click="(e: MouseEvent) => emit('cancel', e)"
         >
           <slot name="cancel-icon" />
@@ -137,11 +139,14 @@ const handleOpenAutoFocus = (event: Event) => {
           v-if="showConfirm"
           data-modal-confirm
           type="button"
+          variant="ghost"
           :disabled="confirmDisabled || confirmLoading"
           :class="[
-            'h-9 rounded-lg text-xs sm:text-sm font-semibold font-inter inline-flex items-center justify-center gap-1.5 transition-all shadow-sm',
-            fullWidthButton || !showCancel ? 'w-full' : 'px-4',
-            'bg-zinc-950 text-white hover:bg-zinc-800 disabled:bg-zinc-300 disabled:text-white disabled:opacity-100 disabled:cursor-not-allowed',
+            'h-9 rounded-md text-xs sm:text-sm font-semibold font-inter inline-flex items-center justify-center gap-1.5 shadow-md hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:pointer-events-none',
+            fullWidthButton || !showCancel ? 'w-full' : 'px-5',
+            confirmVariant === 'destructive'
+              ? 'border-2 !border-warning-foreground !bg-warning !text-warning-foreground'
+              : '!bg-zinc-950 !text-white hover:!bg-zinc-800 disabled:!bg-zinc-300',
           ]"
           @click="(e: MouseEvent) => emit('confirm', e)"
         >

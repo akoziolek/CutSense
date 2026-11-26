@@ -2,14 +2,15 @@
 import { ref, watch, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
+import { localizedText } from '@/utils/localizedText'
 import GridLayout from '@/components/layouts/GridLayout.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DetailsCard from '@/components/common/DetailsCard.vue'
 import type { MetaItem } from '@/types/details'
 import DetailsActions from '@/components/common/DetailsActions.vue'
 import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
-import StatCard from '@/components/optimizations/StatCard.vue'
-import OptimizationPreview from '@/components/optimizations/OptimizationPreview.vue'
+import OptimizationPreview from '@/components/optimizations/preview/OptimizationPreview.vue'
 import type { PlacedPieceViewItem } from '@/types/optimization'
 import ErrorState from '@/components/common/ErrorState.vue'
 import SaveOptimizationModal from '@/components/optimizations/SaveOptimizationModal.vue'
@@ -19,21 +20,20 @@ import {
   Sparkles,
   Scissors,
   Layers,
-  RulerDimensionLine,
-  RotateCw,
   Save,
   LogIn,
-  Timer,
-  Shapes,
   Download,
   FileText,
   Maximize2,
   Loader2,
+  ArrowUp,
+  Shirt,
+  AlertTriangle,
 } from 'lucide-vue-next'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { login, useAuth } from '@/stores/authStore'
 import { useDeleteResource } from '@/composables/resources/useDeleteResource'
-import { getGeometryBoundsMm } from '@/utils/geometry'
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,10 +41,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useOptimizationRun } from '@/composables/optimization/useOptimizationRun'
+import { getGeometryBoundsMm } from '@/utils/geometry'
+import OptimizationStats from '@/components/optimizations/new/OptimizationStats.vue'
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { state: auth } = useAuth()
 
 // the same view serves an unsaved run (/optimizations/run/:runId) and a saved result (/optimizations/:id)
@@ -74,7 +77,30 @@ onMounted(() => {
   useOptimizationAddingStore().reset()
 })
 
-const formatAreaM2 = (areaMm2: number) => `${(areaMm2 / 1_000_000).toFixed(2).replace('.', ',')} m²`
+const {
+  optimization,
+  isFetching,
+  showSkeleton,
+  error,
+  isNotFound,
+  isDownloadingPdf,
+  isSaving,
+  saveError,
+  isRenaming,
+  renameError,
+  canUndo,
+  canRedo,
+  isLayoutIncomplete,
+  clearSkeletonTimer,
+  fetchOptimization,
+  layoutIssueSummary,
+  downloadPdf: handleDownloadPdf,
+  saveOptimization,
+  renameOptimization,
+  movePlacement,
+  undoPlacement,
+  redoPlacement,
+} = useOptimizationRun(isSavedRoute, resourceId)
 
 const normalizedLayout = computed(() => {
   const opt = optimization.value
@@ -94,9 +120,9 @@ const normalizedLayout = computed(() => {
       ? boundary.map(({ x, y }) => [x, y])
       : [
           [0, 0],
-          [opt.fabric.widthMm, 0],
-          [opt.fabric.widthMm, opt.fabric.lengthMm],
-          [0, opt.fabric.lengthMm],
+          [opt.fabric.widthMm ?? 0, 0],
+          [opt.fabric.widthMm ?? 0, opt.fabric.lengthMm ?? 0],
+          [0, opt.fabric.lengthMm ?? 0],
         ]
 
   const pieceTypeNumberById = new Map<number, number>()
@@ -114,6 +140,7 @@ const normalizedLayout = computed(() => {
     return [
       {
         id: index + 1,
+        index,
         patternPieceId: placement.patternPieceId,
         pieceNumber: pieceTypeNumberById.get(placement.patternPieceId) ?? index + 1,
         isMirrored: placement.isMirrored,
@@ -123,7 +150,11 @@ const normalizedLayout = computed(() => {
     ]
   })
 
-  const bounds = getGeometryBoundsMm([fabricBoundary, ...pieces.map((piece) => piece.points)])
+  const fabricBounds = getGeometryBoundsMm([fabricBoundary])
+  const bounds =
+    fabricBounds.widthMm > 0 && fabricBounds.heightMm > 0
+      ? fabricBounds
+      : getGeometryBoundsMm([fabricBoundary, ...pieces.map((piece) => piece.points)])
 
   return {
     fabricBoundary,
@@ -134,13 +165,26 @@ const normalizedLayout = computed(() => {
   }
 })
 
+const blockedActionTooltip = computed(() => {
+  if (!isLayoutIncomplete.value) return undefined
+  const { outOfBoundsCount, overlapCount } = layoutIssueSummary.value
+  const parts: string[] = []
+  if (outOfBoundsCount > 0) {
+    parts.push(t('optimizations.blockedOutOfBounds', { count: outOfBoundsCount }))
+  }
+  if (overlapCount > 0) {
+    parts.push(t('optimizations.blockedOverlap', { count: overlapCount }))
+  }
+  return t('optimizations.incompleteLayoutTooltip', { reasons: parts.join(', ') })
+})
+
 const metaItems = computed<MetaItem[]>(() =>
   optimization.value
     ? [
         {
           icon: Sparkles,
           label: t('optimizations.algorithm'),
-          value: optimization.value.algorithmName,
+          value: localizedText(optimization.value.algorithmName, locale.value),
         },
         {
           icon: Scissors,
@@ -152,27 +196,13 @@ const metaItems = computed<MetaItem[]>(() =>
 )
 
 const openSave = () => {
+  if (isLayoutIncomplete.value) {
+    toast.warning(blockedActionTooltip.value ?? t('optimizations.incompleteLayoutWarning'))
+    return
+  }
   saveError.value = ''
   isSaveOpen.value = true
 }
-
-const {
-  optimization,
-  isFetching,
-  showSkeleton,
-  error,
-  isNotFound,
-  isDownloadingPdf,
-  isSaving,
-  saveError,
-  isRenaming,
-  renameError,
-  clearSkeletonTimer,
-  fetchOptimization,
-  downloadPdf: handleDownloadPdf,
-  saveOptimization,
-  renameOptimization,
-} = useOptimizationRun(isSavedRoute, resourceId)
 
 const handleSave = async (name: string) => {
   const id = await saveOptimization(name)
@@ -190,6 +220,24 @@ const handleRename = async (name: string) => {
 const openEdit = () => {
   renameError.value = ''
   isEditOpen.value = true
+}
+
+const handleMovePiece = async ({
+  index,
+  deltaXMm,
+  deltaYMm,
+}: {
+  index: number
+  deltaXMm: number
+  deltaYMm: number
+}) => {
+  const current = optimization.value?.placements?.[index]
+  if (!current || optimization.value?.isSaved) return
+
+  const nextX = Number((current.x + deltaXMm).toFixed(3))
+  const nextY = Number((current.y + deltaYMm).toFixed(3))
+
+  await movePlacement(index, nextX, nextY)
 }
 
 watch(
@@ -225,70 +273,105 @@ watch(
             v-if="optimization && optimization.wasSuccessful"
             class="flex flex-wrap items-center justify-end gap-2.5 font-inter"
           >
-            <DropdownMenu>
-              <DropdownMenuTrigger as-child>
-                <Button
-                  variant="outline"
-                  class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-background hover:bg-muted/20 cursor-pointer font-medium shadow-2xs"
-                  :disabled="isDownloadingPdf"
+            <TooltipProvider>
+              <Tooltip :disabled="!isLayoutIncomplete">
+                <TooltipTrigger as-child>
+                  <span class="inline-flex">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger as-child>
+                        <Button
+                          variant="outline"
+                          class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-background hover:bg-muted/20 cursor-pointer font-medium shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+                          :disabled="isDownloadingPdf || isLayoutIncomplete"
+                        >
+                          <Loader2 v-if="isDownloadingPdf" class="h-4 w-4 animate-spin" />
+                          <Download v-else class="h-4.5 w-4.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        class="w-64 sm:w-72 max-w-[calc(100vw-2rem)] border border-foreground/30 p-1.5 shadow-md"
+                      >
+                        <DropdownMenuItem
+                          :disabled="isLayoutIncomplete"
+                          class="items-start gap-2.5 rounded-md p-2.5 cursor-pointer"
+                          @select="handleDownloadPdf('a4')"
+                        >
+                          <FileText class="h-4 w-4 shrink-0 mt-0.5" />
+                          <div class="flex flex-col gap-0.5">
+                            <span class="font-medium leading-tight">
+                              {{ t('optimizations.downloadPdfA4') }}
+                            </span>
+                            <span class="text-xs text-muted-foreground leading-snug">
+                              {{ t('optimizations.downloadPdfA4Description') }}
+                            </span>
+                          </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          :disabled="isLayoutIncomplete"
+                          class="items-start gap-2.5 rounded-md p-2.5 cursor-pointer"
+                          @select="handleDownloadPdf('actual')"
+                        >
+                          <Maximize2 class="h-4 w-4 shrink-0 mt-0.5" />
+                          <div class="flex flex-col gap-0.5">
+                            <span class="font-medium leading-tight">
+                              {{ t('optimizations.downloadPdfActual') }}
+                            </span>
+                            <span class="text-xs text-muted-foreground leading-snug">
+                              {{ t('optimizations.downloadPdfActualDescription') }}
+                            </span>
+                          </div>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent
+                  v-if="isLayoutIncomplete && blockedActionTooltip"
+                  side="bottom"
+                  align="end"
+                  class="w-64 border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md"
                 >
-                  <Loader2 v-if="isDownloadingPdf" class="h-4 w-4 animate-spin" />
-                  <Download v-else class="h-4.5 w-4.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                class="w-64 sm:w-72 max-w-[calc(100vw-2rem)] border border-foreground/30 p-1.5 shadow-md"
-              >
-                <DropdownMenuItem
-                  class="items-start gap-2.5 rounded-md p-2.5 cursor-pointer"
-                  @select="handleDownloadPdf('a4')"
-                >
-                  <FileText class="h-4 w-4 shrink-0 mt-0.5" />
-                  <div class="flex flex-col gap-0.5">
-                    <span class="font-medium leading-tight">
-                      {{ t('optimizations.downloadPdfA4') }}
-                    </span>
-                    <span class="text-xs text-muted-foreground leading-snug">
-                      {{ t('optimizations.downloadPdfA4Description') }}
-                    </span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  class="items-start gap-2.5 rounded-md p-2.5 cursor-pointer"
-                  @select="handleDownloadPdf('actual')"
-                >
-                  <Maximize2 class="h-4 w-4 shrink-0 mt-0.5" />
-                  <div class="flex flex-col gap-0.5">
-                    <span class="font-medium leading-tight">
-                      {{ t('optimizations.downloadPdfActual') }}
-                    </span>
-                    <span class="text-xs text-muted-foreground leading-snug">
-                      {{ t('optimizations.downloadPdfActualDescription') }}
-                    </span>
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  {{ blockedActionTooltip }}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
             <template v-if="!optimization.isSaved">
-              <Button
-                v-if="auth.user"
-                class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-brand-pink/50 hover:bg-brand-pink/80 cursor-pointer font-medium shadow-2xs"
-                @click="openSave"
-              >
-                <Save class="h-4.5 w-4.5" />
-                <span>{{ t('optimizations.save') }}</span>
-              </Button>
-              <Button
-                v-else
-                variant="outline"
-                class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-background hover:bg-muted/20 cursor-pointer font-medium shadow-2xs"
-                @click="login(route.fullPath)"
-              >
-                <LogIn class="h-4.5 w-4.5" />
-                <span>{{ t('optimizations.signInToSave') }}</span>
-              </Button>
+              <TooltipProvider>
+                <Tooltip :disabled="!isLayoutIncomplete">
+                  <TooltipTrigger as-child>
+                    <span class="inline-flex">
+                      <Button
+                        v-if="auth.user"
+                        :disabled="isLayoutIncomplete"
+                        class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-brand-pink/50 hover:bg-brand-pink/80 cursor-pointer font-medium shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+                        @click="openSave"
+                      >
+                        <Save class="h-4.5 w-4.5" />
+                        <span>{{ t('optimizations.save') }}</span>
+                      </Button>
+                      <Button
+                        v-else
+                        variant="outline"
+                        class="h-9 px-4 gap-2 rounded-lg border border-foreground text-foreground bg-background hover:bg-muted/20 cursor-pointer font-medium shadow-2xs"
+                        @click="login(route.fullPath)"
+                      >
+                        <LogIn class="h-4.5 w-4.5" />
+                        <span>{{ t('optimizations.signInToSave') }}</span>
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    v-if="isLayoutIncomplete && blockedActionTooltip"
+                    side="bottom"
+                    align="end"
+                    class="w-64 border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md"
+                  >
+                    {{ blockedActionTooltip }}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </template>
 
             <DetailsActions
@@ -365,11 +448,28 @@ watch(
               :class="isCanvasExpanded ? 'lg:col-span-2' : 'lg:col-span-1'"
               class="w-full space-y-3"
             >
-              <h2 class="text-xl font-bold font-inter tracking-tight text-foreground">
-                {{ t('optimizations.placementOfPieces') }}
-              </h2>
+              <div class="flex items-center justify-between gap-3 min-h-7">
+                <h2 class="text-xl font-bold font-inter tracking-tight text-foreground">
+                  {{ t('optimizations.placementOfPieces') }}
+                </h2>
+
+                <span
+                  v-if="isLayoutIncomplete"
+                  :title="blockedActionTooltip"
+                  class="inline-flex items-center gap-1.5 rounded-md border border-amber-500/50 bg-amber-500/15 px-2.5 py-1 text-[11px] font-medium text-foreground shrink-0"
+                >
+                  <AlertTriangle class="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                  <span class="font-inter">
+                    {{ t('optimizations.incompleteLayoutBadge') }}
+                  </span>
+                </span>
+              </div>
+
               <OptimizationPreview
                 v-model:is-expanded="isCanvasExpanded"
+                :editable="!optimization.isSaved"
+                :can-undo="canUndo"
+                :can-redo="canRedo"
                 :fabric-shape="normalizedLayout.fabricBoundary"
                 :pieces="normalizedLayout.pieces"
                 :coordinate-origin-mm="normalizedLayout.coordinateOriginMm"
@@ -377,7 +477,12 @@ watch(
                 :canvas-height-mm="normalizedLayout.heightMm"
                 :seam-allowance-mm="optimization.seamAllowanceMm"
                 :cutting-allowance-mm="optimization.cuttingAllowanceMm"
-                :photo-url="null"
+                :photo-url="optimization.fabric.pictureUrl ?? null"
+                :photo-width-mm="optimization.fabric.imageWidthMm ?? null"
+                :photo-height-mm="optimization.fabric.imageHeightMm ?? null"
+                @move-piece="handleMovePiece"
+                @undo="undoPlacement"
+                @redo="redoPlacement"
               />
             </div>
 
@@ -392,11 +497,13 @@ watch(
                 <h2 class="text-xl font-bold font-inter tracking-tight text-foreground">
                   {{ t('optimizations.detailsTitle') }}
                 </h2>
-
                 <DetailsCard :meta-items="metaItems">
                   <div class="space-y-3 text-sm">
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <Layers class="h-4 w-4 text-foreground shrink-0" />
+                      <span :title="t('optimizations.fabric')" class="inline-flex shrink-0">
+                        <Layers class="h-4 w-4 text-foreground" />
+                      </span>
+
                       <RouterLink
                         v-if="optimization.fabric.fabricId"
                         :to="`/fabrics/${optimization.fabric.fabricId}`"
@@ -407,11 +514,25 @@ watch(
                           `${t('optimizations.libraryFabric')} #${optimization.fabric.fabricId}`
                         }}
                       </RouterLink>
-                      <span v-else class="font-bold text-foreground font-inter">
-                        {{ t('optimizations.customFabric') }}
+                      <span v-else>
+                        <span class="font-bold text-foreground font-inter">
+                          {{ t('optimizations.customFabric') }}
+                        </span>
+
+                        <span class="text-muted-foreground text-xs">
+                          {{ optimization.fabric.widthMm }} × {{ optimization.fabric.lengthMm }} mm
+                        </span>
                       </span>
-                      <span class="text-muted-foreground text-xs">
-                        {{ optimization.fabric.widthMm }} × {{ optimization.fabric.lengthMm }} mm
+                      <span
+                        v-if="optimization.fabric.grainline != null"
+                        class="inline-flex items-center gap-1 text-muted-foreground text-xs"
+                        :title="t('common.details.grainline')"
+                      >
+                        <ArrowUp
+                          class="h-3.5 w-3.5 shrink-0 text-foreground"
+                          :style="{ transform: `rotate(${optimization.fabric.grainline}deg)` }"
+                        />
+                        <span>{{ optimization.fabric.grainline }}°</span>
                       </span>
                     </div>
 
@@ -419,7 +540,10 @@ watch(
                       v-if="optimization.pattern"
                       class="flex flex-wrap items-center gap-x-3 gap-y-1"
                     >
-                      <Shapes class="h-4 w-4 text-foreground shrink-0" />
+                      <span :title="t('optimizations.pattern')" class="inline-flex shrink-0">
+                        <Shirt class="h-4 w-4 text-foreground" />
+                      </span>
+
                       <RouterLink
                         :to="`/patterns/${optimization.pattern.id}`"
                         class="font-bold font-inter text-foreground hover:underline decoration-1 underline-offset-2 transition-colors hover:text-primary"
@@ -428,59 +552,18 @@ watch(
                       </RouterLink>
 
                       <span v-if="optimization.pattern.size" class="text-xs text-muted-foreground">
-                        {{ t('common.details.size') }}: {{ optimization.pattern.size }}
+                        {{ t('common.details.size') }} {{ optimization.pattern.size }}
                       </span>
                     </div>
                   </div>
                 </DetailsCard>
               </section>
-
-              <section class="space-y-3">
-                <h2 class="text-xl font-bold font-inter tracking-tight text-foreground">
-                  {{ t('optimizations.statistics') }}
-                </h2>
-
-                <div class="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-                  <StatCard
-                    :label="t('optimizations.remainingFabric')"
-                    :value="formatAreaM2(optimization.stats.remainingFabricArea)"
-                    :subtext="`${optimization.stats.remainingFabricPercentage}% ${t('optimizations.ofTotalFabric')}`"
-                    :icon="RulerDimensionLine"
-                  />
-
-                  <StatCard
-                    :label="t('optimizations.waste')"
-                    :value="formatAreaM2(optimization.stats.wasteArea)"
-                    :icon="Scissors"
-                  >
-                    <template #subtext>
-                      <span class="font-semibold text-destructive">
-                        {{ optimization.stats.wastePercentage }}%
-                      </span>
-                      {{ t('optimizations.ofTotalFabric') }}
-                    </template>
-                  </StatCard>
-
-                  <StatCard
-                    :label="t('optimizations.usableScraps')"
-                    :value="formatAreaM2(optimization.stats.usableScrapsArea)"
-                    :icon="RotateCw"
-                  >
-                    <template #subtext>
-                      <span class="font-semibold text-brand-green-foreground">
-                        {{ optimization.stats.usableScrapsPercentage }}%
-                      </span>
-                      {{ t('optimizations.ofTotalFabric') }}
-                    </template>
-                  </StatCard>
-
-                  <StatCard
-                    :label="t('optimizations.executionTime')"
-                    :value="`${optimization.executionTime} ms`"
-                    :icon="Timer"
-                  />
-                </div>
-              </section>
+              <OptimizationStats
+                :stats="optimization.stats"
+                :execution-time="optimization.executionTime"
+                :is-layout-incomplete="isLayoutIncomplete"
+                :unavailable-tooltip="isLayoutIncomplete ? blockedActionTooltip : undefined"
+              />
             </div>
           </div>
         </main>

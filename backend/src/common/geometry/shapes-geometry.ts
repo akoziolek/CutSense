@@ -9,17 +9,26 @@ export function withoutClosingPoint<T>(
   if (points.length < 2) return points;
   const first = points[0];
   const last = points.at(-1);
-  return first !== undefined && last !== undefined && pointsAreEqual(first, last)
+  return first !== undefined &&
+    last !== undefined &&
+    pointsAreEqual(first, last)
     ? points.slice(0, -1)
     : points;
 }
 
-const round3 = (v: number) => Math.round(v * 1000) / 1000 + 0;
+const round3 = (v: number): number =>
+  Math.round((v + Number.EPSILON) * 1000) / 1000 + 0;
 
 export function pointsToWktPolygon(points: Point[]): string {
   if (points.length === 0) return 'POLYGON(())';
+
+  const roundedPoints = points.map((p) => ({
+    x: round3(p.x),
+    y: round3(p.y),
+  }));
+
   const openPoints = withoutClosingPoint(
-    points,
+    roundedPoints,
     (first, last) => first.x === last.x && first.y === last.y,
   );
   const ring = [...openPoints, openPoints[0]!];
@@ -95,4 +104,61 @@ export function placePiece(points: Point[], p: Placement): Point[] {
       y: round3(worldPoint.y + p.y),
     };
   });
+}
+
+export interface FabricPieceConstraints {
+  rotationAngle: number;
+  isMirrored: boolean;
+  requiredQuantity: number;
+}
+
+export interface FabricPieceGeometry {
+  points: Point[];
+  grainline: number;
+  constraints: FabricPieceConstraints[];
+  seamAllowance: number;
+  cuttingAllowance: number;
+}
+
+export function resolveRequiredFabricWidthMm(
+  pieces: readonly FabricPieceGeometry[],
+  defaultWidthMm: number,
+): number {
+  let maxRequiredWidth = defaultWidthMm;
+
+  for (const piece of pieces) {
+    if (piece.points.length === 0) continue;
+
+    let variants = piece.constraints.filter((c) => c.requiredQuantity > 0);
+
+    if (variants.length === 0) {
+      continue;
+    }
+    const totalAllowance = piece.seamAllowance + piece.cuttingAllowance;
+
+    for (const variant of variants) {
+      const transformed = placePiece(piece.points, {
+        grainline: piece.grainline,
+        rotationAngle: variant.rotationAngle,
+        isMirrored: variant.isMirrored,
+        fabricGrainline: 0,
+        isFlipped180: false,
+        x: 0,
+        y: 0,
+      });
+
+      const minX = Math.min(...transformed.map((pt) => pt.x));
+      const maxX = Math.max(...transformed.map((pt) => pt.x));
+      const spanX = maxX - minX;
+
+      const safetyMargin = totalAllowance > 0 ? 10 : 1;
+      const requiredWidth = spanX + totalAllowance * 2 + safetyMargin;
+
+      if (requiredWidth > maxRequiredWidth) {
+        maxRequiredWidth = Math.ceil(requiredWidth);
+      }
+    }
+  }
+
+  return maxRequiredWidth;
 }

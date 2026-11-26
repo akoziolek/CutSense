@@ -51,9 +51,8 @@ export interface NestingStats {
 
 export interface EngineResult {
   wasSuccessful: boolean;
-  minLength: number;
   executionTime: number;
-  stats: NestingStats;
+  stats?: NestingStats | null;
   positions: EnginePosition[];
 }
 
@@ -67,9 +66,16 @@ export type ViewStats = Omit<
   'usableScrapCount' | 'remainingFabricLength'
 >;
 
+export interface CalculateStatsInput {
+  fabric: EngineFabric;
+  pieces: EnginePiece[];
+  placements: EnginePosition[];
+}
+
 export interface OptimizerEngine {
   run(input: EngineInput): Promise<EngineResult>;
   calcMinimum(input: CalcMinimumInput): Promise<number>;
+  calculateStats(input: CalculateStatsInput): Promise<NestingStats>;
 }
 
 export const OPTIMIZER_ENGINE = Symbol('OPTIMIZER_ENGINE');

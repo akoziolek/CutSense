@@ -32,3 +32,16 @@ export interface PieceImageSource {
   imageWidthMm: number
   imageHeightMm: number
 }
+
+export type PlacementInvalidReason = 'out_of_bounds' | 'overlap'
+
+export interface PlacementValidationResult {
+  valid: boolean
+  reason?: PlacementInvalidReason
+  collidingIndices?: number[]
+}
+
+export interface PieceBatchValidationResult {
+  valid: boolean
+  reason?: PlacementInvalidReason
+}

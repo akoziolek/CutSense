@@ -12,6 +12,7 @@ import {
 } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../../db/drizzle.provider.js';
 import { fabrics, fabricTags, tagsForFabrics } from '../../db/schema/schema.js';
+import type { LocalizedText } from '../../db/schema/schema.js';
 import { FabricResponseDto } from './dto/fabric-response.dto.js';
 import { ResourceNotFoundException } from '../../common/exceptions/resource-not-found.exception.js';
 import { ExternalServiceException } from '../../common/exceptions/external-service.exception.js';
@@ -35,6 +36,7 @@ import { BulkDeleteResponseDto } from '../../common/dto/bulk-delete.dto.js';
 import { gte, lte, ilike } from 'drizzle-orm';
 import { assertDateRange, likeTerm } from '../../common/utils/list-query.js';
 import type { FabricGeometryDto } from './dto/fabric-geometry.dto.js';
+import type { FabricSummaryDto } from './dto/fabric-summary.dto.js';
 
 @Injectable()
 export class FabricService {
@@ -62,10 +64,10 @@ export class FabricService {
     return ShapeEngineMapper.toAnalysisShapesDto(engineResult);
   }
 
-  async getFabricTags(): Promise<{ id: number; name: string }[]> {
+  async getFabricTags(): Promise<{ id: number; name: LocalizedText }[]> {
     const tags = await this.db.query.tagsForFabrics.findMany({
       columns: { id: true, name: true },
-      orderBy: (tag, { asc }) => [asc(tag.name)],
+      orderBy: (tag) => [tag.id],
     });
 
     return tags;
@@ -276,6 +278,7 @@ export class FabricService {
         id: true,
         name: true,
         createdAt: true,
+        pictureS3Key: true,
         imageWidthMm: true,
         imageHeightMm: true,
         grainline: true,
@@ -292,26 +295,37 @@ export class FabricService {
       throw new ResourceNotFoundException('Fabric', fabricId);
     }
 
-    return FabricMapper.toGeometryDto(fabric);
+    const pictureUrl = fabric.pictureS3Key
+      ? await this.storageService.generatePresignedUrl(fabric.pictureS3Key)
+      : undefined;
+
+    return FabricMapper.toGeometryDto(fabric, pictureUrl);
   }
 
   async getOwnedFabricSummary(
     fabricId: number,
     currentUserId: number,
-  ): Promise<{ name: string; createdAt: string }> {
+  ): Promise<FabricSummaryDto> {
     const fabric = await this.db.query.fabrics.findFirst({
       where: and(eq(fabrics.id, fabricId), eq(fabrics.userId, currentUserId)),
-      columns: { name: true, createdAt: true },
+      columns: {
+        name: true,
+        createdAt: true,
+        pictureS3Key: true,
+        imageWidthMm: true,
+        imageHeightMm: true,
+      },
     });
 
     if (!fabric) {
       throw new ResourceNotFoundException('Fabric', fabricId);
     }
 
-    return {
-      name: fabric.name,
-      createdAt: fabric.createdAt.toISOString(),
-    };
+    const pictureUrl = fabric.pictureS3Key
+      ? await this.storageService.generatePresignedUrl(fabric.pictureS3Key)
+      : undefined;
+
+    return FabricMapper.toSummaryDto(fabric, pictureUrl);
   }
 
   private getOrderBy(sort: FabricSortOption): SQL[] {

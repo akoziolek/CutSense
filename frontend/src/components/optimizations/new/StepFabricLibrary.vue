@@ -11,7 +11,7 @@ import ListFilterPopover from '@/components/common/ListFilterPopover.vue'
 import SelectableResourceList from '@/components/common/SelectableResourceList.vue'
 import type { SortOption } from '@/types/common'
 import type { FabricFilters, FabricListItem, FabricSort } from '@/types/fabric'
-import { formatCardDate } from '@/utils/formatCardDate'
+import { formatCardDate } from '@/utils/formatData'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import { useRoute, useRouter } from 'vue-router'
 import {

@@ -8,7 +8,7 @@ import DetailsCard from '@/components/common/DetailsCard.vue'
 import type { MetaItem } from '@/types/details'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CalendarDays, RulerDimensionLine } from 'lucide-vue-next'
+import { CalendarDays, RulerDimensionLine, ArrowUp } from 'lucide-vue-next'
 import DetailsActions from '@/components/common/DetailsActions.vue'
 import type { PolygonEdge } from '@/types/geometry'
 import { getPolygonEdges, toImagePercentBoundary } from '@/utils/geometry'
@@ -71,6 +71,12 @@ const metaItems = computed<MetaItem[]>(() =>
           icon: RulerDimensionLine,
           label: t('common.details.area'),
           value: `${(fabric.value.areaMm2 / 1_000_000).toFixed(2)} m²`,
+        },
+        {
+          icon: ArrowUp,
+          label: t('common.details.grainline'),
+          value: `${fabric.value.grainline}°`,
+          iconStyle: { transform: `rotate(${fabric.value.grainline}deg)` },
         },
       ]
     : [],

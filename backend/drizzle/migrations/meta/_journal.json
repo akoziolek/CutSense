@@ -148,6 +148,27 @@
       "when": 1794830409157,
       "tag": "0020_change_optimization_time_to_integer",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795368036077,
+      "tag": "0021_change_min_fabric_size_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1795372566131,
+      "tag": "0022_remove_min_len_from_optimization_result",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795462803279,
+      "tag": "0023_add_localized_text",
+      "breakpoints": true
     }
   ]
 }

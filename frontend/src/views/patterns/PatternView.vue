@@ -8,15 +8,7 @@ import DetailsCard from '@/components/common/DetailsCard.vue'
 import type { MetaItem } from '@/types/details'
 import ErrorState from '@/components/common/ErrorState.vue'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  CalendarDays,
-  RulerDimensionLine,
-  Scissors,
-  Lock,
-  Globe,
-  ChevronDown,
-  Puzzle
-} from 'lucide-vue-next'
+import { CalendarDays, RulerDimensionLine, Scissors, Lock, Globe, Puzzle } from 'lucide-vue-next'
 import PatternRating from '@/components/patterns/PatternRating.vue'
 import DetailsActions from '@/components/common/DetailsActions.vue'
 import { useAuth } from '@/stores/authStore'
@@ -26,9 +18,6 @@ import DeleteDialogs from '@/components/common/DeleteDialogs.vue'
 import { useDeleteResource } from '@/composables/resources/useDeleteResource'
 import { usePatternDetails } from '@/composables/patterns/usePatternDetails'
 import PatternPieceCard from '@/components/patterns/PatternPieceCard.vue'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
 import { useOptimizationAddingStore } from '@/stores/addingOptimizationStore'
 import type { PatternRatingState } from '@/types/pattern'
 
@@ -37,15 +26,8 @@ const { t } = useI18n()
 
 const showDimensions = ref(false)
 
-const {
-  pattern,
-  isFetching,
-  showSkeleton,
-  error,
-  isNotFound,
-  minLengthStatus,
-  fetchPattern,
-} = usePatternDetails()
+const { pattern, isFetching, showSkeleton, error, isNotFound, minLengthStatus, fetchPattern } =
+  usePatternDetails()
 
 const {
   confirmOpen,
@@ -101,13 +83,6 @@ const formatMinLength = (lengthMm: number, widthMm: number | null) => {
   const widthM = ((widthMm ?? 1400) / 1000).toFixed(2)
   return t('patterns.minLengthValue', { lengthM, widthM })
 }
-
-const totalNormal = computed(
-  () => pattern.value?.pieces.reduce((sum, p) => sum + p.normalCount, 0) ?? 0,
-)
-const totalMirrored = computed(
-  () => pattern.value?.pieces.reduce((sum, p) => sum + p.mirroredCount, 0) ?? 0,
-)
 
 const imagesById = computed(() => new Map((pattern.value?.images ?? []).map((i) => [i.id, i])))
 
@@ -275,46 +250,30 @@ watch(
             />
           </div>
 
-          <Collapsible default-open class="md:col-span-5 space-y-4">
+          <section class="md:col-span-5 space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <CollapsibleTrigger
-                class="group flex cursor-pointer items-center gap-2 rounded-md text-lg font-bold font-inter text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <ChevronDown
-                  class="size-5 transition-transform group-data-[state=closed]:-rotate-90"
-                />
-                <span>Pattern pieces ({{ pattern.pieces.length }})</span>
-              </CollapsibleTrigger>
-              <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
-                <div class="flex items-center gap-2">
-                  <Switch id="show-dimensions" v-model="showDimensions" />
-                  <Label for="show-dimensions" class="cursor-pointer text-xs font-medium">
-                    Show dimensions
-                  </Label>
-                </div>
-                <p class="text-xs text-muted-foreground">
-                  Total: {{ totalNormal }} normal, {{ totalMirrored }} mirrored
-                </p>
-              </div>
+              <h2 class="text-lg font-bold font-inter text-foreground">
+                {{ t('patterns.pieceList.title', { count: pattern.pieces.length }) }}
+              </h2>
             </div>
 
-            <CollapsibleContent>
-              <div
-                v-if="pattern.pieces.length"
-                class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-              >
-                <PatternPieceCard
-                  v-for="(piece, index) in pattern.pieces"
-                  :key="piece.id"
-                  :piece="piece"
-                  :label="`Piece #${index + 1}`"
-                  :image="imagesById.get(piece.patternImageId)"
-                  :show-dimensions="showDimensions"
-                />
-              </div>
-              <p v-else class="text-sm text-muted-foreground">This pattern has no pieces.</p>
-            </CollapsibleContent>
-          </Collapsible>
+            <div
+              v-if="pattern.pieces.length"
+              class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+            >
+              <PatternPieceCard
+                v-for="(piece, index) in pattern.pieces"
+                :key="piece.id"
+                :piece="piece"
+                :label="t('patterns.pieceList.pieceNumbered', { number: index + 1 })"
+                :image="imagesById.get(piece.patternImageId)"
+                :show-dimensions="showDimensions"
+              />
+            </div>
+            <p v-else class="text-sm text-muted-foreground">
+              {{ t('patterns.pieceList.empty') }}
+            </p>
+          </section>
         </main>
       </Transition>
     </div>

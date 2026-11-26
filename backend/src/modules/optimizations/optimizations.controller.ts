@@ -48,6 +48,7 @@ import {
   OptimizationPdfService,
   type OptimizationPdfFormat,
 } from './pdf/optimization-pdf.service.js';
+import { UpdateRunPlacementsDto } from './dto/update-run-placement.dto.js';
 
 enum PdfFormatParam {
   A4 = 'a4',
@@ -159,6 +160,29 @@ export class OptimizationController {
     return this.optimizationsService.getRun(runId, user?.id);
   }
 
+  @Patch('runs/:runId/placements')
+  @OptionalAuth()
+  @ApiCookieAuth('session')
+  @ApiOperation({
+    summary: 'Update piece positions in an unsaved optimization run',
+  })
+  @ApiParam({ name: 'runId', type: String })
+  @ApiBody({ type: UpdateRunPlacementsDto })
+  @ApiOkResponse({ type: OptimizationViewDto })
+  @ApiBadRequestResponse({
+    description: 'Invalid placement indices or run cannot be modified.',
+  })
+  @ApiNotFoundResponse({
+    description: 'The run expired, does not exist or belongs to someone else.',
+  })
+  updateRunPlacements(
+    @Param('runId', ParseUUIDPipe) runId: string,
+    @Body() dto: UpdateRunPlacementsDto,
+    @OptionalUser() user?: AuthUser,
+  ): Promise<OptimizationViewDto> {
+    return this.optimizationsService.updateRunPlacements(runId, dto, user?.id);
+  }
+
   @Post('runs/:runId/save')
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth('session')
@@ -232,6 +256,9 @@ export class OptimizationController {
   @ApiOperation({
     summary: 'Download optimization run layout as PDF (A4 or 1:1 actual size)',
   })
+  @ApiBadRequestResponse({
+    description: 'Invalid PDF format or the optimization layout is incomplete.',
+  })
   async downloadRunPdf(
     @Param('runId', ParseUUIDPipe) runId: string,
     @Query('format', new ParseEnumPipe(PdfFormatParam)) format: PdfFormatParam,
@@ -247,6 +274,9 @@ export class OptimizationController {
   @ApiOperation({
     summary:
       'Download saved optimization layout as PDF (A4 or 1:1 actual size)',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid PDF format or the optimization layout is incomplete.',
   })
   async downloadSavedPdf(
     @Param('id', ParseIntPipe) id: number,

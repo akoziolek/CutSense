@@ -1,13 +1,46 @@
 import { computed, type Ref } from 'vue'
 import type { Point2D, PolygonEdge } from '@/types/geometry'
-import { getCartesianDistance, getPointDistance, getSegmentMidpoint } from '@/utils/geometry'
+import {
+  getCartesianDistance,
+  getPointDistance,
+  getSegmentMidpoint,
+  toImagePixels,
+} from '@/utils/geometry'
 
 export const MIN_LABEL_SPACING_PX = 35
+
+interface SpatialCandidate<K extends string | number> {
+  key: K
+  isPriority: boolean
+  weight: number
+  x: number
+  y: number
+}
+
+function filterNonOverlapping<K extends string | number>(
+  candidates: SpatialCandidate<K>[],
+  minSpacingPx = MIN_LABEL_SPACING_PX,
+): Set<K> {
+  const visible = new Set<K>()
+  const sorted = [...candidates].sort(
+    (a, b) => Number(b.isPriority) - Number(a.isPriority) || b.weight - a.weight,
+  )
+
+  const drawn: { x: number; y: number }[] = []
+  for (const cand of sorted) {
+    const isFree = !drawn.some((p) => getCartesianDistance(p, cand) < minSpacingPx)
+    if (cand.isPriority || isFree) {
+      visible.add(cand.key)
+      drawn.push({ x: cand.x, y: cand.y })
+    }
+  }
+
+  return visible
+}
 
 export function useNonOverlappingLabels(options: {
   shapes: Ref<Point2D[][]>
   edges?: Ref<PolygonEdge[][] | undefined>
-  hiddenShapes?: Ref<boolean[] | undefined>
   activeShapeIndex?: Ref<number | null | undefined>
   selectedEdgeIndex?: Ref<number | null | undefined>
   onlyActiveShape?: boolean
@@ -18,12 +51,11 @@ export function useNonOverlappingLabels(options: {
   zoomLevel: Ref<number>
 }) {
   const visibleLabelsSet = computed(() => {
-    const visible = new Set<string>()
-    if (!options.showLabels.value) return visible
+    if (!options.showLabels.value) return new Set<string>()
 
     const activeIdx = options.activeShapeIndex?.value
     if (options.onlyActiveShape && (activeIdx === null || activeIdx === undefined)) {
-      return visible
+      return new Set<string>()
     }
 
     const effectiveZoom = options.quantizeZoom
@@ -32,26 +64,19 @@ export function useNonOverlappingLabels(options: {
 
     const w = options.widthPx.value * effectiveZoom
     const h = options.heightPx.value * effectiveZoom
-    if (!w || !h) return visible
+    if (!w || !h) return new Set<string>()
 
-    const candidates: Array<{
-      key: string
-      isSelected: boolean
-      len: number
-      x: number
-      y: number
-    }> = []
+    const candidates: SpatialCandidate<string>[] = []
 
     const pushShapeCandidates = (shape: Point2D[], shapeIdx: number) => {
-      if (options.hiddenShapes?.value?.[shapeIdx]) return
 
       const shapeEdges = options.edges?.value?.[shapeIdx]
       if (shapeEdges && shapeEdges.length > 0) {
         shapeEdges.forEach((edge) => {
           candidates.push({
             key: `${shapeIdx}-${edge.index}`,
-            isSelected: shapeIdx === activeIdx && edge.index === options.selectedEdgeIndex?.value,
-            len: getPointDistance(edge.p1, edge.p2, w, h),
+            isPriority: shapeIdx === activeIdx && edge.index === options.selectedEdgeIndex?.value,
+            weight: getPointDistance(edge.p1, edge.p2, w, h),
             ...getSegmentMidpoint(edge.p1, edge.p2, w, h),
           })
         })
@@ -60,8 +85,8 @@ export function useNonOverlappingLabels(options: {
           const p2 = shape[(idx + 1) % shape.length]!
           candidates.push({
             key: `${shapeIdx}-${idx}`,
-            isSelected: false,
-            len: getPointDistance(p1, p2, w, h),
+            isPriority: false,
+            weight: getPointDistance(p1, p2, w, h),
             ...getSegmentMidpoint(p1, p2, w, h),
           })
         })
@@ -75,21 +100,7 @@ export function useNonOverlappingLabels(options: {
       options.shapes.value.forEach(pushShapeCandidates)
     }
 
-    candidates.sort((a, b) => Number(b.isSelected) - Number(a.isSelected) || b.len - a.len)
-
-    const drawn: { x: number; y: number }[] = []
-    for (const cand of candidates) {
-      const isFree = !drawn.some(
-        (p) => getCartesianDistance(p, cand) < MIN_LABEL_SPACING_PX,
-      )
-
-      if (cand.isSelected || isFree) {
-        visible.add(cand.key)
-        drawn.push({ x: cand.x, y: cand.y })
-      }
-    }
-
-    return visible
+    return filterNonOverlapping(candidates)
   })
 
   const isLabelVisible = (shapeIdx: number, edgeIdx: number) =>
@@ -98,5 +109,43 @@ export function useNonOverlappingLabels(options: {
   return {
     visibleLabelsSet,
     isLabelVisible,
+  }
+}
+
+export function useNonOverlappingPoints<K extends string | number>(options: {
+  points: Ref<Array<{ key: K; point: Point2D; weight: number; isPriority?: boolean }>>
+  showLabels: Ref<boolean>
+  widthPx: Ref<number>
+  heightPx: Ref<number>
+  zoomLevel: Ref<number>
+  quantizeZoom?: boolean
+  minSpacingPx?: number
+}) {
+  const visibleKeys = computed(() => {
+    if (!options.showLabels.value) return new Set<K>()
+
+    const effectiveZoom = options.quantizeZoom
+      ? Math.round(options.zoomLevel.value * 5) / 5
+      : options.zoomLevel.value
+
+    const w = options.widthPx.value * effectiveZoom
+    const h = options.heightPx.value * effectiveZoom
+    if (!w || !h) return new Set<K>()
+
+    const candidates: SpatialCandidate<K>[] = options.points.value.map((item) => ({
+      key: item.key,
+      isPriority: Boolean(item.isPriority),
+      weight: item.weight,
+      ...toImagePixels(item.point, w, h),
+    }))
+
+    return filterNonOverlapping(candidates, options.minSpacingPx)
+  })
+
+  const isVisible = (key: K) => visibleKeys.value.has(key)
+
+  return {
+    visibleKeys,
+    isVisible,
   }
 }

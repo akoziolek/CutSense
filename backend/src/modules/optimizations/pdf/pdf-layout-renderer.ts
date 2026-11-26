@@ -73,22 +73,25 @@ export function drawSummaryCoverPage(
   drawSafeText(doc, title, margin, margin);
 
   doc.font('Helvetica').fontSize(9).fillColor(PDF_PALETTE.inkSecondary);
+  // TODO use lang send from frontend
   drawSafeText(
     doc,
-    `Algorithm: ${view.algorithmName}   |   Fabric: ${Math.round(fabricBounds.width)} x ${Math.round(fabricBounds.height)} mm   |   Allowances: ${view.seamAllowanceMm} / ${view.cuttingAllowanceMm} mm`,
+    `Algorithm: ${view.algorithmName.en}   |   Fabric: ${Math.round(fabricBounds.width)} x ${Math.round(fabricBounds.height)} mm   |   Allowances: ${view.seamAllowanceMm} / ${view.cuttingAllowanceMm} mm`,
     margin,
     margin + 20,
   );
 
   const statsY = margin + 38;
-  const usedLengthM = (view.minLengthMm / 1000).toFixed(2);
-  doc.font('Helvetica').fontSize(9).fillColor(PDF_PALETTE.inkPrimary);
-  drawSafeText(
-    doc,
-    `Used length: ${usedLengthM} m   |   Remaining: ${view.stats.remainingFabricPercentage}%   |   Usable scraps: ${view.stats.usableScrapsPercentage}%   |   Waste: ${view.stats.wastePercentage}%`,
-    margin,
-    statsY,
-  );
+
+  if (view.stats) {
+    doc.font('Helvetica').fontSize(9).fillColor(PDF_PALETTE.inkPrimary);
+    drawSafeText(
+      doc,
+      `Remaining: ${view.stats.remainingFabricPercentage}%   |   Usable scraps: ${view.stats.usableScrapsPercentage}%   |   Waste: ${view.stats.wastePercentage}%`,
+      margin,
+      statsY,
+    );
+  }
 
   const rulerLeftSpace = 38;
   const rulerBottomSpace = 24;

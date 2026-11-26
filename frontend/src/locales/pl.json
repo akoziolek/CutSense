@@ -67,7 +67,8 @@
       "longPressToSelect": "Przytrzymaj lub kliknij prawym przyciskiem kartę, aby ją zaznaczyć",
       "deleteItemsTitle": "Usunąć {count}: {noun}?",
       "deleteSuccessTitle": "Usunięto: {noun}",
-      "deleteSuccessDescription": "Usunięto {count}: {noun} wraz z powiązanymi optymalizacjami."
+      "deleteSuccessDescription": "Usunięto {count}: {noun} wraz z powiązanymi optymalizacjami.",
+      "select": "Zaznacz"
     },
     "filters": {
       "detailed": "Filtry szczegółowe",
@@ -96,7 +97,8 @@
       "noMatchingTags": "Brak pasujących tagów",
       "requiredField": "* Pole wymagane",
       "foundCount": "Znaleziono: {count}",
-      "stepOf": "Krok {current} z {total}"
+      "stepOf": "Krok {current} z {total}",
+      "selectedCount": "Zaznaczono: {count}"
     },
     "confirmations": {
       "deleteDescription": "Tej operacji nie można cofnąć. Spowoduje ona trwałe usunięcie powiązanych optymalizacji."
@@ -124,12 +126,13 @@
       "area": "Powierzchnia",
       "visibility": "Widoczność",
       "size": "Rozmiar",
-      "author": "Autor"
+      "author": "Autor",
+      "grainline": "Kierunek nitki"
     },
     "form": {
       "required": "* Pole wymagane",
       "descriptionPlaceholder": "Wpisz skład, gramaturę lub przeznaczenie...",
-      "searchOrAddTags": "Szukaj tagów lub dodaj nowe..."
+      "searchOrAddTags": "Szukaj tagów..."
     },
     "upload": {
       "clickToUpload": "Kliknij, aby przesłać",
@@ -268,7 +271,11 @@
     "sortNewest": "Od najnowszych",
     "sortOldest": "Od najstarszych",
     "sortSmallest": "Od najmniejszych",
-    "sortBiggest": "Od największych"
+    "sortBiggest": "Od największych",
+    "editedToast": "Zaktualizowano tkaninę",
+    "updateErrorToast": "Nie udało się zaktualizować tkaniny",
+    "savedToast": "Dodano tkaninę",
+    "saveErrorToast": "Nie udało się zapisać tkaniny"
   },
   "patterns": {
     "name": "Nazwa wykroju",
@@ -301,7 +308,7 @@
     "selectSize": "Wybierz rozmiar",
     "visibility": "Widoczność",
     "descriptionPlaceholder": "Wpisz skład, gramaturę lub przeznaczenie...",
-    "searchOrAddTags": "Szukaj tagów lub dodaj nowe...",
+    "searchOrAddTags": "Szukaj tagów...",
     "imageProcessError": "Nie udało się przetworzyć obrazu.",
     "imageProcessDescription": "Spróbuj ponownie później lub ręcznie dostosuj domyślny kształt.",
     "tagLoadError": "Nie udało się wczytać tagów wykrojów. Spróbuj ponownie.",
@@ -334,11 +341,28 @@
     "detectingBoundaries": "Wykrywanie granic elementów wykroju ze zdjęcia nr {number}...",
     "analysisFailed": "Nie udało się przeanalizować granic zdjęcia. Dostosuj je ręcznie.",
     "noSheetsToDisplay": "Brak arkuszy wykroju do wyświetlenia",
-    "minLength": "Min. długość materiału",
-    "minLengthValue": "{lengthM}\u00A0m × {widthM}\u00A0m",
+    "minLength": "Min. rozmiar materiału",
+    "minLengthValue": "{widthM}\u00A0m × {lengthM}\u00A0m",
     "calculating": "Obliczanie...",
     "calculationUnavailable": "Obliczenie niedostępne",
-    "signInToRate": "Zaloguj się, aby wystawić ocenę"
+    "signInToRate": "Zaloguj się, aby wystawić ocenę",
+    "pieceList": {
+      "piece": "Element",
+      "pieceNumbered": "Element {number}",
+      "grainline": "Kierunek nitki",
+      "grainlineTitle": "Kierunek nitki: {angle}°",
+      "normal": "Zwykłe",
+      "normalTitle": "Liczba sztuk standardowych",
+      "mirrored": "Odbite",
+      "mirroredTitle": "Liczba sztuk w odbiciu lustrzanym",
+      "title": "Elementy wykroju ({count})",
+      "showDimensions": "Pokaż wymiary",
+      "empty": "Ten wykrój nie zawiera żadnych elementów."
+    },
+    "editedToast": "Zaktualizowano wykrój",
+    "updateErrorToast": "Nie udało się zaktualizować wykroju",
+    "savedToast": "Dodano wykrój",
+    "saveErrorToast": "Nie udało się zapisać wykroju"
   },
   "optimizations": { 
     "addFirstFabric": "Dodaj pierwszą tkaninę",
@@ -481,10 +505,20 @@
     "hidePieceLabels": "Ukryj numery elementów",
     "legendPiece": "Element wykroju",
     "legendMirrored": "Odbicie lustrzane",
-    "legendRotated": "Kąt obrotu"
+    "legendRotated": "Kąt obrotu",
+    "widthPlaceholder": "np. 145",
+    "heightPlaceholder": "np. 290",
+    "pieceOutOfBounds": "Element musi pozostać w obszarze tkaniny.",
+    "pieceOverlaps": "Element nie może nachodzić na inne.",
+    "incompleteLayoutBadge": "Niepoprawny układ",
+    "incompleteLayoutWarning": "Niepoprawny układ. Popraw rozmieszczenie elementów przed zapisem lub eksportem do PDF.",
+    "incompleteLayoutTooltip": "Niepoprawny układ ({reasons}). Popraw rozmieszczenie przed zapisem lub eksportem do PDF.",
+    "blockedOutOfBounds": "elementy poza tkaniną: {count}",
+    "blockedOverlap": "nachodzące elementy / konflikt naddatków: {count}",
+    "statsUnavailableIncomplet": "Popraw ułożenie elementów, aby przeliczyć"
   },
   "landing": {
-    "headline": "Liczy się każdy cm",
+    "headline": "Oszczędź czas i tkaninę",
     "subheadline": "Szyj, marnując mniej",
     "andCreateMore": "I twórz więcej",
     "getStarted": "Rozpocznij",
@@ -495,6 +529,28 @@
     "stepsTitle": "Zobacz, jak łatwo zacząć",
     "stepsDescription": "Wystarczy wykonać kilka prostych kroków.",
     "step": "Krok {number}",
+    "steps": {
+      "1": {
+        "title": "Wybierz materiał",
+        "description": "Wybierz tkaninę z własnej szafy albo wpisz jej dokładne wymiary."
+      },
+      "2": {
+        "title": "Dobierz wykrój",
+        "description": "Wybierz wykrój z własnej biblioteki albo skorzystaj z bazy społeczności."
+      },
+      "3": {
+        "title": "Podaj parametry",
+        "description": "Określ wymagania, takie jak liczba sztuk poszczególnych elementów."
+      },
+      "4": {
+        "title": "Wybierz algorytm",
+        "description": "Dopasuj algorytm rozmieszczania elementów do swoich potrzeb."
+      },
+      "5": {
+        "title": "Eksportuj wyniki",
+        "description": "Zobacz, zapisz i wyeksportuj gotowy układ swojej optymalizacji."
+      }
+    },
     "creators": "Twórcy",
     "creatorDescription": "Kilka słów o nas.",
     "tickerSignUp": "Zarejestruj się, aby uzyskać dostęp do wszystkich funkcji",

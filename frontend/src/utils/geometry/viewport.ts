@@ -8,6 +8,37 @@ export function clampPanOffset(
   }
 }
 
+export function getRulerSteps(
+  pxPerMm: number,
+  minMajorSpacingPx = 48,
+): {
+  minorStepMm: number
+  majorStepMm: number
+} {
+  const rawStepMm = Math.max(10, minMajorSpacingPx / pxPerMm)
+
+  const magnitude = 10 ** Math.floor(Math.log10(rawStepMm))
+  const normalized = rawStepMm / magnitude
+
+  let majorStepMm: number
+  const subdivisions: number = 5
+
+  if (normalized <= 1) {
+    majorStepMm = magnitude
+  } else if (normalized <= 2) {
+    majorStepMm = 2 * magnitude
+  } else if (normalized <= 5) {
+    majorStepMm = 5 * magnitude
+  } else {
+    majorStepMm = 10 * magnitude
+  }
+
+  return {
+    majorStepMm,
+    minorStepMm: Math.max(1, majorStepMm / subdivisions),
+  }
+}
+
 export function buildRulerTicks(params: {
   viewportSizePx: number
   pxPerMm: number
@@ -32,4 +63,26 @@ export function buildRulerTicks(params: {
     }
   }
   return ticks
+}
+
+export function getCrosshairState(params: {
+  clientX: number
+  clientY: number
+  containerRect: { left: number; top: number; width: number; height: number }
+  sheet: { left: number; bottom: number; width: number; height: number }
+  canvasWidthMm: number
+  canvasHeightMm: number
+}) {
+  const { clientX, clientY, containerRect, sheet, canvasWidthMm, canvasHeightMm } = params
+  const x = clientX - containerRect.left
+  const y = clientY - containerRect.top
+
+  return {
+    x,
+    y,
+    mmX: Math.round(((x - sheet.left) / sheet.width) * canvasWidthMm),
+    mmY: Math.round(((sheet.bottom - y) / sheet.height) * canvasHeightMm),
+    flipLeft: x > containerRect.width - 150,
+    flipTop: y > containerRect.height - 48,
+  }
 }

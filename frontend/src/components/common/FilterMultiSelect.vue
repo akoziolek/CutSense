@@ -5,6 +5,7 @@ import { Check, ChevronDown, Search, X } from 'lucide-vue-next'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import type { FilterOption } from '@/types/common'
+import { localizedText } from '@/utils/localizedText'
 
 const props = defineProps<{
   options: FilterOption[]
@@ -14,14 +15,16 @@ const props = defineProps<{
 }>()
 const selected = defineModel<number[]>({ required: true })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const query = ref('')
 const isOpen = ref(false)
 
 const visible = computed(() => {
   const q = query.value.trim().toLowerCase()
-  return props.options.filter((o) => o.name.toLowerCase().includes(q))
+  return props.options.filter((option) =>
+    localizedText(option.name, locale.value).toLowerCase().includes(q),
+  )
 })
 const selectedOptions = computed(() => props.options.filter((o) => selected.value.includes(o.id)))
 const showList = computed(() => isOpen.value || query.value.trim() !== '')
@@ -46,11 +49,15 @@ const onFocusOut = (e: FocusEvent) => {
         variant="secondary"
         class="gap-1 rounded-md bg-brand-grey text-xs font-normal"
       >
-        {{ option.name }}
+        {{ localizedText(option.name, locale) }}
         <button
           type="button"
           class="cursor-pointer"
-          :aria-label="t('common.filters.removeOption', { name: option.name })"
+          :aria-label="
+            t('common.filters.removeOption', {
+              name: localizedText(option.name, locale),
+            })
+          "
           @click="toggle(option.id)"
         >
           <X class="size-3" />
@@ -96,7 +103,7 @@ const onFocusOut = (e: FocusEvent) => {
             @mousedown.prevent
             @click="toggle(option.id)"
           >
-            <span class="truncate">{{ option.name }}</span>
+            <span class="truncate">{{ localizedText(option.name, locale) }}</span>
             <span class="flex shrink-0 items-center gap-1.5">
               <span v-if="option.count !== undefined" class="text-muted-foreground">({{ option.count }})</span>
               <Check v-if="selected.includes(option.id)" class="size-3.5" />

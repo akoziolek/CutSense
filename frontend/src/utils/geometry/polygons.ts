@@ -3,14 +3,12 @@ import type {
   GeometryBoundsMm,
   Point2D,
   PolygonEdge,
-  PlacementValidationResult,
   PieceBatchValidationResult,
 } from '@/types/geometry'
 import { getGeometryBoundsMm, toImagePixels } from './coordinates'
 
 const CLIPPER_SCALE = 1000
 const PLACEMENT_AREA_TOLERANCE_MM2 = 1.0
-const LINEAR_TOLERANCE_MM = 1.5
 
 // needed for clipper lib
 const toPath64 = (mmPts: [number, number][]): Path64 =>
@@ -157,8 +155,6 @@ export function validateAllPiecesPlacement(params: {
   if (count === 0) return []
 
   const allowance = Math.max(0, params.totalAllowanceMm)
-  const fabricValidationOffset = Math.max(0, allowance - LINEAR_TOLERANCE_MM)
-  const overlapValidationOffset = Math.max(0, allowance - LINEAR_TOLERANCE_MM / 2)
 
   const hasFabric = params.fabricBoundary.length >= 3
   const fabricPath = hasFabric ? toPath64(params.fabricBoundary) : null
@@ -166,11 +162,11 @@ export function validateAllPiecesPlacement(params: {
 
   const prepared = params.piecesPoints.map((pts) => {
     if (pts.length < 3) return null
-    const overlapPoly = offsetPolygonMm(pts, overlapValidationOffset)
+    const overlapPoly = offsetPolygonMm(pts, allowance)
     const fabricPoly =
-      fabricValidationOffset === overlapValidationOffset
+      allowance === allowance
         ? overlapPoly
-        : offsetPolygonMm(pts, fabricValidationOffset)
+        : offsetPolygonMm(pts, allowance)
 
     return {
       overlapPath: toPath64(overlapPoly),
@@ -232,17 +228,6 @@ export function validateAllPiecesPlacement(params: {
   })
 }
 
-/**
- * Validates piece placement against neighboring pieces and fabric boundaries.
- *
- * NOTE (Optimizer integer rounding workaround):
- * The C++ nesting engine computes placements on a micrometer grid (SCALE = 1000)
- * but inputs/outputs integer millimeter coordinates, causing up to ~1 mm shift on flush pieces.
- * `LINEAR_TOLERANCE_MM` compensates for this rounding drift to avoid false-positive
- * collisions on valid optimizer results.
- *
- * @todo Reduce `LINEAR_TOLERANCE_MM` to ~0.05 once the optimizer outputs `double` coordinates.
- */
 export function validateSinglePieceAtIndex(params: {
   targetIndex: number
   piecesPoints: [number, number][][]

@@ -18,6 +18,7 @@ const props = defineProps<{
   normalCount: number
   mirroredCount: number
   fabricLabel?: string
+  fabricPillClass?: string
   selected: boolean
 }>()
 
@@ -96,7 +97,8 @@ const shape = computed(() => {
         <Badge
           v-if="fabricLabel"
           variant="secondary"
-          class="max-w-full truncate rounded-md bg-brand-green font-normal text-brand-green-foreground"
+          class="max-w-full truncate rounded-md font-normal"
+          :class="fabricPillClass"
         >
           {{ fabricLabel }}
         </Badge>

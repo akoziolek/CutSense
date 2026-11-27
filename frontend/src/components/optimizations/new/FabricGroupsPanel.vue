@@ -10,6 +10,16 @@ const emit = defineEmits<{
   (e: 'add-fabric'): void
 }>()
 const store = useOptimizationAddingStore()
+
+const FABRIC_PILL_CLASSES = [
+  'bg-brand-green text-brand-green-foreground',
+  'bg-brand-pink text-brand-pink-foreground',
+  'bg-brand-violet text-brand-violet-foreground',
+  'bg-brand-grey text-brand-grey-foreground',
+] as const
+
+const fabricPillClass = (index: number) =>
+  FABRIC_PILL_CLASSES[index % FABRIC_PILL_CLASSES.length]!
 </script>
 
 <template>
@@ -45,7 +55,7 @@ const store = useOptimizationAddingStore()
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <p class="truncate font-semibold">{{ i + 1 }}. {{ fabricLabel(f) }}</p>
-            <Badge variant="secondary" class="mt-1 rounded-md bg-brand-grey font-normal">
+            <Badge variant="secondary" class="mt-1 rounded-md font-normal" :class="fabricPillClass(i)">
               {{ f.source === 'library' ? 'Library' : 'Custom' }}
             </Badge>
           </div>

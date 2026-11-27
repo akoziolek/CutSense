@@ -110,6 +110,19 @@ const labelOfFabric = (fabricKey: string | null) => {
   return fabric ? fabricLabel(fabric) : undefined
 }
 
+const FABRIC_PILL_CLASSES = [
+  'bg-brand-green text-brand-green-foreground',
+  'bg-brand-pink text-brand-pink-foreground',
+  'bg-brand-violet text-brand-violet-foreground',
+  'bg-brand-grey text-brand-grey-foreground',
+] as const
+
+const fabricPillClass = (fabricKey: string | null) => {
+  if (!fabricKey) return ''
+  const index = store.fabricPool.findIndex((fabric) => fabric.key === fabricKey)
+  return index >= 0 ? FABRIC_PILL_CLASSES[index % FABRIC_PILL_CLASSES.length]! : ''
+}
+
 // ---------- 2. fabric ----------
 const assign = (fabricKey: string) => {
   store.assignPieces(selected.value, fabricKey)
@@ -220,6 +233,7 @@ const assignLibrary = () => {
               :normal-count="item.piece.normalCount"
               :mirrored-count="item.piece.mirroredCount"
               :fabric-label="labelOfFabric(item.piece.fabricKey)"
+              :fabric-pill-class="fabricPillClass(item.piece.fabricKey)"
               :selected="isSelected(item.piece.key)"
               @toggle="toggle(item.piece.key)"
             />

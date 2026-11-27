@@ -28,7 +28,6 @@ import OptimizationPreview from '@/components/optimizations/OptimizationPreview.
 import SaveOptimizationModal from '@/components/optimizations/SaveOptimizationModal.vue'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -158,6 +157,7 @@ watch(
   },
   { immediate: true },
 )
+
 </script>
 
 <template>
@@ -264,72 +264,35 @@ watch(
       />
 
       <template v-else-if="items.length">
-        <!-- one tab per fabric -->
-        <Tabs default-value="0" class="space-y-4">
-          <TabsList class="h-auto flex-wrap justify-start">
-            <TabsTrigger v-for="(o, i) in items" :key="i" :value="String(i)">
+        <!-- one sidebar item per fabric -->
+        <Tabs
+          default-value="0"
+          orientation="vertical"
+          class="grid grid-cols-1 gap-4 lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start"
+        >
+          <TabsList class="h-auto w-full flex-row flex-wrap justify-start gap-1 lg:sticky lg:top-6 lg:w-full lg:flex-col lg:items-stretch lg:justify-start">
+            <TabsTrigger
+              v-for="(o, i) in items"
+              :key="i"
+              :value="String(i)"
+              class="w-auto justify-start lg:w-full lg:h-12 lg:justify-start"
+            >
               {{ fabricTitle(o, i) }}
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent v-for="(o, i) in items" :key="i" :value="String(i)">
+          <TabsContent
+            v-for="(o, i) in items"
+            :key="i"
+            :value="String(i)"
+            class="min-w-0"
+          >
             <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-start">
               <div :class="isExpanded ? 'lg:col-span-2' : 'lg:col-span-1'" class="w-full space-y-3">
                 <div class="flex items-center justify-between gap-2">
                   <h2 class="text-xl font-bold font-inter tracking-tight">
                     {{ t('optimizations.placementOfPieces') }}
                   </h2>
-
-                  <!-- prints only this fabric -->
-                  <DropdownMenu v-if="o.wasSuccessful">
-                    <DropdownMenuTrigger as-child>
-                      <Button
-                        variant="outline"
-                        class="h-9 gap-2 rounded-lg border border-foreground px-4"
-                        :disabled="isDownloadingAll || downloadingKey !== null"
-                      >
-                        <Loader2
-                          v-if="downloadingKey === String(o.runId ?? o.id)"
-                          class="h-4 w-4 animate-spin"
-                        />
-                        <Download v-else class="h-4.5 w-4.5" />
-                        PDF
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      class="w-64 max-w-[calc(100vw-2rem)] border border-foreground/30 p-1.5 shadow-md sm:w-72"
-                    >
-                      <DropdownMenuItem
-                        class="cursor-pointer items-start gap-2.5 rounded-md p-2.5"
-                        @select="downloadPdf(o, 'a4')"
-                      >
-                        <FileText class="mt-0.5 h-4 w-4 shrink-0" />
-                        <div class="flex flex-col gap-0.5">
-                          <span class="font-medium leading-tight">
-                            {{ t('optimizations.downloadPdfA4') }}
-                          </span>
-                          <span class="text-xs leading-snug text-muted-foreground">
-                            {{ t('optimizations.downloadPdfA4Description') }}
-                          </span>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        class="cursor-pointer items-start gap-2.5 rounded-md p-2.5"
-                        @select="downloadPdf(o, 'actual')"
-                      >
-                        <Maximize2 class="mt-0.5 h-4 w-4 shrink-0" />
-                        <div class="flex flex-col gap-0.5">
-                          <span class="font-medium leading-tight">
-                            {{ t('optimizations.downloadPdfActual') }}
-                          </span>
-                          <span class="text-xs leading-snug text-muted-foreground">
-                            {{ t('optimizations.downloadPdfActualDescription') }}
-                          </span>
-                        </div>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
 
                 <ErrorState
